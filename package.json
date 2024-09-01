@@ -1,0 +1,26 @@
+{
+  "name": "@example/starlight-basics",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^3.1.4",
+    "@astrojs/starlight": "^0.26.1",
+    "astro": "^4.10.2",
+    "astro-embed": "^0.7.2",
+    "sharp": "^0.32.5",
+    "astro-d2": "^0.4.0",
+    "starlight-image-zoom": "^0.8.0",
+    "astro-vtbot": "^1.8.8",
+    "astro-og-canvas": "^0.5.3",
+    "p-retry": "^6.2.0",
+    "@11ty/eleventy-fetch": "^4.0.1"
+  }
+}
