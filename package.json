@@ -1,5 +1,6 @@
 {
   "name": "@example/starlight-basics",
+  "packageManager": "pnpm@9.1.1",
   "type": "module",
   "version": "0.0.1",
   "private": true,
