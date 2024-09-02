@@ -2,27 +2,26 @@
 title: Exegol
 description: Je vais m’efforcer dans ce texte de vous expliquer et de vous démontrer pourquoi, **pour moi**, **Exegol est le meilleur environnement de travail en Pente
 categories: [tools]
-tags: [tools,cybersécurité]
+tags: [tools,exegol]
 template: doc
 ---
-<center>
-![](https://raw.githubusercontent.com/ThePorgs/Exegol-docs/main/.assets/rounded_social_preview.png)
-</center>
+
+![](../../../assets/tools/exegol/exegol.webp)
 
 Je vais m’efforcer dans ce texte de vous expliquer et de vous démontrer pourquoi, **pour moi**, **Exegol est le meilleur environnement de travail en Pentest** !
 
-Pour commencer, qu’est-ce qu’Exegol ?
-
----
+## Qu’est-ce qu’Exegol ?
 
 > Exegol est un environnement de hacking communautaire, puissant et pourtant suffisamment simple pour être utilisé par n’importe qui au quotidien. Exegol est la meilleure solution pour déployer des environnements de hacking puissants de manière sécurisée, facile et professionnelle. Exegol convient aux pentesters, aux joueurs de CTF, aux chasseurs de bogues, aux chercheurs, aux débutants et aux utilisateurs avancés, aux défenseurs, aux utilisateurs élégants de macOS et aux professionnels de Windows en entreprise, ainsi qu’aux utilisateurs puissants de type UNIX.
 
 [**GitHub – ThePorgs/Exegol: Fully featured and community-driven hacking environment**  
 _Fully featured and community-driven hacking environment – ThePorgs/Exegol_github.com](https://github.com/ThePorgs/Exegol)
 
-(Retrouvez une présentation d’un de ses créateurs sur ma chaîne ici : [Présentation Exegol Par Shutdown](https://youtu.be/E8TAZ_J_H8s?si=kmOxs9c0Z7DT7fm7) )
+Retrouvez la présentation faite par Shutdown sur la chaîne de Frozenk:
 
-### Et concrètement ?
+https://youtu.be/E8TAZ_J_H8s?si=kmOxs9c0Z7DT7fm7
+
+## Et concrètement ?
 
 - Il s’agit d’un environnement containériser (via docker ) que nous pouvons lancer (et personnaliser, nous verrons ça plus tard) à la demande pour chaque client, CTF, challenge ou n’importe quoi dont vous auriez besoin d’un environnement ‘propre’.
 - Vous aurez directement accès à une gigantesque multitude d’outils pré-installés et pré-configurés (Bloodhound, Burp Suite, Havoc, la suite Impacket et beaucoup d’autres : [lien vers la documentation](https://exegol.readthedocs.io/en/latest/exegol-resources/resources.html)).
@@ -32,7 +31,7 @@ _Fully featured and community-driven hacking environment – ThePorgs/Exegol_git
 - Diverses options incroyablement utiles, comme l’enregistrement du terminal (entrée ET sortie !) horodaté, le **lancement direct de votre VPN** sur le conteneur, un **environnement graphique** accessible par un navigateur (comme une attack box).
 - **Des mises à jour** et **améliorations permanentes**, avec une **communauté** bienveillante et réactive !
 
-### – Le cloisonnement
+## Le cloisonnement
 
 Lors de vos Pentests, **vous devez** (ou devriez) faire en sorte que les données clients recueillies soient complètement en sécurité. Pour cela, la solution la plus courante est de créer un **snapshot de son système** (Kali, par exemple), que vous devez redéployer pour chaque client, et le conserver pendant un certain temps en l’état, et ce, **pour chaque test** !
 
@@ -48,11 +47,11 @@ Votre espace restera intact tant que vous ne supprimez pas son conteneur. Vous a
 
 Une fois le délai passé, vous pouvez simplement supprimer le conteneur en quelques secondes. Et vous pouvez en créer autant que vous le souhaitez !
 
-### – Les Outils
+## Les Outils
 
 Vous aurez une incroyable liste d’**outils pré-installés** (en fonction de la version d’Exegol que vous choisissez). Pourquoi installer Kali avec la totalité de ses outils, alors que vous avez simplement à lancer Exegol et vous aurez ces mêmes outils installés et **prêts à l’emploi** ? La liste des outils ne cesse de s’allonger, elle est **établie par des professionnels** en fonction de leurs besoins quotidiens, il y a donc peu de chances que vous n’ayez pas ce que vous cherchez ! Et si c’était le cas, il vous est quand même possible de l’installer classiquement ! La plupart des outils sont déjà configurés avec des alias, donc pas besoin de taper directement le chemin du script, uniquement son nom.
 
-### Les Options
+## Les Options
 
 (Vous trouverez les options [ici](https://exegol.readthedocs.io/en/latest/exegol-wrapper/start.html))
 
@@ -60,11 +59,9 @@ Vous aurez une incroyable liste d’**outils pré-installés** (en fonction de 
 - Enregistrer la totalité des actions d’entrée et de sortie de votre shell à la seconde près, simplement avec l’option -l
 - Il est maintenant aussi possible d’avoir une interface graphique avec Exegol ! Il vous suffit de la définir au lancement du conteneur, ensuite vous accédez directement avec votre GUI depuis un navigateur en vous rendant sur l’adresse IP et le port choisi, et en entrant vos identifiants fournis après l’ouverture de votre conteneur !
 
-### – Personnalisation
+## Personnalisation
 
 Il est possible **très simplement** de lancer un conteneur avec **ses propres options** ! Il vous manque un outil, une source, un alias ou autres ? Vous pouvez simplement gérer cela avec les “**My resources**” : Pour cela, il vous suffit d’éditer les fichiers se trouvant dans : **_~/.exegol/my-resources/_** Vous avez deux dossiers, un pour y déposer vos propres scripts, binaires, etc., et l’autre pour éditer les configurations diverses : _apt, Bloodhound, Firefox, Python3, tmux, vim, zsh…_ Une explication est disponible sur la documentation officielle ici : [lien vers la documentation](https://exegol.readthedocs.io/en/latest/exegol-image/my-resources.html)
-
----
 
 Pour ma part, j’ai directement créé un dépôt GitHub avec mes propres configurations et modifications de l’environnement, notamment :
 
@@ -78,13 +75,13 @@ L’avantage de procéder ainsi ? Il me suffit de modifier mon GitHub pour que 
 
 Lien de mon GitHub pour Exegol : [https://github.com/Frozenka/Exegol-Ressources](https://github.com/Frozenka/Exegol-Ressources)
 
-![](https://cdn-images-1.medium.com/max/800/1*81G3XeYD4EAQI7W5K5982A.gif)
+![](../../../assets/tools/exegol/demo.gif)
 
 GIF de mon flux de travail Exegol
 
 J’espère que cela vous a convaincu ou vous a fait découvrir un magnifique outil, et même si ce n’est pas le cas, je vous invite à le tester par vous-même
 
-### Remerciements :
+## Remerciements :
 
 Pour finir, je tiens à remercier grandement toutes les personnes qui ont participé de près ou de loin à la création et au maintient de cet incroyable outil ! (**Shutdown**, **Dramelac**, **Qu35t** et **bien d’autres…**)
 
