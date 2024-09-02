@@ -1,0 +1,110 @@
+---
+title: Capture The Flags
+description: Capture The Flags (CTF) Hacking France propose des défis en ligne gratuits, ouverts à tous les passionnés de cybersécurité. Ces défis permettent aux participants, quel que soit leur niveau, de tester et d'améliorer leurs compétences en hacking éthique dans un environnement convivial et éducatif.
+categories: [CTF]
+tags: [Cybersécurité, CTF]
+template: doc
+sidebar:
+  order: 2
+tableOfContents: false
+next: false
+prev: false
+---
+
+import Card from '../../../components/starlight/Card.astro';
+import { LinkButton, Icon, Badge } from '@astrojs/starlight/components';
+
+:::note
+Un CTF (Capture The Flag) est un type de défi en cybersécurité où les participants doivent résoudre une série de problèmes ou d'énigmes pour capturer des **"drapeaux"** (flags). Ces défis couvrent divers domaines, comme l'**exploitation de vulnérabilités**, la **cryptographie**, l'**analyse forensique**, et bien plus encore. C'est à la fois un jeu et un exercice pratique qui aide à renforcer vos connaissances en sécurité informatique.  
+:::
+
+---
+
+<Card title="CTF #1" icon="laptop">
+<Badge text="TERMINÉ" variant="success" size="medium" /> Premier CTF organisé par CTF Hacking France le **31 mai 2024 à 21h** (fin à 23h30).
+Il s'agira cette fois-ci d'une box créée par un membre (@Ayden) sur la plateforme TryHackMe (actuellement privée),
+ce qui nous permettra d'avoir une meilleure stabilité, mais attention pour valider le
+challenge, les flags devront être entrés sur https://ctf.hacking-france.fr/ !  
+
+La difficulté de ce premier CTF est 'relativement' simple pour des férus de CTF,
+mais peut s'avérer complexe pour des débutants. Cependant, c'est une excellente
+occasion d'apprendre et de se mettre à l'épreuve !  
+
+Les prérequis sont les suivants :  
+
+- Être inscrit sur le Discord
+- Avoir un compte TryHackMe
+- Avoir un compte sur ctf.hacking-france.fr  
+
+<div style="display: flex; align-items: center; justify-content: flex-start;">
+<Icon name="star" color="goldenrod" size="2rem" />
+<span style="margin-left: 0.5rem;">Les trois premiers à finir la machine gagneront des goodies.</span>
+</div>
+
+<details>
+<summary>Writeup</summary>
+
+### Enoncé
+
+Un individu connu sous le nom de MrCyber1337, un cybercriminel, a récemment envoyé deux messages à ses complices. Par chance, notre équipe de sécurité a pu intercepter ces messages avant qu'ils n'atteignent leur destination. MrCyber1337 a l'habitude de signer ses messages avec le hash MD5 de son pseudonyme. À vous de jouer pour récupérer des informations à partir des messages interceptés et découvrir ce qu'il a tenté de communiquer à ses complices. Bonne chance !!
+
+---
+
+```python
+from Crypto.Cipher import ARC4
+from Crypto.Random import get_random_bytes
+from CTF import FLAG1, FLAG2
+
+key = get_random_bytes(16)
+
+plaintext1 = FLAG1
+plaintext2 = FLAG2
+
+cipher1 = ARC4.new(key)
+ciphertext1 = cipher1.encrypt(plaintext1)
+
+cipher2 = ARC4.new(key)
+ciphertext2 = cipher2.encrypt(plaintext2)
+
+print(f"Ciphertext 1: {ciphertext1.hex()}")
+print(f"Ciphertext 2: {ciphertext2.hex()}")
+```
+
+output.txt:
+
+```
+Ciphertext 1: 1eb190155d6fa06382c9d9183fc51956caa7dcb5238755f28f79c581365cf8f3
+Ciphertext 2: 3b90d7562c1ed52ce5bdde7044d07e2c9cb5b083738616e28935
+```
+
+Maintenant que nous avons tout ce qu'il nous faut, nous pouvons d'abord nous renseigner sur ce qu'est le RC4. En faisant une recherche, nous savons que le RC4 est un **générateur de bits pseudo-aléatoires dont le résultat est combiné avec le texte en clair via une opération XOR**.
+
+En cherchant un peu, je suis tombé sur :  
+
+Lorsque le flux de chiffrement généré par RC4 est combiné avec les données à chiffrer via une opération XOR (ou exclusif), cela crée une vulnérabilité potentielle. L'opération XOR est sensible à certaines régularités dans les données, ce qui peut conduire à des attaques réussies contre le chiffrement. En particulier, lorsque des parties des données chiffrées sont connues ou devinées, il est possible d'exploiter ces faiblesses pour récupérer la clé de chiffrement ou même les données originales.
+
+Sachant que nous connaissons une partie de la lettre car MrCyber1337 signe toujours ses lettres avec son pseudo en MD5, nous n'avons plus qu'à faire ce XOR pour trouver le deuxième message !
+
+Commençons par créer le MD5 du pseudo sur un site en ligne.
+
+Et ensuite, faisons un script qui fait le XOR de l'output avec cette partie connue (le hash) :
+
+```python
+def xor_bytes(a, b):
+    return bytes(x ^ y for x, y in zip(a, b))
+
+ciphertext1 = bytes.fromhex('1eb190155d6fa06382c9d9183fc51956caa7dcb5238755f28f79c581365cf8f3')
+ciphertext2 = bytes.fromhex('3b90d7562c1ed52ce5bdde7044d07e2c9cb5b083738616e28935')
+
+xored_ciphertexts = xor_bytes(ciphertext1, ciphertext2)
+
+known_plaintext = b"bffc976457372f84ff3ecb6bc12d513e"
+
+partial_plaintext2 = xor_bytes(xored_ciphertexts[:len(known_plaintext)], known_plaintext)
+
+print(f"Partiel Message 2: {partial_plaintext2.decode()}")
+```
+
+Et nous aurons notre FLAG!
+</details>
+</Card>

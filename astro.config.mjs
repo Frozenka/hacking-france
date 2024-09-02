@@ -5,7 +5,6 @@ import embeds from 'astro-embed/integration';
 import mdx from '@astrojs/mdx';
 import astroD2 from 'astro-d2';
 
-// https://astro.build/config
 export default defineConfig({
   prefetch: {
     defaultStrategy: 'viewport'
@@ -15,7 +14,7 @@ export default defineConfig({
     starlight({
       credits: false,
       lastUpdated: true,
-      favicon: '/favicon.png',
+      favicon: '/favicon.ico',
       customCss: ['./src/styles/custom.css'],
       plugins: [starlightImageZoom()],
       title: 'Hacking France',
