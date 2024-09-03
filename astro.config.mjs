@@ -13,6 +13,9 @@ export default defineConfig({
   integrations: [
     starlight({
       credits: false,
+      editLink: {
+        baseUrl: 'https://github.com/frozenka/hacking-france/edit/main/',
+      },
       lastUpdated: true,
       favicon: '/favicon.ico',
       customCss: ['./src/styles/custom.css'],
