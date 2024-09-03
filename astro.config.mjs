@@ -21,37 +21,8 @@ export default defineConfig({
       components: {
         Head: "./src/components/starlight/Head.astro",
         Hero: './src/components/starlight/Hero.astro',
+        Pagination: './src/components/starlight/Pagination.astro',
       },
-      head: [
-        {
-          tag: 'meta',
-          attrs: {
-            property: 'og:image',
-            content: '/hf.png'
-          }
-        },
-        {
-          tag: 'meta',
-          attrs: {
-            property: 'og:description',
-            content: "La communauté Hacking France unit des passionnés de cybersécurité qui s'entraident sur tout sujets liés à l'informatique. Nous sommes actif sur Discord, et organisons des évènements réguliers."
-          }
-        },
-        {
-          tag: 'meta',
-          attrs: {
-            property: 'twitter:image',
-            content: '/hf.png'
-          }
-        },
-        {
-          tag: 'meta',
-          attrs: {
-            property: 'og:description',
-            content: "La communauté Hacking France unit des passionnés de cybersécurité qui s'entraident sur tout sujets liés à l'informatique. Nous sommes actif sur Discord, et organisons des évènements réguliers."
-          }
-        }
-      ],
       logo: {
         src: './src/assets/hf.png',
       },
@@ -80,23 +51,12 @@ export default defineConfig({
           }
         },
         {
-          label: 'Offensif',
+          label: 'Cybersécurité',
           translations: {
-            en: 'Offensive'
+            en: 'Cybersecurity'
           },
           autogenerate: {
-            directory: 'offensive',
-            collapsed: true
-          }
-        },
-        {
-          label: 'Defensif',
-          translations: {
-            en: 'Defensive'
-          },
-          collapsed: false,
-          autogenerate: {
-            directory: 'defensive',
+            directory: 'cybersecurity',
             collapsed: true
           }
         },
@@ -136,11 +96,11 @@ export default defineConfig({
       ],
       locales: {
         root: {
-          label: '🇫🇷 Français',
+          label: 'Français',
           lang: 'fr'
         },
         en: {
-          label: '🇬🇧 English',
+          label: 'English',
           lang: 'en'
         }
       },

@@ -32,6 +32,9 @@ importers:
       astro-vtbot:
         specifier: ^1.8.8
         version: 1.8.8
+      canvaskit-wasm:
+        specifier: ^0.39.1
+        version: 0.39.1
       p-retry:
         specifier: ^6.2.0
         version: 6.2.0

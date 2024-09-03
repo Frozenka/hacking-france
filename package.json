@@ -21,6 +21,7 @@
     "starlight-image-zoom": "^0.8.0",
     "astro-vtbot": "^1.8.8",
     "astro-og-canvas": "^0.5.3",
+    "canvaskit-wasm": "^0.39.1",
     "p-retry": "^6.2.0",
     "@11ty/eleventy-fetch": "^4.0.1"
   }
