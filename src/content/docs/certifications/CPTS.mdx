@@ -6,7 +6,10 @@ tags: [certifications,cybersécurité]
 template: doc
 ---
 
-![CPTS](../../../assets/certifications/cpts.webp)
+import { Image } from 'astro:assets';
+import CPTS from '../../../assets/certifications/cpts.webp';
+
+<Image src={CPTS} alt="CPTS logo" format="avif" quality={"mid"} width="400" height="400"/>
 
 > La Certification CPTS (Certified Penetration Testing Specialist) est une certification **pratique** proposée par Hack The Box.
 

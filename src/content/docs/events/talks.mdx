@@ -13,6 +13,17 @@ prev: false
 import SplitCard from '../../../components/starlight/SplitCard.astro';
 import { LinkButton } from '@astrojs/starlight/components';
 import { Badge, Icon } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import pwnii from '../../../assets/events/pwnii.png';
+import laluka from '../../../assets/events/laluka.jpg';
+import unknown101 from '../../../assets/events/unknown101.png';
+import shutdown from '../../../assets/events/shutdown.jpg';
+import tristantm from '../../../assets/events/tristantm.jpg';
+import laurentm from '../../../assets/events/laurentm.jpg';
+import michelkartner from '../../../assets/events/michel-kartner.webp';
+import julienm from '../../../assets/events/julienm.jpg';
+import proc from '../../../assets/events/proc.jpg';
+import kevinc from '../../../assets/events/kevinc.jpg';
 
 :::note
 Nous invitons chaleureusement tous les passionnés et professionnels de la sécurité
@@ -23,7 +34,7 @@ accueillir parmi nous ! [Rejoindre le Discord](https://discord.gg/hacking-france
 :::
 
 <SplitCard title="PwnwithLove - Bug Bounty" icon="laptop">
-<img src="/pwnii.png" alt="PwnwithLove" />
+<Image src={pwnii} alt="PwnwithLove" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="Plannifié" variant="note" size="medium" />  
 <b><span id="counterEvent2"></span></b> avec PwnwithLove (Pwnii), jeune chasseuse de bugs avec plusieurs rapports à son actif. Elle participe aux championnats du monde de Bug Bounty et à diverses conférences. Elle partagera son expérience, ses découvertes et ses conseils pour débutants.  
@@ -36,7 +47,7 @@ accueillir parmi nous ! [Rejoindre le Discord](https://discord.gg/hacking-france
 </SplitCard>
 
 <SplitCard title="Laluka - Lalubuntu The Friendly Offensive Distro" icon="laptop">
-<img src="/laluka.jpg" alt="Laluka" />
+<Image src={laluka} alt="Laluka" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="Plannifié" variant="note" size="medium" />  
 <b><span id="counterEvent"></span></b> avec Laluka, chercheur de vulnérabilités, pentester, redteamer, et créateur de la distribution de sécurité offensive 'Lalubuntu'. Il présentera cette distribution et répondra aux questions des participants.  
@@ -49,7 +60,7 @@ accueillir parmi nous ! [Rejoindre le Discord](https://discord.gg/hacking-france
 </SplitCard>
 
 <SplitCard title="Unknow101 - Red Team" icon="laptop">
-  <img src="/unknown101.png" alt="Unknow101" />
+  <Image src={unknown101} alt="Unknow101" format="avif" quality={"mid"}/>
   <div class="content-wrapper">
   <Badge text="TERMINÉ" variant="success" size="medium" />  
     Talk REDTEAM le Mercredi 17 juillet a 21h avec Matthieu (@Unknow101) 
@@ -68,7 +79,7 @@ accueillir parmi nous ! [Rejoindre le Discord](https://discord.gg/hacking-france
 
 
 <SplitCard title="Shutdown - Présentation d'Exegol" icon="laptop">
-<img src="/shutdown.jpg" alt="Shutdown" />
+<Image src={shutdown} alt="Shutdown" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="TERMINÉ" variant="success" size="medium" />  
 Shutdown a présenté les
@@ -83,7 +94,7 @@ nouveautés d'Exegol le 08 Février 2024 à 21h. Il est le fondateur du projet E
 </SplitCard>
 
 <SplitCard title="Tristan M - Forensics" icon="laptop">
-<img src="/tristantm.jpg" alt="Tristan M" />
+<Image src={tristantm} alt="Tristan M" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="TERMINÉ" variant="success" size="medium" />  
 Tristan MANZANO est spécialiste Forensics, Red Teamer et cofondateur de SDN (Sécurity Data Network). Il
@@ -98,7 +109,7 @@ détient plusieurs certifications offensives (OSCP, CRTM, CRTE, CRTP, OSWP...) e
 </SplitCard>
 
 <SplitCard title="Laurent M - Fondateur de Be.cyber" icon="laptop">
-<img src="/laurentm.jpg" alt="Laurent M" />
+<Image src={laurentm} alt="Laurent M" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="TERMINÉ" variant="success" size="medium" />  
 Laurent Minne, alias Duggy Tuxy, fondateur de Be.cyber community, est un blueteamer spécialisé en Cyber Threat
@@ -108,7 +119,7 @@ suivie par plus de 25 000 personnes.
 </SplitCard>
 
 <SplitCard title="Michel Kartner - Cyberini" icon="laptop">
-<img src="/michel-kartner.webp" alt="Michel Kartner" />
+<Image src={michelkartner} alt="Michel Kartner" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="TERMINÉ" variant="success" size="medium" />  
 Michel Kartner, entrepreneur en cybersécurité depuis 2013, est également youtubeur avec + de 140k abonnés. Autodidacte
@@ -124,7 +135,7 @@ et la plateforme Cyberini (2017), offrant une formation certifiante en cyberséc
 </SplitCard>
 
 <SplitCard title="Julien Metayer - OSINT" icon="laptop">
-<img src="/julienm.jpg" alt="Julien Metayer" />
+<Image src={julienm} alt="Julien Metayer" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="TERMINÉ" variant="success" size="medium" />  
 Julien Metayer est un red teamer spécialisé en OSINT et aussi fondateur de osint.eu et la société OPIX. Il a animé une session en direct sur le Discord le 20 Séptembre 2023 à 21h15, suivie d'une séance de questions-réponses.  
@@ -138,7 +149,7 @@ Julien Metayer est un red teamer spécialisé en OSINT et aussi fondateur de osi
 </SplitCard>
 
 <SplitCard title="Processus Thief - Blueteam" icon="laptop">
-<img src="/proc.jpg" alt="Processus Thief" />
+<Image src={proc} alt="Processus Thief" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="TERMINÉ" variant="success" size="medium" />  
 Processus Thief (alias Proc), expert en Red Team et Blue Team, il a animé un talk le 10 octobre à 21h45, suivi
@@ -153,7 +164,7 @@ d'une discussion interactive. Il est notammaent connu pour ses contributions ope
 </SplitCard>
 
 <SplitCard title="Kévin Chevreuil - Présentation de Kaisen Linux" icon="laptop">
-<img src="/kevinc.jpg" alt="Kévin Chevreuil" />
+<Image src={kevinc} alt="Kévin Chevreuil" format="avif" quality={"mid"}/>
 <div class="content-wrapper">
 <Badge text="TERMINÉ" variant="success" size="medium" />  
 Kévin Chevreuil, créateur de Kaïsen Linux, a présenté son système d’exploitation spécialisé pour les professionnels

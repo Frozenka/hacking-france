@@ -42,16 +42,17 @@ function removeDuplicates(commits: any[]) {
 // Récupérer les commits et traiter les données avant le rendu
 const commits = await fetchCommits();
 const uniqueAuthors = removeDuplicates(commits);
+import { Image } from 'astro:assets';
 ---
 
 {uniqueAuthors.length > 0 && (
   <div class="page-authors">
-    <p>Page authors</p>
+    <p>Auteurs de la page</p>
     <ul class="smol-avatar-list not-content">
       {uniqueAuthors.map(({ login, id }) => (
         <li>
           <a href={`https://github.com/${login}`}>
-            <img alt={`Contributor ${login}`} width="64" height="64" src={`https://avatars.githubusercontent.com/u/${id}`} />
+            <Image alt={`Contributor ${login}`} width="64" height="64" src={`https://avatars.githubusercontent.com/u/${id}`} />
           </a>
         </li>
       ))}

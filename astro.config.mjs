@@ -24,7 +24,8 @@ export default defineConfig({
         Pagination: './src/components/starlight/Pagination.astro',
       },
       logo: {
-        src: './src/assets/hf.png',
+        light: './src/assets/hfwhite.png',
+        dark: './src/assets/hfdark.png'
       },
       defaultLocale: 'root',
       sidebar: [
