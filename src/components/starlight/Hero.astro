@@ -170,7 +170,7 @@ function startCountdown(elementId, endDate) {
         var dist = endTime - now;
         
         if (dist < 0) {
-            document.getElementById(elementId).innerHTML = "passé";
+            document.getElementById(elementId).innerHTML = "Le prochain CTF n'est pas encore plannifié.";
             clearInterval(interval); // Stop the interval when the countdown ends
         } else {
             var d = Math.floor(dist / (1000 * 60 * 60 * 24));
@@ -179,12 +179,12 @@ function startCountdown(elementId, endDate) {
             var s = Math.floor((dist % (1000 * 60)) / 1000);
             
             document.getElementById(elementId).innerHTML =
-                "dans " + d + " jours " + h + " heures " + m + " minutes " + s + " secondes ";
+                "Le prochain CTF est dans " + d + " jours " + h + " heures " + m + " minutes " + s + " secondes.";
         }
     }, 1000);
 }
 
-startCountdownEvent("counterctf", "2024-08-31T00:39:00Z");
+startCountdown("counterctf", "2024-05-31T21:00:00Z");
 
 function startCountdownEvent(elementId, endDate) {
     var endTime = new Date(endDate).getTime();
