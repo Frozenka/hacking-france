@@ -26,3 +26,30 @@ const ogImageUrl = new URL(
 <style>
   background-color: transparent;
 </style>
+
+<script>
+  // Function to calculate the width of the longest title
+function adjustSidebarWidth() {
+    const sidebar = document.querySelector('.sidebar-pane');
+    const titles = document.querySelectorAll('.sidebar-pane summary');
+    
+    let maxWidth = 0;
+    
+    // Loop through each title and calculate its width
+    titles.forEach((title) => {
+        const titleWidth = title.offsetWidth;
+        if (titleWidth > maxWidth) {
+            maxWidth = titleWidth;
+        }
+    });
+    
+    // Adjust the sidebar width based on the longest title
+    sidebar.style.width = (maxWidth + 40) + 'px'; // Adding some padding
+}
+
+// Call the function on page load
+document.addEventListener('DOMContentLoaded', adjustSidebarWidth);
+
+// Re-adjust the sidebar width if the window is resized
+window.addEventListener('resize', adjustSidebarWidth);
+</script>

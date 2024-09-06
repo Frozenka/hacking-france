@@ -16,6 +16,9 @@ export default defineConfig({
       editLink: {
         baseUrl: 'https://github.com/frozenka/hacking-france/edit/main/',
       },
+      expressiveCode: {
+        themes: ['houston', 'catppuccin-latte'],
+      },
       lastUpdated: true,
       favicon: '/favicon.ico',
       customCss: ['./src/styles/custom.css'],
@@ -96,7 +99,13 @@ export default defineConfig({
             directory: 'misc',
             collapsed: true
           }
-        }
+        },
+        { 
+          label: 'Contribuer', 
+          translations: {
+            en: 'Contribute'
+          },
+          link: 'contribute/' },
       ],
       locales: {
         root: {
