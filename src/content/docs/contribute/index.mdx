@@ -12,6 +12,11 @@ import { Image } from 'astro:assets';
 import test1 from '../../../assets/contribute/test1.png';
 import test2 from '../../../assets/contribute/test2.png';
 
+:::note
+Nous encourageons tous les membres de la communauté à contribuer en écrivant des articles. Pour proposer un article, il vous suffit de créer une Pull Request (PR) sur [ce dépôt](https://github.com/Frozenka/hacking-france). Vous pouvez également cliquer en bas de page sur `Modifier la page` pour forker le repo et ensuite PR avec vos fichiers modifiés. 
+Contact pour toute question ou suggestion, n'hésitez pas à ouvrir une issue ou à nous contacter sur discord.
+:::
+
 ## Formatage des articles
 
 Le Frontmatter est obligatoire pour chaque fichier mdx, il est défini en haut des fichiers entre des séparateurs `---` :
@@ -320,12 +325,12 @@ console.log('I am on line 3')
 ```js showLineNumbers wrap frame="terminal"
 // This code block will show line numbers
 console.log('Greetings from line 2!')
-consol
+```
 ````
 
 Line Highlighting:
 
-```js {1, 4, 7-8} wrap frame="terminal"
+```js {1, 4, 7-8} wrap frame="terminal" 
 // Line 1 - targeted by line number
 // Line 2
 // Line 3
