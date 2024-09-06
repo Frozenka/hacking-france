@@ -53,38 +53,55 @@ Les images sont incluses avec le composant astro:assets importé via:
 ```mdx wrap frame="terminal"
 import { Image } from 'astro:assets';
 import test1 from '../../../assets/events/test1.jpg';
-import test2 from '../../../assets/tools/test2.jpg';
+[...]
 
 # Image 1
 <Image src={test1} alt="Test 1" format="avif" quality={"mid"}/>
-
-# Image 2
-<Image src={test2} alt="Test 2" format="avif" quality={"mid"}/>
 ```
 
-Vous pouvez utilisez le format `avif` pour les images, et définir la qualité de l'image avec `quality={"mid"}`.
+Vous pouvez utilisez le format `avif` pour les images, et définir la qualité de l'image avec `quality={"mid"}` pour une compression équilibrée.
 
 <Image src={test1} alt="Test 1" format="avif" quality={"mid"}/>
-<Image src={test2} alt="Test 2" format="avif" quality={"mid"}/>
 
 Pour chaque image il est nécessaire de définir un nom pour l'import et le chemin de l'image dans les assets en suivant l'arborescence du repo:
 
 <FileTree>
 
 - src
-  - content
-    - docs
-      - index.mdx
-      - contribute.mdx
+  - assets
     - cybersecurity
       - defensive
-        - **titre_contribution.mdx**
-        - ...
+        - nom_image.jpg
+  - content
+    - docs
       - ...
-    - ...
+      - cybersecurity
+        - defensive
+          - **titre_contribution.mdx**
 - pages/
 
 </FileTree>
+
+```mdx wrap frame="terminal" preserveIndent
+import { FileTree } from '@astrojs/starlight/components';
+
+<FileTree>
+
+- src
+  - assets
+    - cybersecurity
+      - defensive
+        - nom_image.jpg
+  - content
+    - docs
+      - ...
+      - cybersecurity
+        - defensive
+          - **titre_contribution.mdx**
+- pages/
+
+</FileTree>
+```
 
 Par exemple, pour une image dans le dossier `defensive` dans `cybersecurity`, le chemin de l'image sera `../../../../assets/cybersecurity/defensive/nom_image.jpg`. La structure du dossier `assets` reprenant l'arborescence du dossier `docs`.
 
@@ -142,7 +159,7 @@ Vous pouvez imbriquer n'importe quel autre type de contenu Markdown dans un enca
 :::note
 Cras in ante et erat aliquam finibus. Maecenas convallis fermentum arcu eget viverra. Nam et rhoncus nunc :
 
-```go wrap frame="terminal"
+```go wrap frame="terminal" preserveIndent
 package main
 
 import "fmt"
@@ -151,14 +168,13 @@ func main() {
   fmt.Println("Hello, world!")
 }
 ```
-
 :::
 
-````mdx wrap frame="terminal"
+````mdx wrap frame="terminal" preserveIndent
 :::note
 Cras in ante et erat aliquam finibus. Maecenas convallis fermentum arcu eget viverra. Nam et rhoncus nunc :
 
-```go wrap frame="terminal"
+```go wrap frame="terminal" preserveIndent
 package main
 
 import "fmt"
@@ -167,7 +183,6 @@ func main() {
   fmt.Println("Hello, world!")
 }
 ```
-
 :::
 ````
 
@@ -199,7 +214,6 @@ Donec fermentum consectetur dolor. Pellentesque vitae justo pharetra, elementum 
 - Donec scelerisque nulla lorem
 - Sed facilisis in est ac molestie.
 - [Lien externe](https://www.youtube.com/watch?v=dQw4w9WgXcQs/i18n/)
-
 :::
 
 ```mdx wrap frame="terminal"
@@ -213,7 +227,6 @@ lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc pellentesque elit 
 - Sed semper in enim
 - Aenean faucibus
 - odio egestas nisl gravida
-
 :::
 ```
 
@@ -233,7 +246,7 @@ lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc pellentesque elit 
 
 Un bloc de code est indiqué par un bloc avec trois accents graves <code>```</code> au début et à la fin. Vous pouvez indiquer le langage de programmation utilisé après les accents graves d'ouverture.
 
-```js wrap frame="terminal"
+```js wrap frame="terminal" preserveIndent
 // Code Javascript avec mise en évidence de la syntaxe.
 var fun = function lang(l) {
   dateformat.i18n = require('./lang/' + l);
@@ -241,8 +254,8 @@ var fun = function lang(l) {
 };
 ```
 
-````mdx wrap frame="terminal"
-```js wrap frame="terminal"
+````mdx wrap frame="terminal" preserveIndent
+```js wrap frame="terminal" preserveIndent
 // Code Javascript avec mise en évidence de la syntaxe.
 var fun = function lang(l) {
   dateformat.i18n = require('./lang/' + l);
@@ -250,24 +263,135 @@ var fun = function lang(l) {
 };
 ```
 ````
+
+Ci-dessus, sont utilisés des attributs pour customiser l'apparence ansi que les fonctionnalités du bloc. Quand un ou plusieurs attributs sont ajoutés (comme `wrap`, `preserveIndent` ou `frame` par exemple), il est nécessaire d'importer le module `code`:
+
+```
+import { Code } from '@astrojs/starlight/components';
+```
 
 Mais également donner un titre au bloc de code:
 
-```js wrap frame="terminal" title="Mon code"
+```js title="Mon code" wrap frame="terminal" preserveIndent
 var fun = function lang(l) {
   dateformat.i18n = require('./lang/' + l);
   return true;
 };
 ```
 
-````mdx wrap frame="terminal"
-```js title="Mon code"
+````mdx wrap frame="terminal" preserveIndent
+```js title="Mon code" wrap frame="terminal" preserveIndent
 var fun = function lang(l) {
   dateformat.i18n = require('./lang/' + l);
   return true;
 };
 ```
 ````
+
+Fonctionnalité diff:
+
+```diff wrap frame="terminal" preserveIndent
+var fun = function lang(l) {
+-  dateformat.i18n = require('./lang/' + 4);
++  dateformat.i18n = require('./lang/' + l);
+  return true;
+};
+```
+
+````mdx wrap frame="terminal" preserveIndent
+```diff wrap frame="terminal" preserveIndent
+var fun = function lang(l) {
+-  dateformat.i18n = require('./lang/' + 4);
++  dateformat.i18n = require('./lang/' + l);
+  return true;
+};
+```
+````
+
+Numéros de lignes:
+
+```js showLineNumbers wrap frame="terminal"
+// This code block will show line numbers
+console.log('Greetings from line 2!')
+console.log('I am on line 3')
+```
+
+````mdx wrap frame="terminal"
+```js showLineNumbers wrap frame="terminal"
+// This code block will show line numbers
+console.log('Greetings from line 2!')
+consol
+````
+
+Line Highlighting:
+
+```js {1, 4, 7-8} wrap frame="terminal"
+// Line 1 - targeted by line number
+// Line 2
+// Line 3
+// Line 4 - targeted by line number
+// Line 5
+// Line 6
+// Line 7 - targeted by range "7-8"
+// Line 8 - targeted by range "7-8"
+```
+
+````mdx wrap frame="terminal"
+```js {1, 4, 7-8} wrap frame="terminal"
+// Line 1 - targeted by line number
+// Line 2
+// Line 3
+// Line 4 - targeted by line number
+// Line 5
+// Line 6
+// Line 7 - targeted by range "7-8"
+// Line 8 - targeted by range "7-8"
+```
+````
+
+Ajout de titres de sections de sections dans le code:
+
+```jsx {"1. Provide the value prop here:":5-6} del={"2. Remove the disabled and active states:":8-10} ins={"3. Add this to render the children inside the button:":12-15} wrap frame="terminal" preserveIndent
+// labeled-line-markers.jsx
+<button
+  role="button"
+  {...props}
+
+  value={value}
+  className={buttonClassName}
+
+  disabled={disabled}
+  active={active}
+>
+
+  {children &&
+    !active &&
+    (typeof children === 'string' ? <span>{children}</span> : children)}
+</button>
+```
+
+````mdx wrap frame="terminal" preserveIndent
+```jsx {"1. Provide the value prop here:":5-6} del={"2. Remove the disabled and active states:":8-10} ins={"3. Add this to render the children inside the button:":12-15} wrap frame="terminal" preserveIndent
+// labeled-line-markers.jsx
+<button
+  role="button"
+  {...props}
+
+  value={value}
+  className={buttonClassName}
+
+  disabled={disabled}
+  active={active}
+>
+
+  {children &&
+    !active &&
+    (typeof children === 'string' ? <span>{children}</span> : children)}
+</button>
+```
+````
+
+La documentation de toutes les modifications supportées est disponible ici: [https://expressive-code.com/key-features/syntax-highlighting/](https://expressive-code.com/key-features/syntax-highlighting/)
 
 ## Les étapes
 
