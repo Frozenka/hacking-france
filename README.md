@@ -1,6 +1,3 @@
-
-![logoHacking-France](https://github.com/Frozenka/hacking-france/blob/main/src/assets/hf.png?raw=true)
-
 ### Hacking-France
 Bienvenue sur le dépôt GitHub de Hacking-France, le site dédié à la communauté de hacking éthique francophone. Ce projet vise à rassembler et partager des articles communautaires sur le hacking éthique.
 
