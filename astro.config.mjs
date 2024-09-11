@@ -85,6 +85,17 @@ export default defineConfig({
           }
         },
         {
+          label: 'Writeup',
+          translations: {
+            en: 'Writeup'
+          },
+          collapsed: true,
+          autogenerate: {
+            directory: 'writeup',
+            collapsed: true
+          }
+        },
+        {
           label: 'Outils',
           translations: {
             en: 'Tools'
