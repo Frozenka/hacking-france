@@ -35,6 +35,12 @@ export default defineConfig({
       },
       defaultLocale: 'root',
       sidebar: [
+        { 
+          label: 'La communauté', 
+          translations: {
+            en: 'thecommunity'
+          },
+          link: 'thecommunity/commu' },
         {
           label: 'Événements',
           translations: {
