@@ -38,9 +38,9 @@ export default defineConfig({
         { 
           label: 'La communauté', 
           translations: {
-            en: 'thecommunity'
+            en: 'The Community'
           },
-          link: 'thecommunity/commu' },
+          link: 'community/community' },
         {
           label: 'Événements',
           translations: {
