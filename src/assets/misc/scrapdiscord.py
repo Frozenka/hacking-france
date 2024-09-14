@@ -20,38 +20,33 @@ def fetch_discord_urls(url):
     return response.text.splitlines()
 
 def extract_discord_info(url):
-    try:
-        response = requests.get(url)
-        response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
-        soup = BeautifulSoup(response.text, 'html.parser')
+    response = requests.get(url)
+    response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extraction des informations à partir du code source HTML
-        description_tag = soup.find('meta', {'name': 'description'})
-        description = description_tag['content'] if description_tag else 'Description non disponible'
+    # Extraction des informations à partir du code source HTML
+    description_tag = soup.find('meta', {'name': 'description'})
+    description = description_tag['content'] if description_tag else 'Description non disponible'
 
-        # Extraction du texte brut entre "Discord " et "autres membres et profite du chat vocal et textuel gratuit."
-        page_text = soup.get_text()
-        members_match = re.search(r'Discord\s*(.*?)\s*autres\s*membres\s*et\s*profite\s*du\s*chat\s*vocal\s*et\s*textuel\s*gratuit', page_text, re.IGNORECASE)
-        members = members_match.group(1).strip() if members_match else 'Données non disponibles'
+    # Recherche du nombre de membres dans la description
+    members_match = re.search(r'Discord\s*(.*?)\s*autres\s*membres\s*et\s*profite\s*du\s*chat\s*vocal\s*et\s*textuel\s*gratuit', description, re.IGNORECASE)
+    members = members_match.group(1).strip() if members_match else 'Données non disponibles'
 
-        # Extraction du logo
-        image_tag = soup.find('meta', {'property': 'og:image'})
-        image_url = image_tag['content'] if image_tag else default_image_url
+    # Extraction du logo
+    image_tag = soup.find('meta', {'property': 'og:image'})
+    image_url = image_tag['content'] if image_tag else default_image_url
 
-        # Extraction du nom
-        title_tag = soup.find('meta', {'property': 'og:title'})
-        title = title_tag['content'] if title_tag else 'Nom non disponible'
+    # Extraction du nom
+    title_tag = soup.find('meta', {'property': 'og:title'})
+    title = title_tag['content'] if title_tag else 'Nom non disponible'
 
-        return {
-            'name': title.strip(),
-            'description': description.strip(),
-            'members': members,  # Afficher le texte brut entre les phrases
-            'image': image_url.strip(),
-            'link': url.strip()
-        }
-    except Exception as e:
-        print(f"Erreur pour {url}: {e}")
-        return None  # Ne pas inclure cette entrée dans le fichier JSON
+    return {
+        'name': title.strip(),
+        'description': description.strip(),
+        'members': members,
+        'image': image_url.strip(),
+        'link': url.strip()
+    }
 
 def main():
     discord_urls = fetch_discord_urls(discord_urls_file)
