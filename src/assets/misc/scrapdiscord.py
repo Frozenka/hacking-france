@@ -36,9 +36,10 @@ def extract_discord_info(url):
         else:
             # Chercher ailleurs dans le HTML si le nombre de membres n'est pas trouvé dans la description
             full_text = soup.get_text(separator=' ')
+            # Recherche jusqu'à 5 caractères avant et après le mot "membres" ou "members"
             context_match = re.search(r'.{0,5}(\d+)\s*(membres|members).{0,5}', full_text, re.IGNORECASE)
             if context_match:
-                # Extraire le nombre et le contexte autour du mot "membres" ou "members"
+                # Extraire le nombre trouvé
                 members = context_match.group(1)
             else:
                 members = 'Membres non disponibles'
