@@ -14,7 +14,7 @@ type Contributor = {
 	avatar_url: string;
 };
 
-const res = await cachedFetch('https://raw.githubusercontent.com/didntchooseaname/docs.contactit.fr/master/test.json');
+const res = await cachedFetch('https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/cards.json');
 const allContributors: Contributor[] = (await res.json()).data;
 
 const arrangement = [3, 4, 3, 3, 6, 4, 6, 3, 3, 3];
