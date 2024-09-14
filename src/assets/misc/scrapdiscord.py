@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
+import re
 
 # URL de la liste des serveurs Discord
 discord_urls_file = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_discord.txt'
@@ -28,16 +29,12 @@ def extract_discord_info(url):
         description_tag = soup.find('meta', {'name': 'description'})
         description = description_tag['content'] if description_tag else 'Description non disponible'
 
-        # Extraction du nombre de membres
-        description_parts = description.split('|')
-        if len(description_parts) > 1:
-            members_text = description_parts[-1].strip()
-            members = ''.join(filter(str.isdigit, members_text))
-        else:
-            members = 'Membres non disponibles'
+        # Extraction du nombre de membres avec une expression régulière
+        members_match = re.search(r'(\d+)\s*autres\s*membres', description)
+        members = members_match.group(1) if members_match else 'Membres non disponibles'
 
         # Retirer le nombre de membres de la description
-        description_text = description_parts[0].strip() if len(description_parts) > 1 else description
+        description_text = re.sub(r'(\d+)\s*autres\s*membres', 'Membres non disponibles', description)
 
         # Extraction du logo
         image_tag = soup.find('meta', {'property': 'og:image'})
@@ -49,7 +46,7 @@ def extract_discord_info(url):
 
         return {
             'name': title.strip(),
-            'description': f"{description_text} | {members} members",
+            'description': f"{description_text.strip()} | {members} members",
             'members': members.strip(),
             'image': image_url.strip(),
             'link': url.strip()
