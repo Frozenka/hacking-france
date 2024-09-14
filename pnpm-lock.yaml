@@ -41,6 +41,9 @@ importers:
       sharp:
         specifier: ^0.32.5
         version: 0.32.6
+      starlight-heading-badges:
+        specifier: ^0.2.0
+        version: 0.2.0(@astrojs/starlight@0.26.1(astro@4.14.5(@types/node@18.19.46)(rollup@4.21.1)(typescript@5.5.4)))
       starlight-image-zoom:
         specifier: ^0.8.0
         version: 0.8.0(@astrojs/starlight@0.26.1(astro@4.14.5(@types/node@18.19.46)(rollup@4.21.1)(typescript@5.5.4)))
@@ -2008,6 +2011,12 @@ packages:
 
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
+
+  starlight-heading-badges@0.2.0:
+    resolution: {integrity: sha512-ynshvAM27ahyYDqLX2kULFuyM+alXPujqd+ntiTgYhEUQdiIEuwZTtwmH8/a59TVZg6NtIoRnTUep4QLrqjvaw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@astrojs/starlight': '>=0.24.5'
 
   starlight-image-zoom@0.8.0:
     resolution: {integrity: sha512-+YDqCyihQescGs9hJoyTQt+KHEq9s6zIv8ksBMjPjwOrVicXtY0pM4hHj8yO1r2znud4gTytyGt25kAOmRyP9A==}
@@ -4852,6 +4861,15 @@ snapshots:
   space-separated-tokens@2.0.2: {}
 
   sprintf-js@1.0.3: {}
+
+  starlight-heading-badges@0.2.0(@astrojs/starlight@0.26.1(astro@4.14.5(@types/node@18.19.46)(rollup@4.21.1)(typescript@5.5.4))):
+    dependencies:
+      '@astrojs/markdown-remark': 5.2.0
+      '@astrojs/starlight': 0.26.1(astro@4.14.5(@types/node@18.19.46)(rollup@4.21.1)(typescript@5.5.4))
+      github-slugger: 2.0.0
+      unist-util-visit: 5.0.0
+    transitivePeerDependencies:
+      - supports-color
 
   starlight-image-zoom@0.8.0(@astrojs/starlight@0.26.1(astro@4.14.5(@types/node@18.19.46)(rollup@4.21.1)(typescript@5.5.4))):
     dependencies:
