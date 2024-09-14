@@ -1,0 +1,41 @@
+---
+title: Serveurs Discord Cyber
+description: Découvrez notre serveur Discord recommandé pour approfondir vos connaissances en cybersécurité et hacking.
+categories: [autre]
+tags: [discord, recommandation]
+template: doc
+tableOfContents: false
+next: true
+prev: true
+sidebar:
+  badge:
+    text: 'Nouveau'
+    variant: note
+---
+
+import { CardGrid, LinkButton } from '@astrojs/starlight/components'
+import Card from '../../../components/starlight/Card.astro'
+import servers from '../../../../src/assets/misc/discord_servers_info.json'
+
+> Retrouvez ici notre serveur Discord dédié aux passionnés de cybersécurité. Rejoignez notre communauté pour participer à des discussions, des CTF, et plus encore.
+
+<br/>
+<CardGrid>
+  {servers.map(server => (
+    <Card key={server.link} title={server.name}>
+      <div style="text-align: center;">
+        <img
+          src={server.image}
+          alt={server.name}
+          width="300"
+          height="150"
+        />
+      </div>
+      <p>{server.description}</p>
+      <p>Membres: {server.members}</p>
+      <LinkButton href={server.link} variant="secondary" icon="external">
+        Rejoindre le serveur
+      </LinkButton>
+    </Card>
+  ))}
+</CardGrid>
