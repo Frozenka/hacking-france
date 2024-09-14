@@ -35,6 +35,9 @@ def extract_discord_info(url):
     description_tag = soup.find('meta', {'name': 'description'})
     description = description_tag['content'] if description_tag else 'Description non disponible'
 
+    # Supprimer le texte à partir de "- discute avec"
+    description = re.sub(r'-\s*discute\s*avec.*$', '', description).strip()
+
     # Recherche du nombre de membres dans la description
     members_match = re.search(r'Discord\s*(.*?)\s*autres\s*membres\s*et\s*profite\s*du\s*chat\s*vocal\s*et\s*textuel\s*gratuit', description, re.IGNORECASE)
     if members_match:
@@ -59,7 +62,7 @@ def extract_discord_info(url):
 
     return {
         'name': title.strip(),
-        'description': description.strip(),
+        'description': description,
         'members': members,
         'image': image_url.strip(),
         'link': url.strip()
