@@ -22,10 +22,6 @@ jobs:
       run: |
         pip install requests beautifulsoup4
         
-    - name: chmod
-      run: |
-        chmod +x src/assets/misc/scrapyb.py
-        
     - name: Run the Python script
       run: |
         python src/assets/misc/scrapyb.py
@@ -37,6 +33,17 @@ jobs:
     - name: Check permissions of directory
       run: |
         ls -la src/assets/misc && pwd
+
+    - name: Commit and push changes
+      if: ${{ github.event_name == 'push' && success() }}
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add src/assets/misc/channels_info.json
+        git commit -m "Update channels_info.json from GitHub Actions"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload JSON result
       uses: actions/upload-artifact@v3
