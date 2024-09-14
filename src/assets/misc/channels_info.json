@@ -1,16 +1,65 @@
 [
   {
-      "id": "@TheLaluka",
-      "name": "Laluka",
-      "description": "Sharing is Caring | Hacker, Eternel Learner, & Cat. =^~^=",
-      "image": "https://yt3.googleusercontent.com/Ov_YuDfbKseANI_6vK51uL5Yn3Lr4zgf3NkVrMzvjArG2rAGNovAyVzVWPi2ubItvammXTkogMs=s900-c-k-c0x00ffffff-no-rj",
-      "link": "https://www.youtube.com/@TheLaluka"
-    },
-    {
-      "id": "@processusthief",
-      "name": "Processus Thief ",
-      "description": "Vous adorez la cybersécurité ? Moi aussi.Alors venez partager votre passion sur la chaîne !Je n'ai pas la prétention de tout connaître, mais j'essaye de part...",
-      "image": "https://yt3.googleusercontent.com/XTekNthUcYDZ0FqZY18mc_GMK2aE_2DiHHapAqK7zV9IkdS2d8vYJY3o6IQKBe9XrG_60eP1=s900-c-k-c0x00ffffff-no-rj",
-      "link": "https://www.youtube.com/@processusthief"
-    }
+    "id": "@TheLaluka",
+    "name": "Laluka",
+    "description": "Sharing is Caring | Hacker, Eternel Learner, & Cat. =^~^=",
+    "image": "https://yt3.googleusercontent.com/Ov_YuDfbKseANI_6vK51uL5Yn3Lr4zgf3NkVrMzvjArG2rAGNovAyVzVWPi2ubItvammXTkogMs=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@TheLaluka"
+  },
+  {
+    "id": "@FrozenKwa",
+    "name": "Frozenk",
+    "description": "Share your videos with friends, family, and the world",
+    "image": "https://yt3.googleusercontent.com/0vTO67nUGNusEctihiS5zIxiDIi0ZDhMYFQyVRHeCgLHd_dlru9__4Sb6M3n3fLCa8A3JkH1=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@FrozenKwa"
+  },
+  {
+    "id": "@processusthief",
+    "name": "Processus Thief",
+    "description": "Vous adorez la cybersécurité ? Moi aussi.Alors venez partager votre passion sur la chaîne !Je n'ai pas la prétention de tout connaître, mais j'essaye de part...",
+    "image": "https://yt3.googleusercontent.com/XTekNthUcYDZ0FqZY18mc_GMK2aE_2DiHHapAqK7zV9IkdS2d8vYJY3o6IQKBe9XrG_60eP1=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@processusthief"
+  },
+  {
+    "id": "@hadzah_fr",
+    "name": "hadzah",
+    "description": "Follow me on Twitch ! 👀 https://www.twitch.tv/hadzaaaa",
+    "image": "https://yt3.googleusercontent.com/1-Re1jr99NmU3L1G9_Z0z7yTEJ-ymTfPGndhDg7oBsvXNCyvgN9PMwa-HLqzgdeSdhrYTbHA=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@hadzah_fr"
+  },
+  {
+    "id": "@Fransosiche",
+    "name": "Fransosiche",
+    "description": "YoAu programme sur ma chaîne : - Vulgarisation cyber (vulnérabilités, outils etc...)- Walkthrough de CTF- Explications de cyberattaques qui font l'actualités",
+    "image": "https://yt3.googleusercontent.com/7NweNHsZGQOUKni9JTHAHll8Oqnufwp12XTcn-OWPZ0YNo8tYt_0szU7aVhWmLouxA0sxKRm4A=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@Fransosiche"
+  },
+  {
+    "id": "@HacktBack",
+    "name": "HacktBack",
+    "description": "Si la Cybersécurité ou le Hacking vous intéresse mais que vous n'y comprenez rien, vous êtes au bon endroit !On part de zéro sur tout les plans.Tout le monde...",
+    "image": "https://yt3.googleusercontent.com/hkvuhJksBhHUgdM9tdIDFF3Gujcl_L-Ecd5GT0Q3scVEtrIum58yCx7njJEg3PO-XtURPT0F=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@HacktBack"
+  },
+  {
+    "id": "@ParlonsCyber",
+    "name": "Parlons Cyber",
+    "description": "Coucou, abonne toi :) Salut les Hackers !Bienvenue sur la chaîne Parlons Cyber, la meilleure chaîne de cybersécurité française (rien que ça). Je suis là pour...",
+    "image": "https://yt3.googleusercontent.com/MBMVgZ_oBrZw-rfNi18UtG5YQQn_VHOlOTzV89GFZt6ywA8lhPXLunLdd7K3i-3dNhGm1CHxKw=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@ParlonsCyber"
+  },
+  {
+    "id": "@trackflaw",
+    "name": "Trackflaw",
+    "description": "Trackflaw est une startup spécialisée dans les tests d'intrusion et la réponse à incident.",
+    "image": "https://yt3.googleusercontent.com/_SjE8n3-7wpEoXrwPezBQ5fz0p23SJMzx2Dt91RL35CDyPihC9W2sljZ19nCLhoazP2iwQpmfQ=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@trackflaw"
+  },
+  {
+    "id": "@SALTINBANK",
+    "name": "♤ ʂąƖɬıოცąŋƙ ♤",
+    "description": "🅳🅴🅰🅳🆂🅴🅲 : Coach sportif CTF - Esthète turbulent - Chef hapiness HackerDISCLAIMER : cette chaine est axée sur l'informatique et la cybersécurité, la sé...",
+    "image": "https://yt3.googleusercontent.com/t84omqWTsbmm_AiTy64a2P7T3IplC1p8bPPu7mWAH1YW_vDyu8B7uvruzP0Ozi7d7onvvf7DPw=s900-c-k-c0x00ffffff-no-rj",
+    "link": "https://www.youtube.com/@SALTINBANK"
+  }
 ]
