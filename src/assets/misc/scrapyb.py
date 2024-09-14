@@ -10,11 +10,8 @@ def fetch_youtube_channels():
     return response.text.splitlines()
 
 def fetch_channel_info(channel_url):
-    # Utiliser BeautifulSoup pour extraire les informations de la chaîne
     response = requests.get(channel_url)
     soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Exemple de données, vous devrez ajuster le parsing en fonction du contenu réel
     return {
         "id": channel_url.split('/')[-1],
         "name": "Nom de la chaîne",
@@ -31,7 +28,14 @@ def main():
         info = fetch_channel_info(channel)
         channel_info_list.append(info)
 
-    file_path = os.path.join(os.path.dirname(__file__), 'channels_info.json')
+    cwd = os.getcwd()
+    print(f"Current working directory: {cwd}")
+
+    file_path = os.path.join(cwd, 'src/assets/misc/chaines_youtubes.json')
+    
+    # Debug print statements
+    print(f"Writing to file: {file_path}")
+    print(f"Directory contents: {os.listdir(os.path.dirname(file_path))}")
 
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(channel_info_list, file, ensure_ascii=False, indent=4)
