@@ -44,12 +44,12 @@ jobs:
 
     - name: Display GitHub contributors JSON content
       run: |
-        cat src/assets/assets/cards.json
+        cat src/assets/cards.json
 
     - name: Force add and commit changes
       run: |
         git config --local user.name "github-actions"
         git config --local user.email "github-actions@github.com"
-        git add -f src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json src/assets/assets/cards.json
+        git add -f src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json src/assets/cards.json
         git commit -m "Update channels_info.json, twitch_channels_info.json, and cards.json from GitHub Actions" || echo "No changes to commit"
         git push origin main
