@@ -40,6 +40,12 @@ def extract_discord_info(url):
             members_match = re.search(r'-\s*discute\s*avec\s*(\d+)', page_text, re.IGNORECASE)
             members = members_match.group(1) if members_match else 'Membres non disponibles'
 
+        # Vérifier si le nombre de membres est une chaîne et le convertir en nombre si possible
+        if members.isdigit():
+            members = str(int(members))  # Convertir en nombre entier puis en chaîne pour normaliser
+        else:
+            members = 'Membres non disponibles'
+
         # Extraction du logo
         image_tag = soup.find('meta', {'property': 'og:image'})
         image_url = image_tag['content'] if image_tag else default_image_url
