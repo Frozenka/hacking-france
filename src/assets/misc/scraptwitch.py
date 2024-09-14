@@ -1,73 +1,54 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-import os  # Importer le module os
+import os
 
-# URL de la liste des serveurs Discord
-discord_urls_file = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/discord.txt'
-
-# Définir le chemin du fichier de sortie
-output_file_path = os.path.join('src', 'assets', 'misc', 'discord_servers_info.json')
-
-def fetch_discord_urls(url):
+def get_twitch_channel_info_from_url(url):
     response = requests.get(url)
-    response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
-    response.raise_for_status()
-    return response.text.splitlines()
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-def extract_discord_info(url):
-    try:
-        response = requests.get(url)
-        response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
-        soup = BeautifulSoup(response.text, 'html.parser')
+    title_tag = soup.find('meta', {'property': 'og:title'})
+    name = title_tag.get('content', 'Nom non trouvé') if title_tag else 'Nom non trouvé'
 
-        # Extraction des informations à partir du code source HTML
-        description_tag = soup.find('meta', {'name': 'description'})
-        description = description_tag['content'] if description_tag else 'Description non disponible'
+    meta_description = soup.find('meta', {'name': 'description'})
+    description = meta_description.get('content', 'Description non trouvée') if meta_description else 'Description non trouvée'
 
-        # Extraction du nombre de membres
-        members_text = description.split('|')[-1].strip() if '|' in description else 'Membres non disponibles'
-        members = ''.join(filter(str.isdigit, members_text))
+    image_tag = soup.find('meta', {'property': 'og:image'})
+    image = image_tag.get('content', 'Image non trouvée') if image_tag else 'Image non trouvée'
 
-        # Extraction du logo
-        image_tag = soup.find('meta', {'property': 'og:image'})
-        image_url = image_tag['content'] if image_tag else 'Logo non disponible'
+    channel_id = url.split('/')[-1]
 
-        # Extraction du nom
-        title_tag = soup.find('meta', {'property': 'og:title'})
-        title = title_tag['content'] if title_tag else 'Nom non disponible'
+    return {
+        'id': channel_id,
+        'name': name,
+        'description': description,
+        'image': image,
+        'link': url
+    }
 
-        return {
-            'name': title.strip(),
-            'description': description.strip(),
-            'members': members.strip(),
-            'image': image_url.strip(),
-            'link': url.strip()
-        }
-    except Exception as e:
-        print(f"Erreur pour {url}: {e}")
-        return {
-            'name': 'Erreur',
-            'description': f"Erreur lors de la récupération des informations: {e}",
-            'members': 'N/A',
-            'image': 'N/A',
-            'link': url
-        }
+def read_urls_from_web(url):
+    response = requests.get(url)
+    return [line.strip() for line in response.text.splitlines() if line.strip()]
 
 def main():
-    discord_urls = fetch_discord_urls(discord_urls_file)
-    discord_channels = []
-    
-    for url in discord_urls:
-        info = extract_discord_info(url)
-        discord_channels.append(info)
-        print(f"Infos récupérées pour {url}: {info}")
+    list_url = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_twitch.txt'
+    urls = read_urls_from_web(list_url)
+
+    channel_infos = []
+
+    for url in urls:
+        try:
+            channel_info = get_twitch_channel_info_from_url(url)
+            channel_infos.append(channel_info)
+        except Exception as e:
+            print(f"Erreur lors de la récupération des informations pour {url} : {e}")
 
     # Écriture des résultats dans un fichier JSON
+    output_file_path = os.path.join('src', 'assets', 'misc', 'twitch_channels_info.json')
     with open(output_file_path, 'w', encoding='utf-8') as json_file:
-        json.dump(discord_channels, json_file, indent=2, ensure_ascii=False)
+        json.dump(channel_infos, json_file, indent=2, ensure_ascii=False)
 
-    print(f"Les informations des serveurs Discord ont été sauvegardées dans '{output_file_path}'.")
+    print(f"Les informations ont été écrites dans {output_file_path}")
 
 if __name__ == "__main__":
     main()
