@@ -45,7 +45,7 @@ def extract_discord_info(url):
         # Recherche d'une autre méthode pour extraire le nombre de membres
         members_match = re.search(r'\|\s*(\d+)\s*(membres|members)', description, re.IGNORECASE)
         if members_match:
-            members = members_match.group(1).strip() + ' membres'
+            members = members_match.group(1).strip()
         else:
             members = 'Données non disponibles'
 
