@@ -21,16 +21,19 @@ def extract_discord_info(url):
         response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extraction des informations à partir du code source HTML
+        # Extraction de la description
         description_tag = soup.find('meta', {'name': 'description'})
         description = description_tag['content'] if description_tag else 'Description non disponible'
 
         # Extraction du nombre de membres
-        members_text = description.split('|')[-1].strip() if '|' in description else 'Membres non disponibles'
-        members = ''.join(filter(str.isdigit, members_text))
-
-        # Retirer le nombre de membres de la description
-        description_text = description.split('|')[0].strip() if '|' in description else description
+        # Exemple: "Découvre la communauté FransoTeam sur Discord - discute avec 378 autres membres et profite du chat vocal et textuel gratuit."
+        if ' avec ' in description and ' membres' in description:
+            description_text = description.split(' avec ')[0].strip()
+            members_text = description.split(' avec ')[1].split(' membres')[0].strip()
+            members = ''.join(filter(str.isdigit, members_text))
+        else:
+            description_text = description
+            members = 'Membres non disponibles'
 
         # Extraction du logo
         image_tag = soup.find('meta', {'property': 'og:image'})
