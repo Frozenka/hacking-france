@@ -50,7 +50,7 @@ def main():
         new_data.append(channel_info)
     
     # Écrire les nouvelles données dans le fichier JSON
-    with open('/src/assets/misc/channels_info.json', 'w') as file:
+    with open('src/assets/misc/channels_info.json', 'w') as file:
         json.dump(new_data, file, indent=2, ensure_ascii=False)
     
     print("Les informations des chaînes ont été mises à jour.")
