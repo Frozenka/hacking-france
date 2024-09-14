@@ -22,6 +22,10 @@ jobs:
       run: |
         pip install requests beautifulsoup4
 
+    - name: Set executable permissions on the script
+      run: |
+        chmod +x src/assets/misc/scrapyb.py
+
     - name: Run the Python script
       run: |
         python src/assets/misc/scrapyb.py
@@ -30,8 +34,12 @@ jobs:
       run: |
         cat src/assets/misc/chaines_youtubes.json
 
+    - name: Check permissions of directory
+      run: |
+        ls -la src/assets/misc
+
     - name: Upload JSON result
       uses: actions/upload-artifact@v3
       with:
         name: channels-info
-        path: /chaines_youtubes.json
+        path: src/assets/misc/chaines_youtubes.json
