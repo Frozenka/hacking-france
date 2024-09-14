@@ -31,7 +31,7 @@ def main():
         info = fetch_channel_info(channel)
         channel_info_list.append(info)
 
-    file_path = os.path.join(os.path.dirname(__file__), 'chaines_youtubes.json')
+    file_path = os.path.join(os.path.dirname(__file__), 'channels_info.json')
 
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(channel_info_list, file, ensure_ascii=False, indent=4)
