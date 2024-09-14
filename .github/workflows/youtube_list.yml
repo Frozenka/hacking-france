@@ -32,7 +32,7 @@ jobs:
 
     - name: Check permissions of directory
       run: |
-        ls -la src/assets/misc
+        ls -la src/assets/misc && pwd
 
     - name: Upload JSON result
       uses: actions/upload-artifact@v3
