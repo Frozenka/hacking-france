@@ -1,15 +1,22 @@
 ---
 title: La communauté HF.
-description: La communauté Hacking-France a été créée sur discord par Frozenk dans le but de réunir les joueurs de CTF et de proposer des « talks » sur divers sujets de la cybersécurité. Aujourd’hui, elle rassemble plus de 1500 personnes, avec des dizaines de célébrités du domaine de la cybersécurité venues présenter leurs conférences et des CTF organisés spécifiquement pour ses membres.
+description: La communauté Hacking-France a été créée sur discord par Frozenk dans le but de réunir les joueurs de CTF et de proposer des « talks » sur divers sujets de la cybersécurité. Aujourd'hui, elle rassemble plus de 1500 personnes, avec des dizaines de célébrités du domaine de la cybersécurité venues présenter leurs conférences et des CTF organisés spécifiquement pour ses membres.
 categories: [autre]
 tags: [commu]
 template: doc
 ---
 
-import { CardGrid } from '@astrojs/starlight/components'
+import { CardGrid, Icon } from '@astrojs/starlight/components'
 import Card from '../../../components/starlight/Card.astro'
 import ListCard from '../../../components/starlight/ListCard.astro'
 import SplitCard from '../../../components/starlight/SplitCard.astro'
+import { Image } from 'astro:assets';
+import frozenk from '../../../../src/assets/community/logofrozenk.png';
+import had from '../../../../src/assets/community/logohad.png';
+import cyberretta from '../../../../src/assets/community/logocyberretta.jpg';
+import vlad from '../../../../src/assets/community/logovlad.png';
+import foxx from '../../../../src/assets/community/logofoxx.png';
+import light from '../../../../src/assets/community/logolight.png';
 
 <div style="width: 560px; height: 315px; margin: auto; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
     <iframe style="width: 100%; height: 100%;" 
@@ -21,120 +28,110 @@ import SplitCard from '../../../components/starlight/SplitCard.astro'
     </iframe>
 </div>
 
-La communauté **Hacking-France** (originellement CTF-Hacking-France) a été créée sur discord par Frozenk dans le but de réunir les joueurs de CTF et de proposer des « [talks](https://hacking-france.fr/events/talks/) » sur divers sujets de la cybersécurité. Aujourd’hui, elle rassemble plus de 1500 personnes, avec des dizaines de célébrités du domaine de la cybersécurité venues présenter leurs conférences et des CTF organisés spécifiquement pour ses membres.
+La communauté **Hacking-France** (originellement CTF-Hacking-France) a été créée sur discord par Frozenk dans le but de réunir les joueurs de CTF et de proposer des « [talks](https://hacking-france.fr/events/talks/) » sur divers sujets de la cybersécurité. Aujourd'hui, elle rassemble plus de 1500 personnes, avec des dizaines de célébrités du domaine de la cybersécurité venues présenter leurs conférences et des CTF organisés spécifiquement pour ses membres.
 
 > Le cœur de cette communauté est la bienveillance et le partage, **et cela restera ainsi !**
 ## Les administrateurs :
 <CardGrid>
 
-  <Card title="👑">
-  ### Frozenk
-    <div style="text-align: center;">
-      <img
-        src="../../../../src/assets/community/logofrozenk.png"
-        alt="Logo FrozenK"
-        width="300"
-        height="150"
-      />
-    </div>
+<Card>
 
-    <p>Chris, Pentester issu d’une reconversion, créateur de la communauté Hacking-France et petit youtubeur en cybersécurité, je suis passionné par les CTF et autres challenges.</p>
-    <p>Je m’efforce d’aider au maximum les personnes, en particulier les débutants.</p>
-    <p>« On est tous le nul de quelqu’un d’autre », alors ne prenez jamais la grosse tête ! 🙂</p>
-    <p>
-      <a href="https://www.youtube.com/@FrozenKwa">Sa chaine Youtube</a><br />
-      <a href="https://github.com/Frozenka">Github</a>
-    </p>
-  </Card>
+### 👑 Frozenk
 
-  <Card title="👑" >
-  ### Had
-    <div style="text-align: center;">
-      <img
-        src="../../../../src/assets/community/logohad.png"
-        alt="Logo had"
-        width="300"
-        height="150"
-      />
-    </div>
+<Image src={frozenk} alt="Frozenk" format="avif" quality={"mid"}/>
 
-    <p>Hadrien, sysadmin en alternance, mes missions tournent autour de tout ce qui est supervision, cartographie de SI avec un peu de gestion de projet.</p>
-    <p>Pour éviter de sombrer dans la gestion de projet, il m’arrive de faire des streams sur des box vulnlab, hackthebox (un peu de dev) les soirs.</p>
-    <p>
-      <a href="https://www.twitch.tv/hadzah_fr">Sa chaine Twitch</a><br />
-      <a href="https://hadrien.cat/">Site de Had</a>
-    </p>
-  </Card>
+Chris, Pentester issu d'une reconversion, créateur de la communauté Hacking-France et petit youtubeur en cybersécurité, je suis passionné par les CTF et autres challenges.  
+Je m'efforce d'aider au maximum les personnes, en particulier les débutants.
+« On est tous le nul de quelqu'un d'autre », alors ne prenez jamais la grosse tête ! 🙂  
 
-  <Card title="👑">
-  ### Cyberretta
-    <div style="text-align: center;">
-      <img
-        src="../../../../src/assets/community/logocyberretta.jpg"
-        alt="Logo cyberretta"
-        width="300"
-        height="150"
-      />
-    </div>
+<div style="display: flex; gap: 10px;">
+  <a href="https://www.youtube.com/@FrozenKwa"><Icon name="youtube" size="2rem"/></a>
+  <a href="https://github.com/Frozenka"><Icon name="github" size="2rem"/></a>
+</div>
 
-    <p>Jean-Loup, full autodidacte depuis l’obtention de mon BTS SN car je n’ai pas souhaité continuer l’école.</p>
-    <p>Je m’intéresse à la sécurité défensive et offensive (mais surtout offensive) 🛡️.</p>
-    <p>Je passe aussi mon temps sur des projets perso (souvent du dev C++), et j’ai créé une chaîne YouTube pour partager ce qui me plaît 😄.</p>
-    <p>
-      <a href="https://cyberretta.github.io/">Site de Cyberretta</a>
-    </p>
-  </Card>
+</Card>
+
+<Card>
+
+### 👑 Had
+
+<Image src={had} alt="Had" format="avif" quality={"mid"}/>
+
+Hadrien, sysadmin en alternance, mes missions tournent autour de tout ce qui est supervision, cartographie de SI avec un peu de gestion de projet.
+
+Pour éviter de sombrer dans la gestion de projet, il m'arrive de faire des streams sur des box vulnlab, hackthebox (un peu de dev) les soirs.
+
+<div style="display: flex; gap: 10px;">
+  <a href="https://www.twitch.tv/hadzah_fr"><Icon name="twitch" size="2rem"/></a>
+  <a href="https://hadrien.cat/"><Icon name="open-book" size="2rem"/></a>
+</div>
+
+</Card>
+
+<Card>
+
+### 👑 Cyberretta
+
+<Image src={cyberretta} alt="Cyberretta" format="avif" quality={"mid"}/>
+
+Jean-Loup, full autodidacte depuis l'obtention de mon BTS SN car je n'ai pas souhaité continuer l'école.
+
+Je m'intéresse à la sécurité défensive et offensive (mais surtout offensive) 🛡️.
+
+Je passe aussi mon temps sur des projets perso (souvent du dev C++), et j'ai créé une chaîne YouTube pour partager ce qui me plaît 😄.
+
+<div style="display: flex; gap: 10px;">
+  <a href="https://cyberretta.github.io/"><Icon name="open-book" size="2rem"/></a>
+</div>
+
+</Card>
+
 </CardGrid>
 ## Les modérateurs :
 <CardGrid>
-  <Card title="🛡️">
-  ### Tux
-    <div style="text-align: center;">
-      <img
-        src="../../../../src/assets/community/logovlad.png"
-        alt="Logo vlad"
-        width="300"
-        height="150"
-      />
-    </div>
 
-    <p>Vladimir, passionné d’informatique depuis plusieurs années.</p>
-    <p>Je travaille actuellement dans les réseaux et les systèmes, notamment sur tout ce qui concerne le hardening d’Active Directory, l’analyse de logs, la supervision, etc.</p>
-    <p>Je suis également passionné par l’OSINT et le pentest, que je pratique sur mon temps personnel.</p>
-  </Card>
+<Card>
 
-  <Card title="🛡️">
-  ### Foxx24
-    <div style="text-align: center;">
-      <img
-        src="../../../../src/assets/community/logofoxx.png"
-        alt="Logo foxx"
-        width="300"
-        height="150"
-      />
-    </div>
+### 🛡️ Tux
 
-    <p>Passionné par la cybersécurité, je consacre autant de temps que possible à approfondir mes connaissances et mes compétences dans ce domaine. Malgré les études, j’essaie de m’investir au maximum afin de progresser dans ce domaine en constante évolution.</p>
-  </Card>
+<Image src={vlad} alt="Tux" format="avif" quality={"mid"}/>
 
-  <Card title="🛡️">
-  ### LightRadio
-    <div style="text-align: center;">
-      <img
-        src="../../../../src/assets/community/logolight.png"
-        alt="Logo light"
-        width="300"
-        height="150"
-      />
-    </div>
+Vladimir, passionné d'informatique depuis plusieurs années.
 
-    <p>Patrice, reparti sur les bancs de l’école après une reconversion, prochainement en alternance master cybersécurité.</p>
-    <p>Je suis passionné par pas mal (trop) de choses : le pentest, l’analyse forensique, le dev de tool (python).</p>
-    <p>J’aime également l’OSINT et le lockpicking. Et quand les journées feront + de 4h je me mettrais à l’analyse et au dev de malware.</p>
-    <p>J’ai une soif d’apprendre mais aussi un plaisir à partager et aider quand j’en ai la possibilité.</p>
-    <p>
-      <a href="https://github.com/LightxR">Github de Light</a>
-    </p>
-  </Card>
+Je travaille actuellement dans les réseaux et les systèmes, notamment sur tout ce qui concerne le hardening d'Active Directory, l'analyse de logs, la supervision, etc.
+
+Je suis également passionné par l'OSINT et le pentest, que je pratique sur mon temps personnel.
+
+</Card>
+
+<Card>
+
+### 🛡️ Foxx24
+
+<Image src={foxx} alt="Foxx24" format="avif" quality={"mid"}/>
+
+Passionné par la cybersécurité, je consacre autant de temps que possible à approfondir mes connaissances et mes compétences dans ce domaine. Malgré les études, j'essaie de m'investir au maximum afin de progresser dans ce domaine en constante évolution.
+
+</Card>
+
+<Card>
+
+### 🛡️ LightRadio
+
+<Image src={light} alt="LightRadio" format="avif" quality={"mid"}/>
+
+Patrice, reparti sur les bancs de l'école après une reconversion, prochainement en alternance master cybersécurité.
+
+Je suis passionné par pas mal (trop) de choses : le pentest, l'analyse forensique, le dev de tool (python).
+
+J'aime également l'OSINT et le lockpicking. Et quand les journées feront + de 4h je me mettrais à l'analyse et au dev de malware.
+
+J'ai une soif d'apprendre mais aussi un plaisir à partager et aider quand j'en ai la possibilité.
+
+<div style="display: flex; gap: 10px;">
+  <a href="https://github.com/LightxR"><Icon name="github" size="2rem"/></a>
+</div>
+
+</Card>
 
 </CardGrid>
