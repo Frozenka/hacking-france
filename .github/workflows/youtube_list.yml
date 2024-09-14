@@ -34,4 +34,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: channels-info
-        path: src/assets/misc/chaines_youtubes.json
+        path: /chaines_youtubes.json
