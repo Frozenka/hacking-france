@@ -42,7 +42,7 @@ export default defineConfig({
           translations: {
             en: 'The Community'
           },
-          link: 'community/community' },
+          link: 'community' },
         {
           label: 'Événements',
           translations: {
