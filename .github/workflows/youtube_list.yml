@@ -8,6 +8,8 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    
+   
 
     steps:
     - name: Checkout repository
@@ -21,6 +23,13 @@ jobs:
     - name: Install dependencies
       run: |
         pip install requests beautifulsoup4
+
+    - name: Reset Git cache
+      run: |
+        git rm --cached src/assets/misc/channels_info.json || true
+        git add src/assets/misc/channels_info.json
+        git status
+
         
     - name: Run the Python script
       run: |
@@ -34,12 +43,16 @@ jobs:
       run: |
         ls -la src/assets/misc && pwd
 
-    - name: Commit and push changes
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Force add file
+      run: |
+        git add -f src/assets/misc/channels_info.json
+        git status
+        git diff --cached
+    
+    - name: Commit changes
       run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
-        git add src/assets/misc/channels_info.json
         git commit -m "Update channels_info.json from GitHub Actions" || echo "No changes to commit"
         git push origin main
+
