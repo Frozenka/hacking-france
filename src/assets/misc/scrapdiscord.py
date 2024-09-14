@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import json
 
 # URL de la liste des serveurs Discord
-discord_urls_file = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/discord.txt'
+discord_urls_file = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_discord.txt'
 output_file = 'discord_channels_info.json'
 
 def fetch_discord_urls(url):
