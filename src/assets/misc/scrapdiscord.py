@@ -19,7 +19,14 @@ def fetch_discord_urls(url):
     response.raise_for_status()
     return response.text.splitlines()
 
+def is_valid_url(url):
+    return url.startswith(('http://', 'https://'))
+
 def extract_discord_info(url):
+    if not is_valid_url(url):
+        print(f"URL invalide : {url}")
+        return None
+
     response = requests.get(url)
     response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
     soup = BeautifulSoup(response.text, 'html.parser')
