@@ -62,7 +62,7 @@ def main():
             print(f"Erreur lors de la récupération des informations pour {url}: {e}")
     
     # Écrire les informations dans le fichier JSON
-    file_path = 'src/assets/misc/chaines_youtubes.json'
+    file_path = 'chaines_youtubes.json'
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(channels_info, file, indent=2, ensure_ascii=False)
     
