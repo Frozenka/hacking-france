@@ -29,6 +29,7 @@ export default defineConfig({
         Head: "./src/components/starlight/Head.astro",
         Hero: './src/components/starlight/Hero.astro',
         Pagination: './src/components/starlight/Pagination.astro',
+        PageSidebar: './src/components/starlight/PageSidebar.astro',
       },
       logo: {
         light: './src/assets/hfwhite.png',
