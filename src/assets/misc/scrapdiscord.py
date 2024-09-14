@@ -1,13 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-import os  # Importer le module os
+import os
 
 # URL de la liste des serveurs Discord
 discord_urls_file = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_discord.txt'
 
 # Définir le chemin du fichier de sortie
 output_file_path = os.path.join('src', 'assets', 'misc', 'discord_servers_info.json')
+
+# URL de l'image par défaut
+default_image_url = 'https://logo-marque.com/wp-content/uploads/2020/12/Discord-Logo.png'
 
 def fetch_discord_urls(url):
     response = requests.get(url)
@@ -21,23 +24,20 @@ def extract_discord_info(url):
         response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extraction de la description
+        # Extraction des informations à partir du code source HTML
         description_tag = soup.find('meta', {'name': 'description'})
         description = description_tag['content'] if description_tag else 'Description non disponible'
 
         # Extraction du nombre de membres
-        # Exemple: "Découvre la communauté FransoTeam sur Discord - discute avec 378 autres membres et profite du chat vocal et textuel gratuit."
-        if ' avec ' in description and ' membres' in description:
-            description_text = description.split(' avec ')[0].strip()
-            members_text = description.split(' avec ')[1].split(' membres')[0].strip()
-            members = ''.join(filter(str.isdigit, members_text))
-        else:
-            description_text = description
-            members = 'Membres non disponibles'
+        members_text = description.split('|')[-1].strip() if '|' in description else 'Membres non disponibles'
+        members = ''.join(filter(str.isdigit, members_text))
+
+        # Retirer le nombre de membres de la description
+        description_text = description.split('|')[0].strip() if '|' in description else description
 
         # Extraction du logo
         image_tag = soup.find('meta', {'property': 'og:image'})
-        image_url = image_tag['content'] if image_tag else 'Logo non disponible'
+        image_url = image_tag['content'] if image_tag else default_image_url
 
         # Extraction du nom
         title_tag = soup.find('meta', {'property': 'og:title'})
@@ -45,20 +45,14 @@ def extract_discord_info(url):
 
         return {
             'name': title.strip(),
-            'description': f"Rejoignez notre serveur Discord dédié aux CTF (Capture The Flag) pour les passionnés de sécurité informatique | {members} membres | {members} members",
+            'description': f"{description_text} | {members} members",
             'members': members.strip(),
             'image': image_url.strip(),
             'link': url.strip()
         }
     except Exception as e:
         print(f"Erreur pour {url}: {e}")
-        return {
-            'name': 'Erreur',
-            'description': f"Erreur lors de la récupération des informations: {e}",
-            'members': 'N/A',
-            'image': 'N/A',
-            'link': url
-        }
+        return None  # Ne pas inclure cette entrée dans le fichier JSON
 
 def main():
     discord_urls = fetch_discord_urls(discord_urls_file)
@@ -66,8 +60,9 @@ def main():
     
     for url in discord_urls:
         info = extract_discord_info(url)
-        discord_channels.append(info)
-        print(f"Infos récupérées pour {url}: {info}")
+        if info is not None:  # Inclure seulement si info n'est pas None
+            discord_channels.append(info)
+            print(f"Infos récupérées pour {url}: {info}")
 
     # Écriture des résultats dans un fichier JSON
     with open(output_file_path, 'w', encoding='utf-8') as json_file:
