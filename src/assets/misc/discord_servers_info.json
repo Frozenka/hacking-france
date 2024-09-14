@@ -1,37 +1,30 @@
 [
   {
     "name": "Rejoins le serveur Discord Hacking France !",
-    "description": "Rejoignez notre serveur Discord dédié aux CTF (Capture The Flag) pour les passionnés de sécurité informatique | Membres non disponibles membres | Membres non disponibles members",
+    "description": "Rejoignez notre serveur Discord dédié aux CTF (Capture The Flag) pour les passionnés de sécurité informatique | 1511 membres | Membres non disponibles members",
     "members": "Membres non disponibles",
     "image": "https://cdn.discordapp.com/splashes/1084077921238528000/ae3d2b489ed6a0fc6c3f956935dd1088.jpg?size=512",
     "link": "https://discord.com/invite/GSD6qdYkDb"
   },
   {
     "name": "Join the HacktBack Discord Server!",
-    "description": "Rejoignez notre serveur Discord dédié aux CTF (Capture The Flag) pour les passionnés de sécurité informatique | Membres non disponibles membres | Membres non disponibles members",
+    "description": "HacktBack est un espace sain créé pour accueillir les débutants dans le monde de la cybersécurité et le hacking éthique. | 3100 members | Membres non disponibles members",
     "members": "Membres non disponibles",
     "image": "https://cdn.discordapp.com/splashes/925469406023262249/663812eed457e69c9339e89f2e6fdca6.jpg?size=512",
     "link": "https://discord.com/invite/hacktback-925469406023262249"
   },
   {
     "name": "Rejoins le serveur Discord FransoTeam !",
-    "description": "Rejoignez notre serveur Discord dédié aux CTF (Capture The Flag) pour les passionnés de sécurité informatique | 378 membres | 378 members",
+    "description": "Découvre la communauté FransoTeam sur Discord - discute avec Membres non disponibles et profite du chat vocal et textuel gratuit. | 378 members",
     "members": "378",
-    "image": "Logo non disponible",
+    "image": "https://logo-marque.com/wp-content/uploads/2020/12/Discord-Logo.png",
     "link": "https://discord.com/invite/ZZNY2hD4Yu"
   },
   {
     "name": "Rejoins le serveur Discord ThinkLoveShare !",
-    "description": "Rejoignez notre serveur Discord dédié aux CTF (Capture The Flag) pour les passionnés de sécurité informatique | 454 membres | 454 members",
+    "description": "Découvre la communauté ThinkLoveShare sur Discord - discute avec Membres non disponibles et profite du chat vocal et textuel gratuit. | 454 members",
     "members": "454",
-    "image": "Logo non disponible",
+    "image": "https://logo-marque.com/wp-content/uploads/2020/12/Discord-Logo.png",
     "link": "https://discord.com/invite/PbfjcvXdHG"
-  },
-  {
-    "name": "Erreur",
-    "description": "Erreur lors de la récupération des informations: Invalid URL '': No scheme supplied. Perhaps you meant https://?",
-    "members": "N/A",
-    "image": "N/A",
-    "link": ""
   }
 ]
