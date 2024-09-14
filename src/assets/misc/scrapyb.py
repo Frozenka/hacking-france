@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import os
 
 def get_channel_info_from_url(url):
     """
@@ -21,8 +22,8 @@ def get_channel_info_from_url(url):
     image_tag = soup.find('link', {'rel': 'image_src'})
     image = image_tag.get('href', 'Image non trouvée') if image_tag else 'Image non trouvée'
 
-    # Extraire l'ID de la chaîne à partir de l'URL (URL personnalisée ne contient pas directement l'ID)
-    channel_id = url.split('/')[-1]  # Pour les URLs sous forme de handle, cet ID peut ne pas être présent
+    # Extraire l'ID de la chaîne
+    channel_id = url.split('/')[-1]
     
     return {
         'id': channel_id,
@@ -34,27 +35,30 @@ def get_channel_info_from_url(url):
 
 def main():
     """
-    Fonction principale qui gère la lecture de l'URL des chaînes, le scraping et l'écriture du fichier JSON.
+    Fonction principale qui récupère les informations des chaînes et les écrit dans un fichier JSON.
     """
-    # URL du fichier liste des chaînes
-    list_url = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_youtube.txt'
-    
-    # Télécharger la liste des chaînes
-    response = requests.get(list_url)
-    urls = response.text.strip().split('\n')
-    
-    # Scraper les informations pour chaque chaîne
-    new_data = []
+    # URL de la liste des chaînes YouTube
+    url_list = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_youtube.txt'
+    response = requests.get(url_list)
+    urls = response.text.splitlines()
+
+    all_channels = []
     for url in urls:
-        channel_info = get_channel_info_from_url(url.strip())
-        new_data.append(channel_info)
-    
-    # Écrire les nouvelles données dans le fichier JSON
-    with open('src/assets/misc/channels_info.json', 'w') as file:
-        json.dump(new_data, file, indent=2, ensure_ascii=False)
-    
-  print(f"Les informations des chaînes YouTube ont été écrites dans : {os.path.abspath(file_path)}")
+        try:
+            channel_info = get_channel_info_from_url(url)
+            all_channels.append(channel_info)
+        except Exception as e:
+            print(f"Erreur lors du traitement de {url}: {e}")
+
+    # Chemin vers le fichier JSON
+    file_path = 'src/assets/misc/channels_info.json'
+
+    # Écrire les informations dans le fichier JSON
+    with open(file_path, 'w', encoding='utf-8') as file:
+        json.dump(all_channels, file, indent=2, ensure_ascii=False)
+
+    # Afficher l'emplacement du fichier JSON
+    print(f"Les informations des chaînes YouTube ont été écrites dans : {os.path.abspath(file_path)}")
 
 if __name__ == "__main__":
     main()
-#merci ChatGPT !
