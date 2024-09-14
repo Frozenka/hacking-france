@@ -25,7 +25,7 @@ jobs:
     - name: Run the Python script
       run: |
         python src/assets/misc/scrapyb.py
-        
+
     - name: Display JSON content
       run: |
         cat src/assets/misc/channels_info.json
