@@ -34,6 +34,9 @@ def extract_discord_info(url):
     # Extraction des informations à partir du code source HTML
     description_tag = soup.find('meta', {'name': 'description'})
     description = description_tag['content'] if description_tag else 'Description non disponible'
+    
+    # Supprimer tout texte après un | ou un - dans la description
+    description = re.split(r'[|-]', description, 1)[0].strip()
 
     # Recherche du nombre de membres dans la description
     members_match = re.search(r'Discord\s*(.*?)\s*autres\s*membres\s*et\s*profite\s*du\s*chat\s*vocal\s*et\s*textuel\s*gratuit', description, re.IGNORECASE)
