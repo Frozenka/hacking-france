@@ -1,6 +1,6 @@
 ---
 title: OSCP
-description: L’OSCP (Offensive Security Certified Professional) est une certification pratique proposée par OffSec, les créateurs de Kali Linux.
+description: L'OSCP (Offensive Security Certified Professional) est une certification pratique proposée par OffSec, les créateurs de Kali Linux.
 categories: [certifications]
 tags: [certifications]
 template: doc
@@ -10,7 +10,7 @@ import { Image } from 'astro:assets';
 
 <Image src="https://www.offsec.com/_astro/OSCP.D0Wrgjqy_2lOY92.svg" alt="OSCP logo" format="avif" quality={"mid"} width="300" height="300"/>
 
-> L’OSCP (Offensive Security Certified Professional) est une certification **pratique** proposée par OffSec, les créateurs de Kali Linux.
+> L'OSCP (Offensive Security Certified Professional) est une certification **pratique** proposée par OffSec, les créateurs de Kali Linux.
 
 ## Le Pen200
 
@@ -20,46 +20,45 @@ import { Image } from 'astro:assets';
     
 Les cours sont constitués de nombreux modules, chacun accompagné de nombreuses questions en rapport avec le contenu pour améliorer la compréhension et valider les compétences au fur et à mesure. Les cours sont de très bonne qualité, et chaque instance est individuelle.
 
-### Laboratoires d’entraînement
+### Labs d'entraînement
     
- Les laboratoires d’entraînement comprennent plusieurs environnements (constitués de multiples machines sur différents réseaux). Parmi ces laboratoires, trois sont spécifiquement conçus pour vous entraîner à appliquer les techniques que vous avez apprises dans le cours.
+Les laboratoires d'entraînement comprennent plusieurs environnements (constitués de multiples machines sur différents réseaux). Parmi ces laboratoires, trois sont spécifiquement conçus pour vous entraîner à appliquer les techniques que vous avez apprises dans le cours.
 
-Ensuite, il y a trois laboratoires (OSCP-A, OSCP-B et OSCP-C) qui représentent une simulation de l’examen. Ils comportent donc un ensemble de trois machines dans un environnement **Active Directory** ainsi que trois machines **standalone**. Bien qu’ils soient conçus pour se rapprocher de l’examen, ces laboratoires restent des exercices d’entraînement. ils ne reproduisent pas parfaitement l’examen, mais ils constituent un excellent moyen de préparation.
+Ensuite, il y a trois laboratoires (OSCP-A, OSCP-B et OSCP-C) qui représentent une simulation de l'examen. Ils comportent donc un ensemble de trois machines dans un environnement **Active Directory** ainsi que trois machines **standalone**. Bien qu'ils soient conçus pour se rapprocher de l'examen, ces laboratoires restent des exercices d'entraînement. Ils ne reproduisent pas parfaitement l'examen, mais ils constituent un excellent moyen de préparation.
 
 ### PgPlay
     
+Pour finir, il y a les **Pgplay**, qui sont des machines supplémentaires pour l'entraînement. Elles ne comptent pas pour les points bonus et sont uniquement destinées à un entraînement supplémentaire. Personnellement, je n'en ai utilisé aucune.
 
-Pour finir, il y a les **Pgplay**, qui sont des machines supplémentaires pour l’entraînement. Elles ne comptent pas pour les points bonus et sont uniquement destinées à un entraînement supplémentaire. Personnellement, je n’en ai utilisé aucune.
-
-## L’exam
+## L'examen
 
 ---
 
 ### Durée
     
-L’examen dure 23 heures et 45 minutes, suivies de 24 heures supplémentaires pour la rédaction du rapport.
+L'examen dure 23 heures et 45 minutes, suivies de 24 heures supplémentaires pour la rédaction du rapport.
 
 ### Interdiction
     
-Pendant l’examen, de nombreuses **choses** sont **interdites**. L’utilisation de **Metasploit**, **SQLMAP** et **tout logiciel d’automatisation** d’exploits est strictement interdite. **Chaque exploitation doit être réalisée manuellement**.
+Pendant l'examen, de nombreuses **choses** sont **interdites**. L'utilisation de **Metasploit**, **SQLMAP** et **tout logiciel d'automatisation** d'exploits est strictement interdite. **Chaque exploitation doit être réalisée manuellement**.
 
-De plus, toute aide d’IA est prohibée, donc oubliez GPT et autres. Faites également attention aux fonctionnalités d’IA intégrées dans les navigateurs web.
+De plus, toute aide d'IA est prohibée, donc oubliez GPT et autres. Faites également attention aux fonctionnalités d'IA intégrées dans les navigateurs web.
 
 ### Surveillance
     
-Pendant l’examen, vous êtes filmé en permanence.
+Pendant l'examen, vous êtes filmé en permanence.
 
-Aucune autre personne que vous n’est autorisée dans la pièce, et aucun matériel électronique (TV,telephone,tablette ect .. ) autre que votre ordinateur et vos écrans (que vous devez déclarer au préalable) n’est autorisé. Un système de **proctoring** surveille votre machine pour s’assurer que vous ne trichez pas.
+Aucune autre personne que vous n'est autorisée dans la pièce, et aucun matériel électronique (TV, téléphone, tablette, etc.) autre que votre ordinateur et vos écrans (que vous devez déclarer au préalable) n'est autorisé. Un système de **proctoring** surveille votre machine pour s'assurer que vous ne trichez pas.
 
-Le passage de l’examen est donc très stressant.
+Le passage de l'examen est donc très stressant.
 
-### Le Lab 
+### Le Lab 
     
-L’examen se compose d’un ensemble **Active Directory** de trois machines interconnectées via un ou plusieurs réseaux.
+L'examen se compose d'un ensemble **Active Directory** de trois machines interconnectées via un ou plusieurs réseaux.
 
-Vous obtenez 40 points si vous prenez le contrôle du contrôleur de domaine, et uniquement dans ce cas.Il y a trois autres machines appelées **« standalones »** qui ne sont pas connectées entre elles et sont donc totalement indépendantes. Chaque flag trouvé sur ces machines rapporte 10 points, soit un total de 60 points. Il est également possible de gagner 10 points bonus en terminant les laboratoires du cours (le **Pen200**) et en ayant répondu correctement à au moins 80 % des questions de ce dernier.
+Vous obtenez 40 points si vous prenez le contrôle du contrôleur de domaine, et uniquement dans ce cas. Il y a trois autres machines appelées **« standalones »** qui ne sont pas connectées entre elles et sont donc totalement indépendantes. Chaque flag trouvé sur ces machines rapporte 10 points, soit un total de 60 points. Il est également possible de gagner 10 points bonus en terminant les laboratoires du cours (le **Pen200**) et en ayant répondu correctement à au moins 80 % des questions de ce dernier.
 
-Pour obtenir la certification, il est nécessaire d’atteindre un **minimum de 70 points et de faire valider le rapport.**
+Pour obtenir la certification, il est nécessaire d'atteindre un **minimum de 70 points et de faire valider le rapport.**
 
 ## Conseils
 
@@ -67,23 +66,23 @@ Pour obtenir la certification, il est nécessaire d’atteindre un **minimum de
 
 ### Notes
     
-Je vous recommande de prendre vos notes au mieux possible, il est inutile de recopier le cours mot pour mot, vous devez faire vos notes a votre facon pour que vous puissiez rapidement vous souvenir et comprendre un sujet.
+Je vous recommande de prendre vos notes au mieux possible, il est inutile de recopier le cours mot pour mot, vous devez faire vos notes à votre façon pour que vous puissiez rapidement vous souvenir et comprendre un sujet.
 
 ### Assiduité
     
-il vous faudra etre assidu et ne pas passer plusieurs jours/semaines sans vous entrainer car malheuresement cela peut vite vous faire perdre le fil et la concentration, dautant plus que le cours est quand meme lourds
+Il vous faudra être assidu et ne pas passer plusieurs jours/semaines sans vous entraîner car malheureusement cela peut vite vous faire perdre le fil et la concentration, d'autant plus que le cours est quand même lourd.
 
-### Entrainement
+### Entraînement
     
-Entrainez vous au maximum, surtout faite les trois OSCP-X et au minimum 1 en condition réel (pas de chatgpt, en 24h max, sans aides ect ...) j’ai aussi pour ma part fait énormement de [vulnlab](https://www.youtube.com/watch?v=BIZECU2h-YU) quelques semaines avant le passage de l’exam.
+Entraînez-vous au maximum, surtout faites les trois OSCP-X et au minimum 1 en condition réelle (pas de ChatGPT, en 24h max, sans aides, etc.). J'ai aussi pour ma part fait énormément de [vulnlab](https://www.youtube.com/watch?v=BIZECU2h-YU) quelques semaines avant le passage de l'examen.
 
 ### Points Bonus
     
-Il n’est pas du tout nécessaire d’obtenir les 10 points bonus, mais je le recommande fortement.
+Il n'est pas du tout nécessaire d'obtenir les 10 points bonus, mais je le recommande fortement.
 
-En effet, cela vous obligera à compléter les laboratoires, offrant ainsi un entraînement supplémentaire. De plus, cela vous aidera à réduire votre stress le jour de l’examen, sachant que vous aurez déjà 10 points acquis, vous ne devrez donc viser que 60 points supplémentaires (AD et une machine standalone).
+En effet, cela vous obligera à compléter les laboratoires, offrant ainsi un entraînement supplémentaire. De plus, cela vous aidera à réduire votre stress le jour de l'examen, sachant que vous aurez déjà 10 points acquis, vous ne devrez donc viser que 60 points supplémentaires (AD et une machine standalone).
 
-> Retrouvez mon retour d’expérience en vidéo sur l’OSCP ici:
+> Retrouvez mon retour d'expérience en vidéo sur l'OSCP ici:
 
 https://www.youtube.com/watch?v=h7CWBmMk_UA
 
@@ -91,7 +90,7 @@ https://www.youtube.com/watch?v=h7CWBmMk_UA
 
 Les changements récents concernant l'examen OSCP introduisent plusieurs modifications importantes par rapport à l'ancienne structure de l'examen, qui entreront en vigueur le 1er novembre 2024.
 
-À savoir:
+À savoir :
 
 - **Nouvelle structure de l'examen** : L'examen comportera désormais une section Active Directory (AD) où les candidats commenceront avec un compte utilisateur standard.
 

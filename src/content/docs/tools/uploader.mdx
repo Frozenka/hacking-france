@@ -1,6 +1,6 @@
 ---
 title: Uploader
-description: Script python pour télécharger des fichiers sur une machine distante de manière rapide en fonction du système d'exploitation cible (Linux ou Windows).
+description: Script Python pour télécharger des fichiers sur une machine distante de manière rapide en fonction du système d'exploitation cible (Linux ou Windows).
 categories: [Outils]
 tags: [uploader,tools,exegol]
 template: doc
@@ -10,8 +10,8 @@ template: doc
 **Uploader est maintenant intégré à Exegol !**
 :::
 
-Ce script Python écrit par Frozenk et Snoopy vous permet de télécharger des fichiers sur une machine distante de manière rapide en fonction du système d’exploitation cible (Linux ou Windows).  
-Il génère automatiquement la commande de téléchargement appropriée en fonction de la demande ( Curl, Wget, Certutil,Powershel ect..) et ouvre un serveur Python local pour fournir le fichier à télécharger jusqu’à ce qu’une réponse HTTP 200 soit reçue,  
+Ce script Python écrit par Frozenk et Snoopy vous permet de télécharger des fichiers sur une machine distante de manière rapide en fonction du système d'exploitation cible (Linux ou Windows).  
+Il génère automatiquement la commande de téléchargement appropriée en fonction de la demande (Curl, Wget, Certutil, PowerShell, etc.) et ouvre un serveur Python local pour fournir le fichier à télécharger jusqu'à ce qu'une réponse HTTP 200 soit reçue,  
 puis le serveur se ferme.
 
 ## Fonctionnalités
@@ -31,17 +31,17 @@ Utilisez la commande suivante pour installer Uploader :
 curl -s https://raw.githubusercontent.com/Frozenka/uploader/main/install.sh | sudo bash
 ```
 
-## Arguments :
+## Arguments :
 
 - –port, -p : Spécifiez le port à utiliser.
-- –os, -os : Spécifiez le système d’exploitation cible (Linux ou Windows).
+- –os, -os : Spécifiez le système d'exploitation cible (Linux ou Windows).
 - –file, -f : Spécifiez le fichier à télécharger.
 - –output, -o : Spécifiez le fichier de sortie sur la machine cible.
-- –payload, -py : Spécifiez le type de payload (Curl Wget Certutil Iwr Bitsadmin Regsvr32).
+- –payload, -py : Spécifiez le type de payload (Curl, Wget, Certutil, Iwr, Bitsadmin, Regsvr32).
 
 ## Prérequis
 
-- – Python 3.x
-- – Xclip (pour la copie dans le presse-papiers,En cas d’absence, le script l’installera)
+- Python 3.x
+- Xclip (pour la copie dans le presse-papiers, en cas d'absence, le script l'installera)
 
 https://github.com/Frozenka/uploader
