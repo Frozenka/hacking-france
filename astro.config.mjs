@@ -95,6 +95,17 @@ export default defineConfig({
             collapsed: true
           }
         },
+                {
+          label: 'Autre',
+          translations: {
+            en: 'Misc'
+          },
+          collapsed: false,
+          autogenerate: {
+            directory: 'misc',
+            collapsed: true
+          }
+        },
         { 
           label: 'Contribuer', 
           translations: {
