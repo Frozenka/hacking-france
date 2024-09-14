@@ -1,72 +1,42 @@
+import os
+import json
 import requests
 from bs4 import BeautifulSoup
-import json
-import os
 
-def get_channel_info_from_url(url):
-    """
-    Récupère les informations de la chaîne YouTube en scrappant la page.
-    """
+def fetch_youtube_channels():
+    url = "https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_youtube.txt"
     response = requests.get(url)
+    response.raise_for_status()
+    return response.text.splitlines()
+
+def fetch_channel_info(channel_url):
+    # Utiliser BeautifulSoup pour extraire les informations de la chaîne
+    response = requests.get(channel_url)
     soup = BeautifulSoup(response.text, 'html.parser')
-
-    # Extraire le nom de la chaîne
-    title_tag = soup.find('meta', {'property': 'og:title'})
-    if title_tag:
-        name = title_tag.get('content', 'Nom non trouvé')
-    else:
-        name = 'Nom non trouvé'
     
-    # Extraire la description de la chaîne
-    meta_description = soup.find('meta', {'name': 'description'})
-    if meta_description:
-        description = meta_description.get('content', 'Description non trouvée')
-    else:
-        description = 'Description non trouvée'
-    
-    # Extraire l'image de la chaîne
-    image_tag = soup.find('link', {'rel': 'image_src'})
-    if image_tag:
-        image = image_tag.get('href', 'Image non trouvée')
-    else:
-        image = 'Image non trouvée'
-
-    # Extraire l'ID de la chaîne à partir de l'URL (URL personnalisée ne contient pas directement l'ID)
-    channel_id = url.split('/')[-1]  # Pour les URLs sous forme de handle, cet ID peut ne pas être présent
-    
+    # Exemple de données, vous devrez ajuster le parsing en fonction du contenu réel
     return {
-        'id': channel_id,
-        'name': name,
-        'description': description,
-        'image': image,
-        'link': url
+        "id": channel_url.split('/')[-1],
+        "name": "Nom de la chaîne",
+        "description": "Description de la chaîne",
+        "image": "URL de l'image",
+        "link": channel_url
     }
 
 def main():
-    """
-    Fonction principale qui gère l'entrée utilisateur et l'affichage des informations.
-    """
-    # Lire la liste des URL de chaînes YouTube
-    url_list_file = 'src/assets/misc/liste_youtube.txt'
-    with open(url_list_file, 'r') as file:
-        urls = file.read().splitlines()
-    
-    channels_info = []
-    
-    for url in urls:
-        try:
-            # Récupérer les informations de la chaîne
-            channel_info = get_channel_info_from_url(url)
-            channels_info.append(channel_info)
-        except Exception as e:
-            print(f"Erreur lors de la récupération des informations pour {url}: {e}")
-    
-    # Écrire les informations dans le fichier JSON
-    file_path = './channels_info.json'
+    channels = fetch_youtube_channels()
+    channel_info_list = []
+
+    for channel in channels:
+        info = fetch_channel_info(channel)
+        channel_info_list.append(info)
+
+    file_path = os.path.join(os.path.dirname(__file__), 'chaines_youtubes.json')
+
     with open(file_path, 'w', encoding='utf-8') as file:
-        json.dump(channels_info, file, indent=2, ensure_ascii=False)
-    
-    print(f"Les informations des chaînes YouTube ont été écrites dans : {os.path.abspath(file_path)}")
+        json.dump(channel_info_list, file, ensure_ascii=False, indent=4)
+
+    print(f"Les informations des chaînes YouTube ont été écrites dans : {file_path}")
 
 if __name__ == "__main__":
     main()
