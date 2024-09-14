@@ -15,15 +15,23 @@ output_file_path = os.path.join('src', 'assets', 'misc', 'discord_servers_info.j
 default_image_url = 'https://logo-marque.com/wp-content/uploads/2020/12/Discord-Logo.png'
 
 def fetch_discord_urls(url):
-    response = requests.get(url)
-    response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
-    response.raise_for_status()
-    return response.text.splitlines()
+    try:
+        response = requests.get(url)
+        response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
+        response.raise_for_status()
+        urls = response.text.splitlines()
+        # Validation basique des URL
+        valid_urls = [u for u in urls if re.match(r'https://discord\.com/invite/.+', u)]
+        return valid_urls
+    except requests.RequestException as e:
+        print(f"Erreur lors de la récupération des URLs: {e}")
+        return []
 
 def extract_discord_info(url):
     try:
         response = requests.get(url)
         response.encoding = 'utf-8'  # Forcer l'encodage UTF-8
+        response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # Extraction des informations à partir du code source HTML
@@ -47,19 +55,21 @@ def extract_discord_info(url):
 
         return {
             'name': title.strip(),
-            'description': f"{description_text.strip()} | {members} members",
+            'description': f"{description_text.strip()} | {members} membres",
             'members': members.strip(),
             'image': image_url.strip(),
             'link': url.strip()
         }
+    except requests.RequestException as e:
+        print(f"Erreur lors de la récupération des infos pour {url}: {e}")
     except Exception as e:
-        print(f"Erreur pour {url}: {e}")
-        return None  # Ne pas inclure cette entrée dans le fichier JSON
+        print(f"Erreur inconnue pour {url}: {e}")
+    return None  # Ne pas inclure cette entrée dans le fichier JSON
 
 def main():
     discord_urls = fetch_discord_urls(discord_urls_file)
     discord_channels = []
-    
+
     for url in discord_urls:
         info = extract_discord_info(url)
         if info is not None:  # Inclure seulement si info n'est pas None
