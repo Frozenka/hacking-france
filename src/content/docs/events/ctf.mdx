@@ -51,7 +51,7 @@ Un individu connu sous le nom de MrCyber1337, un cybercriminel, a récemment env
 
 ---
 
-```python
+```python wrap frame="terminal" title="RC4 script"
 from Crypto.Cipher import ARC4
 from Crypto.Random import get_random_bytes
 from CTF import FLAG1, FLAG2
@@ -73,7 +73,7 @@ print(f"Ciphertext 2: {ciphertext2.hex()}")
 
 output.txt:
 
-```
+```txt wrap frame="terminal" title="Output"
 Ciphertext 1: 1eb190155d6fa06382c9d9183fc51956caa7dcb5238755f28f79c581365cf8f3
 Ciphertext 2: 3b90d7562c1ed52ce5bdde7044d07e2c9cb5b083738616e28935
 ```
@@ -90,7 +90,7 @@ Commençons par créer le MD5 du pseudo sur un site en ligne.
 
 Et ensuite, faisons un script qui fait le XOR de l'output avec cette partie connue (le hash) :
 
-```python
+```python wrap frame="terminal" title="XOR script"
 def xor_bytes(a, b):
     return bytes(x ^ y for x, y in zip(a, b))
 

@@ -10,7 +10,7 @@ next: false
 prev: false
 ---
 
-import SplitCard from '../../../components/starlight/SplitCard.astro';
+import SplitCard  from '../../../components/starlight/SplitCard.astro';
 import { LinkButton } from '@astrojs/starlight/components';
 import { Badge, Icon } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
@@ -34,148 +34,157 @@ accueillir parmi nous ! [Rejoindre le Discord](https://discord.gg/hacking-france
 :::
 
 <SplitCard title="PwnwithLove - Bug Bounty" icon="laptop">
-<Image src={pwnii} alt="PwnwithLove" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="Plannifié" variant="note" size="medium" />  
-<b><span id="counterEvent2"></span></b> avec PwnwithLove (Pwnii), jeune chasseuse de bugs avec plusieurs rapports à son actif. Elle participe aux championnats du monde de Bug Bounty et à diverses conférences. Elle partagera son expérience, ses découvertes et ses conseils pour débutants.  
-[Je suis intéressé(e)!](https://discord.gg/pRehsds7Xv?event=1279063491013120101)
+  <div>
+    <Image src={pwnii} alt="PwnwithLove" format="avif" quality={"mid"}/>
     <details>
-      <summary>Replay youtube à venir</summary>
-    
+      <summary>Replay YouTube</summary>
+      <p>À venir</p>
     </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="Plannifié" variant="note" size="medium" />  
+    <b><span id="counterEvent2"></span></b> avec PwnwithLove (Pwnii), jeune chasseuse de bugs avec plusieurs rapports à son actif. Elle participe aux championnats du monde de Bug Bounty et à diverses conférences. Elle partagera son expérience, ses découvertes et ses conseils pour débutants.  
+    [Je suis intéressé(e)!](https://discord.gg/pRehsds7Xv?event=1279063491013120101)
   </div>
 </SplitCard>
 
 <SplitCard title="Laluka - Lalubuntu The Friendly Offensive Distro" icon="laptop">
-<Image src={laluka} alt="Laluka" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="Plannifié" variant="note" size="medium" />  
-<b><span id="counterEvent"></span></b> avec Laluka, chercheur de vulnérabilités, pentester, redteamer, et créateur de la distribution de sécurité offensive 'Lalubuntu'. Il présentera cette distribution et répondra aux questions des participants.  
-[Je suis intéressé(e)!](https://discord.gg/pRehsds7Xv?event=1269969665090916402)
+  <div>
+    <Image src={laluka} alt="Laluka" format="avif" quality={"mid"}/>
     <details>
-      <summary>Replay youtube à venir</summary>
-    
+      <summary>Replay YouTube</summary>
+      <p>À venir</p>
     </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="Plannifié" variant="note" size="medium" />  
+    <b><span id="counterEvent"></span></b> avec Laluka, chercheur de vulnérabilités, pentester, redteamer, et créateur de la distribution de sécurité offensive 'Lalubuntu'. Il présentera cette distribution et répondra aux questions des participants.  
+    [Je suis intéressé(e)!](https://discord.gg/pRehsds7Xv?event=1269969665090916402)
   </div>
 </SplitCard>
 
 <SplitCard title="Unknow101 - Red Team" icon="laptop">
-  <Image src={unknown101} alt="Unknow101" format="avif" quality={"mid"}/>
+  <div>
+    <Image src={unknown101} alt="Unknow101" format="avif" quality={"mid"}/>
+    <details>
+      <summary>Replay YouTube</summary>
+      <iframe width="100%" height="315" src="https://www.youtube.com/embed/4QzCgT829aM" title="Unknow101 - Red Team" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </details>
+  </div>
   <div class="content-wrapper">
-  <Badge text="TERMINÉ" variant="success" size="medium" />  
+    <Badge text="TERMINÉ" variant="success" size="medium" />  
     Talk REDTEAM le Mercredi 17 juillet a 21h avec Matthieu (@Unknow101) 
     Matthieu est un opérateur red team travaillant pour une boite américaine. 
     Il viendra nous parler de redteaming, un métier bien obscur pour beaucoup ! 
     Ce sera aussi l'occasion de lui poser des questions et d'apprendre plein de choses !  
     Sa chaine Twitch : https://www.twitch.tv/hackinstruct  
-    <details>
-      <summary>Replay youtube</summary>
-
-      https://www.youtube.com/watch?v=4QzCgT829aM
-    
-    </details>
   </div>
 </SplitCard>
 
-
 <SplitCard title="Shutdown - Présentation d'Exegol" icon="laptop">
-<Image src={shutdown} alt="Shutdown" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="TERMINÉ" variant="success" size="medium" />  
-Shutdown a présenté les
-nouveautés d'Exegol le 08 Février 2024 à 21h. Il est le fondateur du projet Exegol et est connu pour ses nombreuses contributions open-source et talks internationaux.  
+  <div>
+    <Image src={shutdown} alt="Shutdown" format="avif" quality={"mid"}/>
     <details>
-      <summary>Replay youtube</summary>
-
-      https://youtu.be/E8TAZ_J_H8s
-    
+      <summary>Replay YouTube</summary>
+      <iframe width="100%" height="315" src="https://www.youtube.com/embed/E8TAZ_J_H8s" title="Shutdown - Présentation d'Exegol" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="TERMINÉ" variant="success" size="medium" />  
+    Shutdown a présenté les
+    nouvelles d'Exegol le 08 Février 2024 à 21h. Il est le fondateur du projet Exegol et est connu pour ses nombreuses contributions open-source et talks internationaux.  
   </div>
 </SplitCard>
 
 <SplitCard title="Tristan M - Forensics" icon="laptop">
-<Image src={tristantm} alt="Tristan M" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="TERMINÉ" variant="success" size="medium" />  
-Tristan MANZANO est spécialiste Forensics, Red Teamer et cofondateur de SDN (Sécurity Data Network). Il
-détient plusieurs certifications offensives (OSCP, CRTM, CRTE, CRTP, OSWP...) et a parlé de Forensics avec démonstration.  
+  <div>
+    <Image src={tristantm} alt="Tristan M" format="avif" quality={"mid"}/>
     <details>
-      <summary>Replay youtube</summary>
-
-      https://youtu.be/garPG4nfjiA
-    
+      <summary>Replay YouTube</summary>
+      <iframe width="100%" height="315" src="https://www.youtube.com/embed/garPG4nfjiA" title="Tristan M - Forensics" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="TERMINÉ" variant="success" size="medium" />  
+    Tristan MANZANO est spécialiste Forensics, Red Teamer et cofondateur de SDN (Sécurity Data Network). Il
+    détient plusieurs certifications offensives (OSCP, CRTM, CRTE, CRTP, OSWP...) et a parlé de Forensics avec démonstration.  
   </div>
 </SplitCard>
 
 <SplitCard title="Laurent M - Fondateur de Be.cyber" icon="laptop">
-<Image src={laurentm} alt="Laurent M" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="TERMINÉ" variant="success" size="medium" />  
-Laurent Minne, alias Duggy Tuxy, fondateur de Be.cyber community, est un blueteamer spécialisé en Cyber Threat
-Intelligence. Actif sur Discord et LinkedIn, il publie quotidiennement une veille
-suivie par plus de 25 000 personnes.
-</div>
+  <div>
+    <Image src={laurentm} alt="Laurent M" format="avif" quality={"mid"}/>
+    <details>
+      <summary>Replay YouTube</summary>
+      <iframe width="100%" height="315" src="https://www.youtube.com/embed/DTxc1ax_RZI" title="Laurent M - Fondateur de Be.cyber" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="TERMINÉ" variant="success" size="medium" />  
+    Laurent Minne, alias Duggy Tuxy, fondateur de Be.cyber community, est un blueteamer spécialisé en Cyber Threat
+    Intelligence. Actif sur Discord et LinkedIn, il publie quotidiennement une veille
+    suivie par plus de 25 000 personnes.
+  </div>
 </SplitCard>
 
 <SplitCard title="Michel Kartner - Cyberini" icon="laptop">
-<Image src={michelkartner} alt="Michel Kartner" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="TERMINÉ" variant="success" size="medium" />  
-Michel Kartner, entrepreneur en cybersécurité depuis 2013, est également youtubeur avec + de 140k abonnés. Autodidacte
-en cybersécurité après un Bac+5 en informatique, il a fondé Le Blog du Hacker (2013)
-et la plateforme Cyberini (2017), offrant une formation certifiante en cybersécurité.  
-  <details>
-    <summary>Replay youtube</summary>
-
-    https://youtu.be/DTxc1ax_RZI
-  
-  </details>
-</div>
+  <div>
+    <Image src={michelkartner} alt="Michel Kartner" format="avif" quality={"mid"}/>
+    <details>
+      <summary>Replay YouTube</summary>
+      <iframe width="100%" height="315" src="https://www.youtube.com/embed/DTxc1ax_RZI" title="Michel Kartner - Cyberini" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="TERMINÉ" variant="success" size="medium" />  
+    Michel Kartner, entrepreneur en cybersécurité depuis 2013, est également youtubeur avec + de 140k abonnés. Autodidacte
+    en cybersécurité après un Bac+5 en informatique, il a fondé Le Blog du Hacker (2013)
+    et la plateforme Cyberini (2017), offrant une formation certifiante en cybersécurité.  
+  </div>
 </SplitCard>
 
 <SplitCard title="Julien Metayer - OSINT" icon="laptop">
-<Image src={julienm} alt="Julien Metayer" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="TERMINÉ" variant="success" size="medium" />  
-Julien Metayer est un red teamer spécialisé en OSINT et aussi fondateur de osint.eu et la société OPIX. Il a animé une session en direct sur le Discord le 20 Séptembre 2023 à 21h15, suivie d'une séance de questions-réponses.  
-  <details>
-    <summary>Replay youtube</summary>
-
-    https://youtu.be/7u7dXHmUYUo?si=jGZ2pcfTXiUcXEc8
-  
-  </details>
+  <div>
+    <Image src={julienm} alt="Julien Metayer" format="avif" quality={"mid"}/>
+    <details>
+      <summary>Replay YouTube</summary>
+      <iframe width="100%" height="315" src="https://www.youtube.com/embed/7u7dXHmUYUo?si=jGZ2pcfTXiUcXEc8" title="Julien Metayer - OSINT" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="TERMINÉ" variant="success" size="medium" />  
+    Julien Metayer est un red teamer spécialisé en OSINT et aussi fondateur de osint.eu et la société OPIX. Il a animé une session en direct sur le Discord le 20 Séptembre 2023 à 21h15, suivie d'une séance de questions-réponses.  
   </div>
 </SplitCard>
 
 <SplitCard title="Processus Thief - Blueteam" icon="laptop">
-<Image src={proc} alt="Processus Thief" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="TERMINÉ" variant="success" size="medium" />  
-Processus Thief (alias Proc), expert en Red Team et Blue Team, il a animé un talk le 10 octobre à 21h45, suivi
-d'une discussion interactive. Il est notamment connu pour ses contributions open-source et ses conférence à LeHack.  
-  <details>
-    <summary>Replay youtube</summary>
-
-    https://youtube.com/watch?v=DAD7H5sSNcs
-  
-  </details>
+  <div>
+    <Image src={proc} alt="Processus Thief" format="avif" quality={"mid"}/>
+    <details>
+      <summary>Replay YouTube</summary>
+      <iframe width="100%" height="315" src="https://www.youtube.com/embed/DAD7H5sSNcs" title="Processus Thief - Blueteam" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="TERMINÉ" variant="success" size="medium" />  
+    Processus Thief (alias Proc), expert en Red Team et Blue Team, il a animé un talk le 10 octobre à 21h45, suivi
+    d'une discussion interactive. Il est notamment connu pour ses contributions open-source et ses conférence à LeHack.  
   </div>
 </SplitCard>
 
 <SplitCard title="Kévin Chevreuil - Présentation de Kaisen Linux" icon="laptop">
-<Image src={kevinc} alt="Kévin Chevreuil" format="avif" quality={"mid"}/>
-<div class="content-wrapper">
-<Badge text="TERMINÉ" variant="success" size="medium" />  
-Kévin Chevreuil, créateur de Kaïsen Linux, a présenté son système d’exploitation spécialisé pour les professionnels
-de l’informatique (sys admin, pentester...), avec des outils Blueteam intégrés.  
-  <details>
-    <summary>Replay youtube</summary>
-
-    https://youtu.be/jfQepRcmhlQ
-  
-  </details>
+  <div>
+    <Image src={kevinc} alt="Kévin Chevreuil" format="avif" quality={"mid"}/>
+    <details>
+      <summary>Replay YouTube</summary>
+      <iframe width="100%" height="315" src="https://www.youtube.com/embed/jfQepRcmhlQ" title="Kévin Chevreuil - Présentation de Kaisen Linux" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </details>
+  </div>
+  <div class="content-wrapper">
+    <Badge text="TERMINÉ" variant="success" size="medium" />  
+    Kévin Chevreuil, créateur de Kaïsen Linux, a présenté son système d'exploitation spécialisé pour les professionnels
+    de l'informatique (sys admin, pentester...), avec des outils Blueteam intégrés.  
   </div>
 </SplitCard>
 
-L'ensemble des replay est disponible sur notre [chaîne Youtube](https://https://www.youtube.com/@FrozenKwa)
+L'ensemble des replay est disponible sur notre [chaîne Youtube](https://www.youtube.com/@FrozenKwa)

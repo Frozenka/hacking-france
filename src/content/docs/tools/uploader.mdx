@@ -6,13 +6,16 @@ tags: [uploader,tools,exegol]
 template: doc
 ---
 
-[https://github.com/Frozenka/uploader](https://github.com/Frozenka/uploader)
+:::note[Notice]
+**Uploader est maintenant intégré à Exegol !**
+:::
 
 Ce script Python écrit par Frozenk et Snoopy vous permet de télécharger des fichiers sur une machine distante de manière rapide en fonction du système d’exploitation cible (Linux ou Windows).  
 Il génère automatiquement la commande de téléchargement appropriée en fonction de la demande ( Curl, Wget, Certutil,Powershel ect..) et ouvre un serveur Python local pour fournir le fichier à télécharger jusqu’à ce qu’une réponse HTTP 200 soit reçue,  
 puis le serveur se ferme.
 
-Fonctionnement  
+## Fonctionnalités
+
 – Menu de sélection du système d’exploitation : Sélectionnez le système d’exploitation cible.  
 – Menu de sélection de l’interface réseau : Choisissez l’interface réseau à utiliser.  
 – Sélection du fichier : Sélectionnez le fichier à télécharger.  
@@ -20,8 +23,13 @@ Fonctionnement
 – Génération de la commande de téléchargement : Le script génère et copie la commande appropriée pour télécharger le fichier sur la machine cible.  
 – Démarrage du serveur HTTP : Le serveur HTTP intégré commence à servir le fichier sélectionné.
 
-Installation :  
-Lancez la commande suivante :
+## Installation
+
+Utilisez la commande suivante pour installer Uploader :
+
+```bash wrap frame="terminal" title="Installation"
+curl -s https://raw.githubusercontent.com/Frozenka/uploader/main/install.sh | sudo bash
+```
 
 ## Arguments :
 
@@ -31,11 +39,9 @@ Lancez la commande suivante :
 - –output, -o : Spécifiez le fichier de sortie sur la machine cible.
 - –payload, -py : Spécifiez le type de payload (Curl Wget Certutil Iwr Bitsadmin Regsvr32).
 
-## Exemple :
-
 ## Prérequis
 
 - – Python 3.x
 - – Xclip (pour la copie dans le presse-papiers,En cas d’absence, le script l’installera)
 
-> « Uploader est maintenant intégré à Exegol »
+https://github.com/Frozenka/uploader

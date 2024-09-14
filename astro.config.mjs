@@ -74,17 +74,6 @@ export default defineConfig({
           }
         },
         {
-          label: 'Opsec',
-          translations: {
-            en: 'Opsec'
-          },
-          collapsed: false,
-          autogenerate: {
-            directory: 'opsec',
-            collapsed: true
-          }
-        },
-        {
           label: 'Writeup',
           translations: {
             en: 'Writeup'
@@ -103,17 +92,6 @@ export default defineConfig({
           collapsed: false,
           autogenerate: {
             directory: 'tools',
-            collapsed: true
-          }
-        },
-        {
-          label: 'Autre',
-          translations: {
-            en: 'Misc'
-          },
-          collapsed: false,
-          autogenerate: {
-            directory: 'misc',
             collapsed: true
           }
         },
