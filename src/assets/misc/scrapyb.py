@@ -53,7 +53,7 @@ def main():
     with open('src/assets/misc/channels_info.json', 'w') as file:
         json.dump(new_data, file, indent=2, ensure_ascii=False)
     
-    print("Les informations des chaînes ont été mises à jour.")
+  print(f"Les informations des chaînes YouTube ont été écrites dans : {os.path.abspath(file_path)}")
 
 if __name__ == "__main__":
     main()
