@@ -1,4 +1,4 @@
-name: Scrape YouTube and Twitch Channels
+name: Scrape YouTube, Twitch Channels, and GitHub Contributors
 
 on:
   push:
@@ -38,10 +38,18 @@ jobs:
       run: |
         cat src/assets/misc/twitch_channels_info.json
 
+    - name: Run GitHub contributors scraping script
+      run: |
+        python src/assets/misc/scrapcontributors.py
+
+    - name: Display GitHub contributors JSON content
+      run: |
+        cat src/assets/assets/cards.json
+
     - name: Force add and commit changes
       run: |
         git config --local user.name "github-actions"
         git config --local user.email "github-actions@github.com"
-        git add -f src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json
-        git commit -m "Update channels_info.json and twitch_channels_info.json from GitHub Actions" || echo "No changes to commit"
+        git add -f src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json src/assets/assets/cards.json
+        git commit -m "Update channels_info.json, twitch_channels_info.json, and cards.json from GitHub Actions" || echo "No changes to commit"
         git push origin main
