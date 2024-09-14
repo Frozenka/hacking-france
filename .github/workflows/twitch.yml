@@ -1,4 +1,4 @@
-name: Scrape YouTube Twitch
+name: Scrape Twitch
 
 on:
   push:
