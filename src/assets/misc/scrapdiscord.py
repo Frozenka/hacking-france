@@ -34,24 +34,24 @@ def extract_discord_info(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extraction des informations à partir du code source HTML
+        # Extraction du nom du serveur
+        title_tag = soup.find('meta', {'property': 'og:title'})
+        title = title_tag['content'] if title_tag else 'Nom non disponible'
+
+        # Extraction de la description
         description_tag = soup.find('meta', {'name': 'description'})
         description = description_tag['content'] if description_tag else 'Description non disponible'
 
-        # Extraction du nombre de membres avec une expression régulière plus flexible
-        members_match = re.search(r'(\d+)\s*autres\s*membres|(\d+)\s*members?', description, re.IGNORECASE)
-        members = members_match.group(1) if members_match else 'Membres non disponibles'
+        # Extraction du nombre de membres
+        members_match = re.search(r'(\d+(?:,\d+)?)\s*members?', description, re.IGNORECASE)
+        members = members_match.group(1).replace(',', '') if members_match else 'Membres non disponibles'
 
         # Retirer le nombre de membres de la description
-        description_text = re.sub(r'(\d+)\s*autres\s*membres|(\d+)\s*members?', 'Membres non disponibles', description, flags=re.IGNORECASE)
+        description_text = re.sub(r'(\d+(?:,\d+)?)\s*members?', 'Membres non disponibles', description, flags=re.IGNORECASE)
 
-        # Extraction du logo
+        # Extraction de l'image
         image_tag = soup.find('meta', {'property': 'og:image'})
         image_url = image_tag['content'] if image_tag else default_image_url
-
-        # Extraction du nom
-        title_tag = soup.find('meta', {'property': 'og:title'})
-        title = title_tag['content'] if title_tag else 'Nom non disponible'
 
         return {
             'name': title.strip(),
