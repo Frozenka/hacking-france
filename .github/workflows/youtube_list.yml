@@ -8,8 +8,6 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    
-   
 
     steps:
     - name: Checkout repository
@@ -24,13 +22,6 @@ jobs:
       run: |
         pip install requests beautifulsoup4
 
-    - name: Reset Git cache
-      run: |
-        git rm --cached src/assets/misc/channels_info.json || true
-        git add src/assets/misc/channels_info.json
-        git status
-
-        
     - name: Run the Python script
       run: |
         python src/assets/misc/scrapyb.py
@@ -39,20 +30,10 @@ jobs:
       run: |
         cat src/assets/misc/channels_info.json
 
-    - name: Check permissions of directory
+    - name: Force add and commit changes
       run: |
-        ls -la src/assets/misc && pwd
-
-    - name: Force add file
-      run: |
+        git config --local user.name "github-actions"
+        git config --local user.email "github-actions@github.com"
         git add -f src/assets/misc/channels_info.json
-        git status
-        git diff --cached
-    
-    - name: Commit changes
-      run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
         git commit -m "Update channels_info.json from GitHub Actions" || echo "No changes to commit"
         git push origin main
-
