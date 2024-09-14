@@ -22,10 +22,11 @@ jobs:
       run: |
         pip install requests beautifulsoup4
 
-    - name: Reset Git index
+    - name: Force add file
       run: |
-        git reset
-        git add src/assets/misc/channels_info.json
+        git add --force src/assets/misc/channels_info.json
+        git status
+
         
     - name: Stage the file for commit
       run: |
