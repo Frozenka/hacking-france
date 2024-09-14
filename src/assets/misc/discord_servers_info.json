@@ -12,5 +12,26 @@
     "members": "3100",
     "image": "https://cdn.discordapp.com/splashes/925469406023262249/663812eed457e69c9339e89f2e6fdca6.jpg?size=512",
     "link": "https://discord.gg/hacktback-925469406023262249"
+  },
+  {
+    "name": "Rejoins le serveur Discord FransoTeam !",
+    "description": "Découvre la communauté FransoTeam sur Discord - discute avec 378 autres membres et profite du chat vocal et textuel gratuit. | Membres non disponibles members",
+    "members": "Membres non disponibles",
+    "image": "Logo non disponible",
+    "link": "https://discord.gg/ZZNY2hD4Yu"
+  },
+  {
+    "name": "Rejoins le serveur Discord ThinkLoveShare !",
+    "description": "Découvre la communauté ThinkLoveShare sur Discord - discute avec 454 autres membres et profite du chat vocal et textuel gratuit. | Membres non disponibles members",
+    "members": "Membres non disponibles",
+    "image": "Logo non disponible",
+    "link": "https://discord.gg/PbfjcvXdHG"
+  },
+  {
+    "name": "Erreur",
+    "description": "Erreur lors de la récupération des informations: Invalid URL '': No scheme supplied. Perhaps you meant https://?",
+    "members": "N/A",
+    "image": "N/A",
+    "link": ""
   }
 ]
