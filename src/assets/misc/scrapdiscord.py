@@ -26,11 +26,12 @@ def extract_discord_info(url):
         description = description_tag['content'] if description_tag else 'Description non disponible'
 
         # Extraction du nombre de membres
-        members_text = description.split('|')[-1].strip() if '|' in description else 'Membres non disponibles'
-        members = ''.join(filter(str.isdigit, members_text))
-
-        # Retirer le nombre de membres de la description
-        description_text = description.split('|')[0].strip() if '|' in description else description
+        if '|' in description:
+            description_text, members_text = description.split('|', 1)
+            members = ''.join(filter(str.isdigit, members_text.strip()))
+        else:
+            description_text = description
+            members = 'Membres non disponibles'
 
         # Extraction du logo
         image_tag = soup.find('meta', {'property': 'og:image'})
@@ -42,7 +43,7 @@ def extract_discord_info(url):
 
         return {
             'name': title.strip(),
-            'description': f"{description_text} | {members} members",
+            'description': f"{description_text.strip()} | {members} members",
             'members': members.strip(),
             'image': image_url.strip(),
             'link': url.strip()
