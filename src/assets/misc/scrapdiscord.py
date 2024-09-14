@@ -45,7 +45,7 @@ def extract_discord_info(url):
 
         return {
             'name': title.strip(),
-            'description': f"{description_text} | {members} members",
+            'description': f"Rejoignez notre serveur Discord dédié aux CTF (Capture The Flag) pour les passionnés de sécurité informatique | {members} membres | {members} members",
             'members': members.strip(),
             'image': image_url.strip(),
             'link': url.strip()
