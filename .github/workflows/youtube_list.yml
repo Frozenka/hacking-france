@@ -22,9 +22,21 @@ jobs:
       run: |
         pip install requests beautifulsoup4
 
+    - name: Reset Git index
+      run: |
+        git reset
+        git add src/assets/misc/channels_info.json
+        
+    - name: Stage the file for commit
+      run: |
+        git add src/assets/misc/channels_info.json
+        git status
+        
     - name: Run the Python script
       run: |
         python src/assets/misc/scrapyb.py
+        
+
 
     - name: Display JSON content
       run: |
