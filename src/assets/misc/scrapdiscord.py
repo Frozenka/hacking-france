@@ -40,12 +40,12 @@ def extract_discord_info(url):
     if members_match:
         members_text = members_match.group(1).strip()
         # Retirer le texte "- discute avec" s'il est présent
-        members = re.sub(r'-\s*discute\s*avec\s*', '', members_text).strip()
+        members = re.sub(r'-\s*discute\s*avec\s*', '', members_text).strip() + ' membres'
     else:
         # Recherche d'une autre méthode pour extraire le nombre de membres
         members_match = re.search(r'\|\s*(\d+)\s*(membres|members)', description, re.IGNORECASE)
         if members_match:
-            members = members_match.group(1).strip()
+            members = members_match.group(1).strip() + ' membres'
         else:
             members = 'Données non disponibles'
 
