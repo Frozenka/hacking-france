@@ -1,41 +1,31 @@
 import requests
-from bs4 import BeautifulSoup
 import json
-import os
 
-# Fonction pour récupérer les informations des contributeurs GitHub
-def get_github_contributors_images(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
+# URL du dépôt GitHub
+repo_url = 'https://api.github.com/repos/Frozenka/hacking-france/contributors'
 
-    contributors = []
-
-    for img in soup.find_all('img', class_='avatar circle'):
-        avatar_url = img.get('src')
-        username = img.get('alt').replace('@', '')
-
-        if avatar_url and username:
-            avatar_url = avatar_url.split('?')[0]
-            contributors.append({
-                'username': username,
-                'avatar_url': avatar_url
-            })
-
-    return {'data': contributors}
-
-def main():
-    # URL des contributeurs GitHub
-    github_url = 'https://github.com/Frozenka/hacking-france'
-
-    # Récupération des contributeurs GitHub
-    github_contributors = get_github_contributors_images(github_url)
-
-    # Écriture des informations des contributeurs GitHub dans le fichier
-    github_output_file_path = os.path.join('src', 'assets', 'cards.json')
-    with open(github_output_file_path, 'w', encoding='utf-8') as json_file:
-        json.dump(github_contributors, json_file, indent=2, ensure_ascii=False)
-
-    print(f"Les informations des contributeurs GitHub ont été écrites dans {github_output_file_path}")
+def get_contributors(repo_url):
+    # Envoyer une requête GET à l'API GitHub
+    response = requests.get(repo_url)
+    if response.status_code == 200:
+        # Extraire les données JSON
+        contributors = response.json()
+        # Préparer les données au format souhaité
+        data = []
+        for contributor in contributors:
+            user_data = {
+                "username": contributor['login'],
+                "avatar_url": contributor['avatar_url']
+            }
+            data.append(user_data)
+        return {"data": data}
+    else:
+        print(f"Erreur de récupération des contributeurs : {response.status_code}")
+        return {"data": []}
 
 if __name__ == "__main__":
-    main()
+    contributors_data = get_contributors(repo_url)
+    # Sauvegarder les données dans src/assets/cards.json
+    with open('src/assets/cards.json', 'w') as f:
+        json.dump(contributors_data, f, indent=4)
+    print("Les contributeurs ont été sauvegardés dans 'src/assets/cards.json'.")
