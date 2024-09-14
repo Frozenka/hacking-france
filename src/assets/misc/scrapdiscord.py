@@ -29,17 +29,15 @@ def extract_discord_info(url):
         description_tag = soup.find('meta', {'name': 'description'})
         description = description_tag['content'] if description_tag else 'Description non disponible'
 
-        # Extraction du nombre de membres avec une expression régulière
+        # Essayer de récupérer le nombre de membres depuis la description
         members_match = re.search(r'(\d+)\s*(membres|members)', description, re.IGNORECASE)
         if members_match:
             members = members_match.group(1)
         else:
-            # Chercher ailleurs dans le HTML si le nombre de membres n'est pas trouvé dans la description
+            # Si aucun nombre de membres dans la description, chercher dans tout le texte de la page
             full_text = soup.get_text(separator=' ')
-            # Recherche jusqu'à 5 caractères avant et après le mot "membres" ou "members"
             context_match = re.search(r'.{0,5}(\d+)\s*(membres|members).{0,5}', full_text, re.IGNORECASE)
             if context_match:
-                # Extraire le nombre trouvé
                 members = context_match.group(1)
             else:
                 members = 'Membres non disponibles'
