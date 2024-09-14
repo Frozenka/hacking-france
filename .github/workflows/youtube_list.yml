@@ -21,7 +21,11 @@ jobs:
     - name: Install dependencies
       run: |
         pip install requests beautifulsoup4
-
+        
+    - name: chmod
+      run: |
+        chmod +x src/assets/misc/scrapyb.py
+        
     - name: Run the Python script
       run: |
         python src/assets/misc/scrapyb.py
