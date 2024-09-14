@@ -22,10 +22,6 @@ jobs:
       run: |
         pip install requests beautifulsoup4
 
-    - name: Set executable permissions on the script
-      run: |
-        chmod +x src/assets/misc/scrapyb.py
-
     - name: Run the Python script
       run: |
         python src/assets/misc/scrapyb.py
