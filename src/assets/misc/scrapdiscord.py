@@ -36,15 +36,19 @@ def extract_discord_info(url):
         # Si le nombre de membres n'est pas trouvé dans la description, rechercher dans le texte de la page
         if members == 'Membres non disponibles':
             page_text = soup.get_text()
-            # Modification de l'expression régulière pour capturer plus de variations
-            members_match = re.search(r'-\s*discute\s*avec\s*(\d+)', page_text, re.IGNORECASE)
-            members = members_match.group(1) if members_match else 'Membres non disponibles'
+            # Rechercher le texte entre "discute avec" et "autres membres"
+            members_match = re.search(r'discute\s*avec\s*([\d\s]+)\s*autres\s*membres', page_text, re.IGNORECASE)
+            if members_match:
+                members = members_match.group(1).strip()
+            else:
+                members = 'Membres non disponibles'
 
         # Vérifier si le nombre de membres est une chaîne et le convertir en nombre si possible
         if members.isdigit():
             members = str(int(members))  # Convertir en nombre entier puis en chaîne pour normaliser
-        else:
-            members = 'Membres non disponibles'
+        elif members == 'Membres non disponibles':
+            # Conserver la partie de texte entre "discute" et "autres membres" si disponible
+            members = members.strip()
 
         # Extraction du logo
         image_tag = soup.find('meta', {'property': 'og:image'})
@@ -57,7 +61,7 @@ def extract_discord_info(url):
         return {
             'name': title.strip(),
             'description': description.strip(),
-            'members': members.strip(),
+            'members': members,
             'image': image_url.strip(),
             'link': url.strip()
         }
