@@ -31,11 +31,21 @@ def extract_discord_info(url):
 
         # Extraction du nombre de membres avec une expression régulière
         members_match = re.search(r'(\d+)\s*(membres|members)', description, re.IGNORECASE)
-        members = members_match.group(1) if members_match else 'Membres non disponibles'
+        if members_match:
+            members = members_match.group(1)
+        else:
+            # Chercher ailleurs dans le HTML si le nombre de membres n'est pas trouvé dans la description
+            full_text = soup.get_text(separator=' ')
+            context_match = re.search(r'.{0,5}(membres|members).{0,5}', full_text, re.IGNORECASE)
+            if context_match:
+                # Extraire le contexte autour du mot "membres"
+                members = context_match.group(0).strip()
+            else:
+                members = 'Membres non disponibles'
 
         # Retirer le nombre de membres de la description pour éviter la redondance
         description_text = re.sub(r'(\d+)\s*(membres|members)', '', description, flags=re.IGNORECASE).strip()
-        
+
         # Extraction du logo
         image_tag = soup.find('meta', {'property': 'og:image'})
         image_url = image_tag['content'] if image_tag else default_image_url
