@@ -28,10 +28,10 @@ jobs:
         
     - name: Display JSON content
       run: |
-        cat src/assets/misc/channels_info.json
+        cat src/assets/misc/chaines_youtubes.json
 
     - name: Upload JSON result
       uses: actions/upload-artifact@v3
       with:
         name: channels-info
-        path: src/assets/misc/channels_info.json
+        path: src/assets/misc/chaines_youtubes.json
