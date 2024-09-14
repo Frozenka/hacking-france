@@ -1,10 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import os  # Importer le module os
 
 # URL de la liste des serveurs Discord
 discord_urls_file = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_discord.txt'
-output_file = 'discord_channels_info.json'
+
+# Définir le chemin du fichier de sortie
+output_file_path = os.path.join('src', 'assets', 'misc', 'discord_servers_info.json')
 
 def fetch_discord_urls(url):
     response = requests.get(url)
@@ -26,6 +29,9 @@ def extract_discord_info(url):
         members_text = description.split('|')[-1].strip() if '|' in description else 'Membres non disponibles'
         members = ''.join(filter(str.isdigit, members_text))
 
+        # Retirer le nombre de membres de la description
+        description_text = description.split('|')[0].strip() if '|' in description else description
+
         # Extraction du logo
         image_tag = soup.find('meta', {'property': 'og:image'})
         image_url = image_tag['content'] if image_tag else 'Logo non disponible'
@@ -36,7 +42,7 @@ def extract_discord_info(url):
 
         return {
             'name': title.strip(),
-            'description': description.strip(),
+            'description': f"{description_text} | {members} members",
             'members': members.strip(),
             'image': image_url.strip(),
             'link': url.strip()
@@ -60,9 +66,11 @@ def main():
         discord_channels.append(info)
         print(f"Infos récupérées pour {url}: {info}")
 
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(discord_channels, f, ensure_ascii=False, indent=4)
-    print(f"Les informations des serveurs Discord ont été sauvegardées dans '{output_file}'.")
+    # Écriture des résultats dans un fichier JSON
+    with open(output_file_path, 'w', encoding='utf-8') as json_file:
+        json.dump(discord_channels, json_file, indent=2, ensure_ascii=False)
+
+    print(f"Les informations des serveurs Discord ont été sauvegardées dans '{output_file_path}'.")
 
 if __name__ == "__main__":
     main()
