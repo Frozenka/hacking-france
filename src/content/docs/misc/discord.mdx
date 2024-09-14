@@ -25,14 +25,16 @@ import servers from '../../../../src/assets/misc/discord_servers_info.json'
     <Card key={server.link} title={server.name}>
       <div style="text-align: center;">
         <img
-          src={server.image}
+          src={server.image || 'https://logo-marque.com/wp-content/uploads/2020/12/Discord-Logo.png'}  // Remplace l'image si absente
           alt={server.name}
           width="300"
           height="150"
         />
       </div>
       <p>{server.description}</p>
-      <p>Membres: {server.members}</p>
+      {server.members !== 'Membres non disponibles' && (
+        <p>Membres: {server.members}</p>
+      )}
       <LinkButton href={server.link} variant="secondary" icon="external">
         Rejoindre le serveur
       </LinkButton>
