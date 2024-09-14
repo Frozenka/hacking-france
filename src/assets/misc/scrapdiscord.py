@@ -37,7 +37,12 @@ def extract_discord_info(url):
 
     # Recherche du nombre de membres dans la description
     members_match = re.search(r'Discord\s*(.*?)\s*autres\s*membres\s*et\s*profite\s*du\s*chat\s*vocal\s*et\s*textuel\s*gratuit', description, re.IGNORECASE)
-    members = members_match.group(1).strip() if members_match else 'Données non disponibles'
+    if members_match:
+        members_text = members_match.group(1).strip()
+        # Retirer le texte "- discute avec" s'il est présent
+        members = re.sub(r'-\s*discute\s*avec\s*', '', members_text).strip()
+    else:
+        members = 'Données non disponibles'
 
     # Extraction du logo
     image_tag = soup.find('meta', {'property': 'og:image'})
