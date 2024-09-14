@@ -18,12 +18,12 @@ import channels from '../../../../src/assets/misc/channels_info.json'
   {channels.map(channel => (
     <Card key={channel.id} title={channel.name}>
       <div style="text-align: center;">
-        <img
+        <a href={channel.link} target="_blank"><img
           src={channel.image}
           alt={channel.name}
           width="300"
           height="150"
-        />
+        /></a>
       </div>
       <p>{channel.description}</p>
       <p>
