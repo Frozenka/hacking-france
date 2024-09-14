@@ -37,7 +37,8 @@ export default defineConfig({
       defaultLocale: 'root',
       sidebar: [
         { 
-          label: 'La communauté', 
+          label: 'La communauté',
+          badge: { text: 'Nouveau', variant: 'note' },
           translations: {
             en: 'The Community'
           },
@@ -108,7 +109,8 @@ export default defineConfig({
           }
         },
         { 
-          label: 'Contribuer', 
+          label: 'Contribuer',
+          badge: { text: 'Guide', variant: 'success' },
           translations: {
             en: 'Contribute'
           },

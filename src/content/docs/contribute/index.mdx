@@ -5,9 +5,6 @@ tags: [contribuer]
 template: doc
 next: false
 prev: false
-banner:
-  content: |
-    Page en construction !
 ---
 
 import { Badge, Icon, Steps, LinkButton, FileTree, Code } from '@astrojs/starlight/components';
@@ -433,13 +430,21 @@ import { Steps } from '@astrojs/starlight/components';
 
 </Steps>
 
- 
+## Ce titre est suivi d'un badge :badge[TEXTE]
+
+```mdx wrap frame="terminal"
+## Ce titre est suivi d'un badge :badge[TEXTE]
+```
+
+## Ce titre est suivi d'un badge custom :badge[TEXTE]{variant=success}
+
+```mdx wrap frame="terminal"
+## Ce titre est suivi d'un badge custom :badge[TEXTE]{variant=success}
+```
 
 ## Youtube et Twitch
 
-Pour la modification des pages YouTube et Twitch, rien de plus simple :  
+Pour la modification des pages [YouTube](/misc/youtube/) et [Twitch](/misc/twitch/), rien de plus simple :  
 il vous suffit d’éditer les fichiers texte correspondants : 
 `src/assets/misc/liste_youtube.txt et liste_twitch.txt`
 Cela ajoutera automatiquement toutes les informations sur la page.
-
- 
