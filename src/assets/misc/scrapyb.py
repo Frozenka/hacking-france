@@ -12,11 +12,13 @@ def fetch_youtube_channels():
 def fetch_channel_info(channel_url):
     response = requests.get(channel_url)
     soup = BeautifulSoup(response.text, 'html.parser')
+    print(f"Fetching info for: {channel_url}")
+    # Simulate actual scraping here; replace placeholders with real scraping logic
     return {
         "id": channel_url.split('/')[-1],
-        "name": "Nom de la chaîne",
-        "description": "Description de la chaîne",
-        "image": "URL de l'image",
+        "name": "Actual Channel Name",  # Replace with actual data
+        "description": "Actual Description",  # Replace with actual data
+        "image": "Actual Image URL",  # Replace with actual data
         "link": channel_url
     }
 
@@ -27,6 +29,7 @@ def main():
     for channel in channels:
         info = fetch_channel_info(channel)
         channel_info_list.append(info)
+        print(f"Fetched info: {info}")
 
     file_path = 'src/assets/misc/channels_info.json'
     
