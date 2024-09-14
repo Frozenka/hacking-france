@@ -38,6 +38,9 @@ def extract_discord_info(url):
     # Supprimer le texte à partir de "- discute avec"
     description = re.sub(r'-\s*discute\s*avec.*$', '', description).strip()
 
+    # Supprimer le texte à partir de "|"
+    description = re.sub(r'\|.*$', '', description).strip()
+
     # Recherche du nombre de membres dans la description
     members_match = re.search(r'Discord\s*(.*?)\s*autres\s*membres\s*et\s*profite\s*du\s*chat\s*vocal\s*et\s*textuel\s*gratuit', description, re.IGNORECASE)
     if members_match:
