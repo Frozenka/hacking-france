@@ -28,14 +28,13 @@ def main():
         info = fetch_channel_info(channel)
         channel_info_list.append(info)
 
-    cwd = os.getcwd()
-    print(f"Current working directory: {cwd}")
-
-    file_path = os.path.join(cwd, 'src/assets/misc/chaines_youtubes.json')
+    file_path = 'src/assets/misc/channels_info.json'
     
     # Debug print statements
     print(f"Writing to file: {file_path}")
     print(f"Directory contents: {os.listdir(os.path.dirname(file_path))}")
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(channel_info_list, file, ensure_ascii=False, indent=4)
