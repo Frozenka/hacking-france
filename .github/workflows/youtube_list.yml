@@ -22,13 +22,13 @@ jobs:
       run: |
         pip install requests beautifulsoup4
 
-    - name: Download the Python script
-      run: |
-        curl -O https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/scrapyb.py
-
     - name: Run the Python script
       run: |
         python src/assets/misc/scrapyb.py
+        
+    - name: Display JSON content
+      run: |
+        cat src/assets/misc/channels_info.json
 
     - name: Upload JSON result
       uses: actions/upload-artifact@v3
