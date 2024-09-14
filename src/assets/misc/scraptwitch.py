@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-import os
+import re
 
 def get_twitch_channel_info_from_url(url):
     response = requests.get(url)
@@ -10,11 +10,21 @@ def get_twitch_channel_info_from_url(url):
     title_tag = soup.find('meta', {'property': 'og:title'})
     name = title_tag.get('content', 'Nom non trouvé') if title_tag else 'Nom non trouvé'
 
-    meta_description = soup.find('meta', {'name': 'description'})
-    description = meta_description.get('content', 'Description non trouvée') if meta_description else 'Description non trouvée'
-
     image_tag = soup.find('meta', {'property': 'og:image'})
     image = image_tag.get('content', 'Image non trouvée') if image_tag else 'Image non trouvée'
+
+    # Essayer de trouver la description dans un script JSON
+    script_tag = soup.find('script', text=re.compile('description'))
+    if script_tag:
+        try:
+            # Rechercher le texte JSON à l'intérieur du script
+            json_text = re.search(r'{"props".*}', script_tag.string).group(0)
+            data = json.loads(json_text)
+            description = data['props']['pageProps']['description']
+        except (AttributeError, KeyError, json.JSONDecodeError):
+            description = 'Description non trouvée'
+    else:
+        description = 'Description non trouvée'
 
     channel_id = url.split('/')[-1]
 
@@ -43,9 +53,8 @@ def main():
         except Exception as e:
             print(f"Erreur lors de la récupération des informations pour {url} : {e}")
 
-    output_file_path = os.path.join('src', 'assets', 'misc', 'twitch_channels_info.json')
-    with open(output_file_path, 'w', encoding='utf-8') as json_file:
-        json.dump(channel_infos, json_file, indent=2, ensure_ascii=False)
+    # Affichage des résultats
+    print(json.dumps(channel_infos, indent=2, ensure_ascii=False))
 
 if __name__ == "__main__":
     main()
