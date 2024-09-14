@@ -1,9 +1,9 @@
 [
-    {
-      "id": "hackinstruct",
-      "name": "hackinstruct - Twitch",
-      "description": "hackinstruct streams live on Twitch! Check out their videos, sign up to chat, and join their community.",
-      "image": "https://static-cdn.jtvnw.net/jtv_user_pictures/b84f9ec2-c546-47b6-a12f-e13311b602b3-profile_image-300x300.png",
-      "link": "https://www.twitch.tv/hackinstruct"
-    }
-  ]
+  {
+    "id": "hackinstruct",
+    "name": "hackinstruct - Twitch",
+    "description": "hackinstruct streams live on Twitch! Check out their videos, sign up to chat, and join their community.",
+    "image": "https://static-cdn.jtvnw.net/jtv_user_pictures/b84f9ec2-c546-47b6-a12f-e13311b602b3-profile_image-300x300.png",
+    "link": "https://www.twitch.tv/hackinstruct"
+  }
+]
