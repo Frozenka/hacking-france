@@ -1,0 +1,35 @@
+name: Run Python Script
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3 python3-pip
+        pip3 install requests beautifulsoup4
+
+    - name: Download Python script
+      run: |
+        curl -o scrapyb.py https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/scrapyb.py
+
+    - name: Run Python script
+      run: |
+        python3 scrapyb.py
+
+    - name: Upload results
+      uses: actions/upload-artifact@v3
+      with:
+        name: channel-info
+        path: results.json
