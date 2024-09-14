@@ -1,4 +1,4 @@
-name: Run Python youtube_list
+name: Run Python Script
 
 on:
   push:
@@ -7,29 +7,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  run-script:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3 python3-pip
+        pip3 install requests beautifulsoup4
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
+    - name: Download Python script
+      run: |
+        curl -o scrapyb.py https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/scrapyb.py
 
-      - name: Run Python script
-        run: |
-          python scrapyb.py
-          
-      - name: Upload JSON file
-        uses: actions/upload-artifact@v3
-        with:
-          name: channels-info
-          path: channels_info.json
+    - name: Run Python script
+      run: |
+        python3 scrapyb.py
+
+    - name: Upload results
+      uses: actions/upload-artifact@v3
+      with:
+        name: channel-info
+        path: results.json
