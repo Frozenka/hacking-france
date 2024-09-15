@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import json
 import os
 import re
+import time
 
 def clean_subscribers_text(text):
     # Nettoyage des caractères non imprimables comme \xa0 (espace insécable)
@@ -82,6 +83,7 @@ def main():
     channel_infos = []
 
     for url in urls:
+        time.sleep(2)  # Attendre 2 secondes entre les requêtes
         try:
             channel_info = get_channel_info_from_url(url)
             channel_infos.append(channel_info)

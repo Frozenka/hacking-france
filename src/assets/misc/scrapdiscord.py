@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import json
 import os
 import re
-
+import time
 # URL de la liste des serveurs Discord
 discord_urls_file = 'https://raw.githubusercontent.com/Frozenka/hacking-france/main/src/assets/misc/liste_discord.txt'
 
@@ -74,6 +74,7 @@ def main():
     
     for url in discord_urls:
         info = extract_discord_info(url)
+        time.sleep(2)  # Attendre 2 secondes entre les requêtes
         if info is not None:  # Inclure seulement si info n'est pas None
             discord_channels.append(info)
             print(f"Infos récupérées pour {url}: {info}")

@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
+import time
 
 def get_twitch_channel_info_from_url(url):
     response = requests.get(url)
@@ -38,6 +39,7 @@ def main():
 
     for url in urls:
         try:
+            time.sleep(2)  # Attendre 2 secondes entre les requêtes
             channel_info = get_twitch_channel_info_from_url(url)
             channel_infos.append(channel_info)
         except Exception as e:
