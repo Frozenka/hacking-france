@@ -38,7 +38,7 @@ def get_channel_info_from_url(url):
         print(f"Texte brut contenant 'abonnés' pour l'URL {url}:")
         for match in matches:
             print(match)
-            subscribers_text = match  # Stocke le premier match trouvé pour les abonnés
+            subscribers_text = match  
 
     # Recherche des balises <script> contenant du JSON
     script_tags = soup.find_all('script')
@@ -68,7 +68,7 @@ def get_channel_info_from_url(url):
         'description': description,
         'image': image,
         'link': url,
-        'subscribers': cleaned_subscribers_text  # Ajout du texte d'abonnés nettoyé
+        'subscribers': cleaned_subscribers_text
     }
 
 def read_urls_from_web(url):
@@ -88,7 +88,6 @@ def main():
         except Exception as e:
             print(f"Erreur lors de la récupération des informations pour {url} : {e}")
 
-    # Affichage des résultats pour débogage
     print(f"Résultats: {channel_infos}")
 
     output_file_path = os.path.join('src', 'assets', 'misc', 'channels_info.json')
