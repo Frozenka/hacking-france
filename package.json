@@ -1,5 +1,5 @@
 {
-  "name": "@example/starlight-basics",
+  "name": "hacking-france",
   "type": "module",
   "version": "0.0.1",
   "private": true,
@@ -14,7 +14,7 @@
     "@11ty/eleventy-fetch": "^4.0.1",
     "@astrojs/mdx": "^3.1.6",
     "@astrojs/starlight": "^0.26.4",
-    "astro": "^4.15.6",
+    "astro": "^4.14.1",
     "astro-d2": "^0.4.0",
     "astro-embed": "^0.7.2",
     "astro-og-canvas": "^0.5.3",
