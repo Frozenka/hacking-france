@@ -3,7 +3,7 @@
 ### [hacking-france.fr](https://hacking-france.fr)  
 
 
-Bienvenue sur le dépôt GitHub de Hacking-France, le site dédié à la communauté de hacking éthique francophone. Ce projet a pour but de rassembler et partager des articles communautaires sur le hacking éthique. C'est un espace collaboratif où chacun peut contribuer en ajoutant ou en modifiant des articles.
+Bienvenue sur le dépôt GitHub de Hacking-France (HF), le site dédié à la communauté de hacking éthique francophone. Ce projet a pour but de rassembler et partager des articles communautaires sur le hacking éthique. C'est un espace collaboratif où chacun peut contribuer en ajoutant ou en modifiant des articles.
 
 #### Contribuer
 

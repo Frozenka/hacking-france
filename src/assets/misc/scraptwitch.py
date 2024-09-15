@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
+import time
 
 def get_twitch_channel_info_from_url(url):
     response = requests.get(url)
@@ -38,6 +39,7 @@ def main():
 
     for url in urls:
         try:
+            time.sleep(2)  # Attendre 2 secondes entre les requêtes
             channel_info = get_twitch_channel_info_from_url(url)
             channel_infos.append(channel_info)
         except Exception as e:
@@ -48,6 +50,7 @@ def main():
     with open(output_file_path, 'w', encoding='utf-8') as json_file:
         json.dump(channel_infos, json_file, indent=2, ensure_ascii=False)
 
+    print(f"resultat : {channel_infos}")
     print(f"Les informations ont été écrites dans {output_file_path}")
 
 if __name__ == "__main__":

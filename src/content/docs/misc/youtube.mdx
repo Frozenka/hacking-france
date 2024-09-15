@@ -19,6 +19,7 @@ import channels from '../../../../src/assets/misc/channels_info.json'
 
 > Retrouvez ici une sélection de chaînes YouTube en cybersécurité que nous recommandons vivement. Ces chaînes offrent des contenus variés et de qualité, allant des tutoriels pratiques aux analyses approfondies, parfaits pour approfondir vos connaissances et rester à jour dans le domaine.
  
+ {/* Pour ajouter ou modifier un lien sur cette page, il faut effectuer les changements dans le dossier /src/assets/misc et le fichier .txt correspondant. */}
  <br/>
 <CardGrid>
   {channels.map(channel => (
@@ -32,9 +33,11 @@ import channels from '../../../../src/assets/misc/channels_info.json'
         />
       </div>
       <p>{channel.description}</p>
+      <p><strong>{channel.subscribers}</strong></p>
       <LinkButton href={channel.link} variant="secondary" icon="external">
       Visiter la chaîne
       </LinkButton>
     </Card>
   ))}
 </CardGrid>
+{/* Pour ajouter ou modifier un lien sur cette page, il faut effectuer les changements dans le dossier /src/assets/misc et le fichier .txt correspondant. */}
