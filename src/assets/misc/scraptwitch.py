@@ -48,6 +48,7 @@ def main():
     with open(output_file_path, 'w', encoding='utf-8') as json_file:
         json.dump(channel_infos, json_file, indent=2, ensure_ascii=False)
 
+    print(f"resultat : {channel_infos}")
     print(f"Les informations ont été écrites dans {output_file_path}")
 
 if __name__ == "__main__":
