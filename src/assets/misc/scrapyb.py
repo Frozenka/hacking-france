@@ -83,9 +83,9 @@ def main():
     channel_infos = []
 
     for url in urls:
-        time.sleep(2)  # Attendre 2 secondes entre les requêtes
         try:
             channel_info = get_channel_info_from_url(url)
+            time.sleep(2)  # Attendre 2 secondes entre les requêtes
             channel_infos.append(channel_info)
         except Exception as e:
             print(f"Erreur lors de la récupération des informations pour {url} : {e}")
