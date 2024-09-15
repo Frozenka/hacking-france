@@ -1,30 +1,30 @@
 [
   {
     "id": "hackinstruct",
-    "name": "Twitch",
-    "description": "Description non trouvée",
-    "image": "https://static-cdn.jtvnw.net/ttv-static-metadata/twitch_logo3.jpg",
+    "name": "hackinstruct - Twitch",
+    "description": "hackinstruct streams live on Twitch! Check out their videos, sign up to chat, and join their community.",
+    "image": "https://static-cdn.jtvnw.net/jtv_user_pictures/b84f9ec2-c546-47b6-a12f-e13311b602b3-profile_image-300x300.png",
     "link": "https://www.twitch.tv/hackinstruct"
   },
   {
     "id": "thelaluka",
-    "name": "Twitch",
-    "description": "Description non trouvée",
-    "image": "https://static-cdn.jtvnw.net/ttv-static-metadata/twitch_logo3.jpg",
+    "name": "TheLaluka - Twitch",
+    "description": "Sharing is Caring | Hacker, Eternel Learner, & Cat. =^~^=  //  Intro at youtube.com/watch?v=EaMDFxfcQHY",
+    "image": "https://static-cdn.jtvnw.net/jtv_user_pictures/0dc4d8c1-a622-4db1-be78-388cf3f7e003-profile_image-300x300.png",
     "link": "https://www.twitch.tv/thelaluka"
   },
   {
     "id": "hadzah_fr",
-    "name": "Twitch",
-    "description": "Description non trouvée",
-    "image": "https://static-cdn.jtvnw.net/ttv-static-metadata/twitch_logo3.jpg",
+    "name": "hadzah_fr - Twitch",
+    "description": "Hadrien, student, IT and cat lover",
+    "image": "https://static-cdn.jtvnw.net/jtv_user_pictures/cb1a4f35-47c9-4e9f-95d0-f1c6a7fffd5c-profile_image-300x300.png",
     "link": "https://www.twitch.tv/hadzah_fr"
   },
   {
     "id": "khaos_farbauti",
-    "name": "Twitch",
-    "description": "Description non trouvée",
-    "image": "https://static-cdn.jtvnw.net/ttv-static-metadata/twitch_logo3.jpg",
+    "name": "Khaos_Farbauti - Twitch",
+    "description": "Tout et n'importe quoi.\rJe suis sur Twitter entre 2 streams @khaos_farbauti",
+    "image": "https://static-cdn.jtvnw.net/jtv_user_pictures/khaos_farbauti-profile_image-04c38c6983749933-300x300.jpeg",
     "link": "https://www.twitch.tv/khaos_farbauti"
   }
 ]
