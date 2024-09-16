@@ -54,10 +54,17 @@ jobs:
       run: |
         cat src/assets/misc/discord_servers_info.json
 
-    - name: Force add and commit changes
+    - name: Check if JSON files have changed
+      run: |
+        git diff --exit-code src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json src/assets/cards.json src/assets/misc/discord_servers_info.json
+      id: changes_check
+      continue-on-error: true
+
+    - name: Commit and push changes if files changed
+      if: steps.changes_check.outcome == 'failure'
       run: |
         git config --local user.name "github-actions"
         git config --local user.email "github-actions@github.com"
-        git add -f src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json src/assets/cards.json src/assets/misc/discord_servers_info.json
-        git commit -m "Update channels_info.json, twitch_channels_info.json, cards.json, and discord_servers_info.json from GitHub Actions" || echo "No changes to commit"
+        git add src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json src/assets/cards.json src/assets/misc/discord_servers_info.json
+        git commit -m "Update JSON files from GitHub Actions"
         git push origin main
