@@ -1,0 +1,185 @@
+---
+title: Comment fonctionne le ARP Cache Poisoning
+description: _Vous vous êtes surement déjà demandé comment les attaquants font pour intercepter des paquêts sur le réseau, espionner les utilisateurs d'un Wi-Fi public, etc. La méthode de l'empoisonnement de cache ARP est une attaque basique qui permet de faire cela_
+categories: [offensive]
+tags: [cybersécurité]
+template: doc
+next: true
+prev: true
+---
+
+_Vous vous êtes surement déjà demandé comment les attaquants font pour intercepter des paquêts sur le réseau, espionner les utilisateurs d'un Wi-Fi public, etc. La méthode de l'empoisonnement de cache ARP est une attaque basique qui permet de faire cela_
+
+import { Image } from 'astro:assets';
+
+## Cours
+
+### Comprendre le protocole ARP et les tables ARP
+
+Pour comprendre l’attaque MITM (Man in the middle), il faut comprendre simplement le protocole ARP.
+
+
+Tout ce que vous devez savoir c’est que chaque machine du réseau possède un cache ARP. Comme son nom l’indique, c’est un cache, il est donc temporaire. 
+Le cache ARP consiste en une correspondance entre les adresses IP et les adresses MAC des machines du réseau. Ces correspondances sont rangées dans des tables ARP.
+
+
+Exemple de table ARP : 
+
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/cache_arp.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+Ci-dessus, deux commandes qui affichent les correspondances entre 2 ip du réseau et leur adresse MAC. On voit que l’adresse 10.5.0.1 a pour adresse MAC 02:42:8c:d5:51:03.
+
+A ce stade, vous devriez avoir compris ce qu’est une table ARP. Cependant, vous avez lu juste avant qu’ARP était un protocole… En effet, pour remplir ces tables ARP, la machine va envoyer des requêtes aux autres machines sur le réseau. Les requêtes envoyées sont tout simplement comme le dialogue qui suit : 
+
+> votre_machine : “qui à l’adresse 10.5.0.2 ?”
+>
+> machine_distante : “c’est moi, voici mon adresse MAC : 02:42:0a:05:00:02 !”
+
+Et ainsi la machine ajoute une ligne à sa table ARP.
+
+Lorsqu’une machine distante veut envoyer une requête à une destination, elle s’assure d’avoir un couple IP-MAC correct.
+
+### Comprendre le fonctionnement d’une attaque MITM (Man in The Middle)
+
+Le but de cette attaque est de tromper la machine victime en se faisant passer pour quelqu’un d’autre. Il faut ainsi envoyer des informations à une machine pour qu’il enregistre dans son cache ARP les mauvaises correspondances IP-MAC.
+
+Si on veut observer toutes les communications entre une machine et un routeur, il faut se placer entre les deux machines (d’où l’appellation Man in the Middle). On dit à la victime “c’est moi le routeur”, ainsi elle enverra ses paquets à la machine attaquante, qui les transmettra ensuite au routeur. Lorsqu’une réponse arrive du routeur, l’attaquant dit au routeur “c’est moi qui suis la machine qui a envoyé cette requête”, l’attaquant a donc la requête qu’il renvoie à la machine victime.
+Ce schéma résume bien l’attaque : 
+
+
+<Image src="https://beaglesecurity.com/blog/images/man-in-the-middle-attacks.webp" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+## Tutoriel
+
+### MITM dans un environnement dédié
+
+Il vous est possible de suivre et effectuer les mêmes étapes de ce tutoriel depuis votre machine en téléchargeant ce fichier : [docker-compose.yml](./docker-compose.yml)
+
+### Lancement de l'environnement
+
+Maintenant que vous avez téléchargé le fichier docker-compose.yml, vous pouvez récupérer et lancer les machines utiles pour ce tutoriel en tapant la commande : 
+
+```shell
+$ docker-compose up -d
+```
+
+Lorsque l'opération est finie, vous pouvez lister vos conteneurs avec la commande :
+
+```shell
+$ docker ps -a
+```
+Vous devriez voir une réponse similaire à celle ci-dessous : 
+
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/conteneurs.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+
+Maintenant, ouvrons 2 Terminal séparés et connectons nous aux deux machines : 
+Pour utiliser la machine attaquante, tapez la commande : 
+```shell
+$ docker exec -it attaquant /bin/bash
+```
+
+Pour utiliser la machine victime, tapez la commande : 
+```shell
+$ docker exec -it victime /bin/bash
+```
+
+Vous êtes maintenant connecté aux deux machines et vous devriez avoir deux Terminal ouverts comme cela : 
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/terminal.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+
+### Vérification de la Configuration
+
+Regardons les adresses ip de nos deux machines à l'aide de la commande : 
+```shell
+$ ifconfig
+```
+
+Vous obtenez normalement une réponse comme suit : 
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/ifconfig.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+On voit bien que la machine attaquante a pour adresse IP **10.5.0.2** et la machine victime **10.5.0.3**.
+
+
+Vérifions maintenant la connectivité entre les différentes machines. Sur la machine attaquante, utilisons la commande **ping** afin de voir si la machine victime nous répond : 
+```shell
+$ ping 10.5.0.3
+```
+(Tapez Ctrl+C pour arrêter l'exécution de la commande)
+
+Vous devriez voir cela : 
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/ping.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+
+Les paquets circulent bien, donc tout est bien configuré.
+
+Il est aussi recommandé de taper la commande : 
+
+```shell
+$ ping 10.5.0.1
+```
+
+Pour vérifier la connectivité avec le routeur.
+
+### Mise en place de l'attaque
+
+Affichons tout d'abord la table arp de nos deux machines : 
+```shell
+$ arp -n
+```
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/arp.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+
+Afin que les requêtes puissent circuler entre la machine victime et le routeur, il faut que la machine attaquante puisse renvoyer les requêtes reçues.
+Nous devons donc activer l'ip forwarding sur notre machine attaquante. Si nous manquons cette étape, soit il s'agit d'un choix de l'attaquant de bloquer toutes les requêtes de sa victime afin de lui bloquer toute connectivité, ou alors il s'agit d'une erreur d'inatention qui empechera l'attaquant d'observer ce que la victime fait sur sa machine.
+
+Voici comment activer l'ip forwarding : 
+
+```shell
+$ echo 1 > /proc/sys/net/ipv4/ip_forward
+```
+
+Pour vérifier que cela est bien activé : 
+
+```shell
+$ cat /proc/sys/net/ipv4/ip_forward
+```
+
+Vous devez lire un **1** en réponse à cette commande.
+
+### Lancement de l'attaque
+
+Nous allons maintenant lancer l'attaque. Pour bien voir ce qu'il se passe, nous allons ouvrir un autre Terminal en se connectant une deuxième fois à la machine attaquante. (voir commande plus haut) 
+A ce stade vous avez donc 3 applications Terminal ouvertes : 2 sur la machine attaquante 1 sur la machine victime.
+
+Sur notre machine attaquante, nous allons lancer l'**arpspoof** qui consiste à faire croire à la victime que nous sommes le routeur et au routeur que nous sommes la victime (empoisonnement de cache arp): 
+
+```shell
+$ arpspoof -t 10.5.0.3 10.5.0.1
+```
+
+On peut observer les requêtes ARP envoyées lorsque cette commande est exécutée : 
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/poisoning.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+
+Maintenant que l'empoisonnement de la table ARP est lancé, il faut laisser les requêtes s'envoyer. Laissez le terminal de côté. Nous allons maintenant écouter et visualiser les requêtes qui passent par notre machine attaquante. Sur l'autre Terminal de la machine attaquante tapez : 
+
+```shell
+$ tcpdump -i eth0
+```
+
+Dès que la commande est exécutée, nous voyons circuler les requêtes ARP sur le réseau.
+
+Que se passe-t-il si maintenant la machine victime ping les serveurs de github ? (adresse des serveurs github : **140.82.121.4**)
+
+Sur la machine victime, tapez : 
+
+```shell
+$ ping 140.82.121.4
+```
+
+**Observations depuis la machine attaquante :**
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/ping_victime.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
+
+
+Oui ! Effectivement ! On voit bien que l'attaque a fonctionné. Vous voyez sur la machine attaquante que la victime a envoyé une requête aux serveurs de github!
