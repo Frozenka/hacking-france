@@ -18,10 +18,8 @@ import { Image } from 'astro:assets';
 
 Pour comprendre l’attaque MITM (Man in the middle), il faut comprendre simplement le protocole ARP.
 
-
 Tout ce que vous devez savoir c’est que chaque machine du réseau possède un cache ARP. Comme son nom l’indique, c’est un cache, il est donc temporaire. 
 Le cache ARP consiste en une correspondance entre les adresses IP et les adresses MAC des machines du réseau. Ces correspondances sont rangées dans des tables ARP.
-
 
 Exemple de table ARP : 
 
@@ -32,9 +30,8 @@ Ci-dessus, deux commandes qui affichent les correspondances entre 2 ip du résea
 A ce stade, vous devriez avoir compris ce qu’est une table ARP. Cependant, vous avez lu juste avant qu’ARP était un protocole… En effet, pour remplir ces tables ARP, la machine va envoyer des requêtes aux autres machines sur le réseau. Les requêtes envoyées sont tout simplement comme le dialogue qui suit : 
 
 > votre_machine : “qui a l’adresse 10.5.0.2 ?”
->
 > machine_distante : “c’est moi, voici mon adresse MAC : 02:42:0a:05:00:02 !”
-
+> 
 Et ainsi la machine ajoute une ligne à sa table ARP.
 
 Lorsqu’une machine distante veut envoyer une requête à une destination, elle s’assure d’avoir un couple IP-MAC correct.
@@ -44,8 +41,8 @@ Lorsqu’une machine distante veut envoyer une requête à une destination, elle
 Le but de cette attaque est de tromper la machine victime en se faisant passer pour quelqu’un d’autre. Il faut ainsi envoyer des informations à une machine pour qu’elle enregistre dans son cache ARP les mauvaises correspondances IP-MAC.
 
 Si on veut observer toutes les communications entre une machine et un routeur, il faut se placer entre les deux machines (d’où l’appellation Man in the Middle). On dit à la victime “c’est moi le routeur”, ainsi elle enverra ses paquets à la machine attaquante, qui les transmettra ensuite au routeur. Lorsqu’une réponse arrive du routeur, l’attaquant dit au routeur “c’est moi qui suis la machine qui a envoyé cette requête”, l’attaquant intercepte donc la requête qu’il renvoie à la machine victime.
-Ce schéma résume bien l’attaque : 
 
+Ce schéma résume bien l’attaque : 
 
 <Image src="https://beaglesecurity.com/blog/images/man-in-the-middle-attacks.webp" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
 
@@ -72,7 +69,6 @@ Vous devriez voir une réponse similaire à celle ci-dessous :
 
 <Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/conteneurs.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
 
-
 Maintenant, ouvrons 2 Terminal séparés et connectons nous aux deux machines : 
 Pour utiliser la machine attaquante, tapez la commande : 
 ```shell
@@ -85,8 +81,8 @@ $ docker exec -it victime /bin/bash
 ```
 
 Vous êtes maintenant connecté aux deux machines et vous devriez avoir deux terminaux ouverts : 
-<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/terminal.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
 
+<Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/terminal.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
 
 ### Vérification de la Configuration
 
@@ -100,8 +96,8 @@ Vous obtenez normalement une réponse comme suit :
 
 On voit bien que la machine attaquante a pour adresse IP **10.5.0.2** et la machine victime **10.5.0.3**.
 
-
 Vérifions maintenant la réponse ICMP de la machine victime. Sur la machine attaquante, utilisons la commande **ping** : 
+
 ```shell
 $ ping 10.5.0.3
 ```
@@ -129,8 +125,8 @@ $ arp -n
 ```
 <Image src="https://raw.githubusercontent.com/tanguybron/cybersec-du-dimanche/refs/heads/main/source/MITM/images/arp.png" alt="ARP" format="avif" quality={"high"} width="1000" height="1000"/>
 
-
 Afin que les requêtes puissent circuler entre la machine victime et le routeur, il faut que la machine attaquante puisse renvoyer les requêtes reçues.
+
 Nous devons donc activer l'ip forwarding sur notre machine attaquante. Si nous manquons cette étape, soit il s’agit d'un choix de l’attaquant de bloquer toutes les requêtes de sa victime afin de lui bloquer toute connectivité, ou alors il s’agit d’une erreur d’inattention qui empêchera l’attaquant d’observer ce que la victime fait sur sa machine.
 
 Voici comment activer l'ip forwarding : 

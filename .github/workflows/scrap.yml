@@ -29,8 +29,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: src/assets/misc/channels_info.json
-        key: youtube-cache-${{ github.sha }}
-        restore-keys: youtube-cache-
+        key: youtube-cache-${{ github.ref }}-${{ github.run_number }}-${{ github.event.schedule }}  # Stable cache key with branch reference and weekly renewal
+        restore-keys: |
+          youtube-cache-${{ github.ref }}-
 
     - name: Run YouTube scraping script
       run: |
@@ -45,8 +46,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: src/assets/misc/twitch_channels_info.json
-        key: twitch-cache-${{ github.sha }}
-        restore-keys: twitch-cache-
+        key: twitch-cache-${{ github.ref }}-${{ github.run_number }}-${{ github.event.schedule }}  # Stable cache key with branch reference and weekly renewal
+        restore-keys: |
+          twitch-cache-${{ github.ref }}-
 
     - name: Run Twitch scraping script
       run: |
@@ -61,8 +63,9 @@ jobs:
       uses: actions/cache@v3
       with:
         path: src/assets/misc/discord_servers_info.json
-        key: discord-cache-${{ github.sha }}
-        restore-keys: discord-cache-
+        key: discord-cache-${{ github.ref }}-${{ github.run_number }}-${{ github.event.schedule }}  # Stable cache key with branch reference and weekly renewal
+        restore-keys: |
+          discord-cache-${{ github.ref }}-
 
     - name: Run Discord scraping script
       run: |
