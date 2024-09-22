@@ -17,7 +17,7 @@ Nous encourageons tous les membres de la communauté à contribuer en écrivant 
 Contact pour toute question ou suggestion, n'hésitez pas à ouvrir une issue ou à nous contacter sur discord.
 :::
 
-## Formatage des articles
+## Formatage des articles :badge[New]
 
 Le Frontmatter est obligatoire pour chaque fichier mdx, il est défini en haut des fichiers entre des séparateurs `---` :
 
@@ -64,7 +64,7 @@ import test1 from '../../../assets/events/test1.jpg';
 <Image src={test1} alt="Test 1" format="avif" quality={"mid"}/>
 ```
 
-Vous pouvez utilisez le format `avif` pour les images, et définir la qualité de l'image avec `quality={"mid"}` pour une compression équilibrée.
+Vous pouvez utiliser le format `avif` pour les images, et définir la qualité de l'image avec `quality={"mid"}` pour une compression équilibrée.
 
 <Image src={test1} alt="Test 1" format="avif" quality={"mid"}/>
 
@@ -116,7 +116,7 @@ Vous pouvez structurer le contenu en utilisant un titre. Les titres en Markdown 
 
 ### Comment structurer le contenu des pages
 
-Le titre de la page définit dans le frontmatter, sera définit comme titre de premier niveau et inclut un titre "Aperçu" en haut de la table des matières de chaque page. Nous recommandons de commencer chaque page par un texte introductif régulier et d'utiliser des titres `<h2>` `##` et inférieurs pour structurer le contenu `###`, `####`...
+Le titre de la page défini dans le frontmatter sera défini comme titre de premier niveau et inclut un titre "Aperçu" en haut de la table des matières de chaque page. Nous recommandons de commencer chaque page par un texte introductif régulier et d'utiliser des titres `<h2>` `##` et inférieurs pour structurer le contenu `###`, `####`...
 
 ```mdx wrap frame="terminal"
 ---
@@ -127,14 +127,14 @@ description: Lorem ipsum dolor sit amet
 Quisque neque risus, dignissim ut elementum non, bibendum eget lectus.
 ```
 
-### Liens d’ancrage pour les titres
+### Liens d'ancrage pour les titres
 
-L’utilisation des titres en Markdown génère automatiquement des liens d’ancrage, vous permettant de créer des liens directs vers certaines sections de votre page.
+L'utilisation des titres en Markdown génère automatiquement des liens d'ancrage, vous permettant de créer des liens directs vers certaines sections de votre page.
 
 ```mdx wrap frame="terminal"
 ---
 title: Ma page de contenu
-description: Comment utiliser les liens d’ancrage
+description: Comment utiliser les liens d'ancrage
 ---
 
 ## Introduction
@@ -153,9 +153,9 @@ Apprenez-en plus sur la manière dont Astro traite les identifiants de titres da
 
 ## Encadrés
 
-Les encadrés (également appelés "admonitions" ou "callouts") sont utiles pour afficher des informations secondaires aux côtés du contenu principal d’une page.
+Les encadrés (également appelés "admonitions" ou "callouts") sont utiles pour afficher des informations secondaires aux côtés du contenu principal d'une page.
 
-Starlight propose une syntaxe Markdown personnalisée pour rendre des encadrés. Les blocs d'encadré sont indiqués par une paire de triple deux-points `:::` pour entourer votre contenu, et peuvent être de type `note`, `tip`, `caution` ou `danger`.
+Les blocs d'encadré sont indiqués par une paire de triple deux-points `:::` pour entourer votre contenu, et peuvent être de type `note`, `tip`, `caution` ou `danger`.
 
 Vous pouvez imbriquer n'importe quel autre type de contenu Markdown dans un encadré, mais ils sont mieux adaptés aux courts blocs de contenu concis.
 
@@ -207,7 +207,7 @@ Cras in ante et erat aliquam finibus. Maecenas convallis fermentum arcu eget viv
 
 ### Autres types d'encadrés
 
-Les encadrés de type `caution` et `danger` sont utiles pour attirer l’attention de l’utilisateur sur des détails importants.
+Les encadrés de type `caution` et `danger` sont utiles pour attirer l'attention de l'utilisateur sur des détails importants.
 
 :::caution
 Donec fermentum consectetur dolor. Pellentesque vitae justo pharetra, elementum magna at, blandit magna.
@@ -429,3 +429,22 @@ import { Steps } from '@astrojs/starlight/components';
 2. Entourez vos éléments de liste ordonnée avec `<Steps>`
 
 </Steps>
+
+## Ce titre est suivi d'un badge :badge[TEXTE]
+
+```mdx wrap frame="terminal"
+## Ce titre est suivi d'un badge :badge[TEXTE]
+```
+
+## Ce titre est suivi d'un badge custom :badge[TEXTE]{variant=success}
+
+```mdx wrap frame="terminal"
+## Ce titre est suivi d'un badge custom :badge[TEXTE]{variant=success}
+```
+
+## Youtube,Twitch,Discord
+
+Pour la modification des pages [YouTube](/misc/youtube/) [Twitch](/misc/twitch/) et [Discord](/misc/discord/), rien de plus simple :  
+il vous suffit d'éditer les fichiers texte correspondants : 
+`src/assets/misc/liste_youtube.txt ou liste_twitch.txt ou liste_discord.txt`
+Cela ajoutera automatiquement toutes les informations sur la page.

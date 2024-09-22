@@ -1,0 +1,43 @@
+---
+title: Chaînes YouTube cyber
+description: Découvrez nos chaînes YouTube recommandées pour approfondir vos connaissances en cybersécurité et hacking.
+categories: [autre]
+tags: [youtube, recommandation]
+template: doc
+tableOfContents: false
+next: true
+prev: true
+sidebar:
+  badge:
+    text: 'Nouveau'
+    variant: note
+---
+
+import { CardGrid, LinkButton } from '@astrojs/starlight/components'
+import Card from '../../../components/starlight/Card.astro'
+import channels from '../../../../src/assets/misc/channels_info.json'
+
+> Retrouvez ici une sélection de chaînes YouTube en cybersécurité que nous recommandons vivement. Ces chaînes offrent des contenus variés et de qualité, allant des tutoriels pratiques aux analyses approfondies, parfaits pour approfondir vos connaissances et rester à jour dans le domaine.
+ 
+ {/* Pour ajouter ou modifier un lien sur cette page, il faut effectuer les changements dans le dossier /src/assets/misc et le fichier .txt correspondant. */}
+ <br/>
+<CardGrid>
+  {channels.map(channel => (
+    <Card key={channel.id} title={channel.name}>
+      <div style="text-align: center;">
+        <img
+          src={channel.image}
+          alt={channel.name}
+          width="300"
+          height="150"
+        />
+      </div>
+      <p>{channel.description}</p>
+      <p><strong>{channel.subscribers}</strong></p>
+      <LinkButton href={channel.link} variant="secondary" icon="external">
+      Visiter la chaîne
+      </LinkButton>
+    </Card>
+  ))}
+</CardGrid>
+{/* Pour ajouter ou modifier un lien sur cette page, il faut effectuer les changements dans le dossier /src/assets/misc et le fichier .txt correspondant. */}

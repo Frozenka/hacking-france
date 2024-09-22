@@ -1,0 +1,47 @@
+---
+title: Serveurs Discord Cyber
+description: Découvrez notre serveur Discord recommandé pour approfondir vos connaissances en cybersécurité et hacking.
+categories: [autre]
+tags: [discord, recommandation]
+template: doc
+tableOfContents: false
+next: true
+prev: true
+sidebar:
+  badge:
+    text: 'Nouveau'
+    variant: note
+---
+
+import { CardGrid, LinkButton } from '@astrojs/starlight/components'
+import Card from '../../../components/starlight/Card.astro'
+import servers from '../../../../src/assets/misc/discord_servers_info.json'
+
+> Retrouvez ici des serveurs Discord dédiés à la cyber.
+
+{/* Pour ajouter ou modifier un lien sur cette page, il faut effectuer les changements dans le dossier /src/assets/misc et le fichier .txt correspondant. */}
+
+<br/>
+<CardGrid>
+  {servers.map(server => (
+    <Card key={server.link} title={server.name}>
+      <div style="text-align: center;">
+        <img
+          src={server.image || 'https://logo-marque.com/wp-content/uploads/2020/12/Discord-Logo.png'}  // Remplace l'image si absente
+          alt={server.name}
+          width="300"
+          height="150"
+        />
+      </div>
+      <p>{server.description}</p>
+      {server.members !== 'Membres non disponibles' && (
+        <p>Membres: {server.members}</p>
+      )}
+      <LinkButton href={server.link} variant="secondary" icon="external">
+        Rejoindre le serveur
+      </LinkButton>
+    </Card>
+  ))}
+</CardGrid>
+
+{/* Pour ajouter ou modifier un lien sur cette page, il faut effectuer les changements dans le dossier /src/assets/misc et le fichier .txt correspondant. */}
