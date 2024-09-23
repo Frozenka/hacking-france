@@ -5,7 +5,11 @@ categories: [Writeup]
 tags: [writeup]
 template: doc
 ---
-Date 2024-09-13 16:00
+import { Image } from 'astro:assets';
+import banner from '../../../assets/writeup/vulnlab/banner.jpeg';
+import limesurvey-panel from '../../../assets/writeup/vulnlab/writeup/forgotten/limesurvey-panel.png';
+
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
 ## 🔭 Périmètre
 
@@ -117,7 +121,7 @@ echo "Installation and configuration completed successfully!"
 
 Configuration du panel administrateur:
 
-![](../../../assets/wu-images/limesurvey-panel.png)
+<Image src={limesurvey-panel} alt="banner" format="avif" quality={"mid"}/>
 
 Connexion et direction le menu > plugins
 
