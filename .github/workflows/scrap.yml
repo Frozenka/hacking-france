@@ -1,0 +1,102 @@
+name: Scrape YouTube, Twitch Channels, and GitHub Contributors
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 1'  # Exécution quotidienne à minuit (UTC) pour toutes les plateformes
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install requests beautifulsoup4
+
+    # Cache YouTube data to avoid unnecessary requests
+    - name: Cache YouTube data
+      uses: actions/cache@v3
+      with:
+        path: src/assets/misc/channels_info.json
+        key: youtube-cache-${{ github.ref }}-${{ github.run_number }}-${{ github.event.schedule }}  # Stable cache key with branch reference and weekly renewal
+        restore-keys: |
+          youtube-cache-${{ github.ref }}-
+
+    - name: Run YouTube scraping script
+      run: |
+        python src/assets/misc/scrapyb.py
+
+    - name: Display YouTube JSON content
+      run: |
+        cat src/assets/misc/channels_info.json
+
+    # Cache Twitch data to avoid unnecessary requests
+    - name: Cache Twitch data
+      uses: actions/cache@v3
+      with:
+        path: src/assets/misc/twitch_channels_info.json
+        key: twitch-cache-${{ github.ref }}-${{ github.run_number }}-${{ github.event.schedule }}  # Stable cache key with branch reference and weekly renewal
+        restore-keys: |
+          twitch-cache-${{ github.ref }}-
+
+    - name: Run Twitch scraping script
+      run: |
+        python src/assets/misc/scraptwitch.py
+
+    - name: Display Twitch JSON content
+      run: |
+        cat src/assets/misc/twitch_channels_info.json
+
+    # Cache Discord data to avoid unnecessary requests
+    - name: Cache Discord data
+      uses: actions/cache@v3
+      with:
+        path: src/assets/misc/discord_servers_info.json
+        key: discord-cache-${{ github.ref }}-${{ github.run_number }}-${{ github.event.schedule }}  # Stable cache key with branch reference and weekly renewal
+        restore-keys: |
+          discord-cache-${{ github.ref }}-
+
+    - name: Run Discord scraping script
+      run: |
+        python src/assets/misc/scrapdiscord.py
+
+    - name: Display Discord JSON content
+      run: |
+        cat src/assets/misc/discord_servers_info.json
+
+    # Run GitHub contributors scraping (no cache needed)
+    - name: Run GitHub contributors scraping script
+      run: |
+        python src/assets/misc/scrapcontributors.py
+
+    - name: Display GitHub contributors JSON content
+      run: |
+        cat src/assets/cards.json
+
+    # Check if any JSON files have changed before committing
+    - name: Check if JSON files have changed
+      run: |
+        git diff --exit-code src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json src/assets/cards.json src/assets/misc/discord_servers_info.json
+      id: changes_check
+      continue-on-error: true
+
+    # Commit and push changes only if the JSON files have been updated
+    - name: Commit and push changes if files changed
+      if: steps.changes_check.outcome == 'failure'
+      run: |
+        git config --local user.name "github-actions"
+        git config --local user.email "github-actions@github.com"
+        git add src/assets/misc/channels_info.json src/assets/misc/twitch_channels_info.json src/assets/cards.json src/assets/misc/discord_servers_info.json
+        git commit -m "Update JSON files from GitHub Actions"
+        git push origin main

