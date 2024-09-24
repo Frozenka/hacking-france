@@ -17,7 +17,43 @@ Nous encourageons tous les membres de la communauté à contribuer en écrivant 
 Contact pour toute question ou suggestion, n'hésitez pas à ouvrir une issue ou à nous contacter sur discord.
 :::
 
-## Formatage des articles :badge[New]
+##  À lire avant de contribuer :badge[MANDATORY]{variant=danger}
+
+Voici les points clés à prendre en compte avant de soumettre une Pull Request :
+
+- Assurez-vous de bien lire et comprendre le **Code de Conduite** et la **Licence du projet**.
+- Utilisez le format **Markdown** (.mdx) pour vos articles.
+- Incluez toujours un **frontmatter** en **haut du fichier** avec au moins le champ `title`.
+- Respectez les **conventions de formatage** pour le texte (gras, italique, barré, liens, code inline).
+- Utilisez le composant `Image` d'Astro pour insérer des images, en spécifiant le **chemin**, le **alt**, le **format** et la **qualité** [Comment faire ?](#images)
+- Pour le chemin des images, suivez la **convention d'arborescence du repo**. [Voir ici.](#images)
+- **Testez votre article localement avant de soumettre la PR pour vérifier le rendu**, **le projet ne doit pas retourner d'erreurs**. [Comment faire ?](#tester-le-project-localement)
+- Ouvrez une issue ou contactez l'équipe sur Discord si vous avez des questions.
+- **Soyez ouvert aux retours et modifications éventuelles sur votre contribution**.
+
+N'hésitez pas à consulter les exemples fournis dans la documentation pour vous guider.
+
+
+- [Code de conduite](https://github.com/Frozenka/hacking-france/blob/main/CODE_OF_CONDUCT.md)
+- [Licence](https://github.com/Frozenka/hacking-france/blob/main/LICENSE)
+
+## Tester le project localement :badge[MANDATORY]{variant=danger} 
+
+```bash
+git clone https://github.com/Frozenka/hacking-france.git
+cd hacking-france
+npm install
+npm run dev
+```
+
+Puis, pour vérifier le build (important):
+
+```bash
+npm run build
+```
+
+## Formatage des articles :badge[MANDATORY]{variant=danger} :badge[Important]{variant=tip}
+
 
 Le Frontmatter est obligatoire pour chaque fichier mdx, il est défini en haut des fichiers entre des séparateurs `---` :
 
