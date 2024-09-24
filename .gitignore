@@ -20,3 +20,6 @@ pnpm-debug.log*
 
 # macOS-specific files
 .DS_Store
+src/assets/misc/channels_info.json
+src/assets/misc/discord_servers_info.json
+src/assets/misc/twitch_channels_info.json
