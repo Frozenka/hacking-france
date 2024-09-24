@@ -40,7 +40,7 @@ PORT     STATE SERVICE
 
 Nmap done: 1 IP address (1 host up) scanned in 4.56 seconds
 ```
-Analyze des ports ```22```| ```3128```.
+Analyse des ports ```22```| ```3128```.
 
 ```shell wrap
 nmap -sS -p22,3128 -T4 -sC -sV -Pn -vv 10.10.75.208
@@ -56,7 +56,7 @@ Nmap done: 1 IP address (1 host up) scanned in 7.60 seconds
 
 ### Aperçu
 
-Nous atterrisons sur ```squid```.
+Nous atterrissons sur ```squid```.
 
 ```Squid``` est un serveur proxy qui permet de mettre en cache les requêtes web pour optimiser l’accès à internet. Il peut agir comme un intermédiaire entre un client (comme un navigateur) et des serveurs web
 
@@ -82,7 +82,7 @@ Port 9192 is open.
 Port 9195 is open.
 Port 9191 is open.
 ```
-####Analyze des ports à travers le proxy.
+####Analyse des ports à travers le proxy.
 
 ```shell wrap
 proxychains -q nmap -sC -sV -p22,9195,9192,9191 127.0.0.1
@@ -169,7 +169,7 @@ Voyons cela, nous tombons sur une page de login ```Papercut NG```.
 
 <Image src={bamboo3} alt="bamboo3" format="avif" quality={"mid"}/>
 
-On préapre le proxy sur firefox pour plus de clarté.
+On prépare le proxy sur firefox pour plus de clarté.
 
 <Image src={bamboo2} alt="bamboo2" format="avif" quality={"mid"}/>
 
