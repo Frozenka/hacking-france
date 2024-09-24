@@ -103,7 +103,7 @@ export default defineConfig({
           translations: {
             en: 'Misc'
           },
-          collapsed: false,
+          collapsed: true,
           autogenerate: {
             directory: 'misc',
             collapsed: true
