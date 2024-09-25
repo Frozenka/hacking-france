@@ -1,9 +1,14 @@
 ---
-title: bamboo - Medium
-description: WU bamboo - Medium
+title: bamboo
+description: WU bamboo
 categories: [Writeup]
 tags: [writeup]
 template: doc
+sidebar:
+  order: 8
+  badge:
+    text: 'medium'
+    variant: caution
 ---
 
 import { Steps } from '@astrojs/starlight/components';
@@ -18,14 +23,14 @@ import bamboo8 from '../../../../assets/writeup/vulnlab/bamboo/bamboo08.png';
 import bamboo9 from '../../../../assets/writeup/vulnlab/bamboo/bamboo09.png';
 
 ## 🔭 Périmètre
-```
-IP: 10.10.75.228
-OS: Linux
-```
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:green">**EASY**</span> | 10.10.75.228 |
+
 ## 🔍 Récupération d'informations 
 
 ### PortScan
-
 
 ```shell wrap
 nmap -open 10.10.75.228
@@ -52,7 +57,6 @@ PORT     STATE    SERVICE    REASON      VERSION
 Nmap done: 1 IP address (1 host up) scanned in 7.60 seconds
            Raw packets sent: 4 (176B) | Rcvd: 0 (0B)
 ```
-
 
 ### Paper-NG abuse
 

