@@ -15,13 +15,11 @@ import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
 
 <Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
-# Retro
-
 | OS | Difficulty | Target |
 |----|----|----|
 | Windows | <span style="color:green">**EASY**</span> | 10.10.88.233 |
 
-# 🔭 Enumeration
+## 🔭 Enumeration
 
 ```sh
 PORT     STATE SERVICE
@@ -144,6 +142,7 @@ Regards
 
 The Admins#                                               
 ```
+
 Il semblerait que le groupe `Trainees` possède un seul et unique compte. Nous avons tenté d'utiliser `ldapsearch` mais sans succès. En cherchant, le script `lookupsid` permet de faire une énumération LDAP.
 
 ```sh
@@ -221,7 +220,7 @@ Password changed.
 
 Le mot de passe est changé avec succès, mais nous ne pouvons pas nous connecter avec. Dans le `nmap` approfondi, on peut voir qu'un `ADCS`est en place, nous utilisons donc `certipy` dans le but de vérifier, identifier et copier les informations des certificats de l'AD.
 
-# 🎯 Privilege Escalation
+## 🎯 Privilege Escalation
 
 ```sh
 certipy find -u 'BANKING$'@retro.vl -p "password123" -dc-ip 10.10.88.233      
