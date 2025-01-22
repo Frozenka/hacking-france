@@ -21,16 +21,15 @@ import bamboo6 from '../../../../assets/writeup/vulnlab/bamboo/bamboo06.png';
 import bamboo7 from '../../../../assets/writeup/vulnlab/bamboo/bamboo07.png';
 import bamboo8 from '../../../../assets/writeup/vulnlab/bamboo/bamboo08.png';
 import bamboo9 from '../../../../assets/writeup/vulnlab/bamboo/bamboo09.png';
+import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
 
-## 🔭 Périmètre
+<Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
 | OS | Difficulty | Target |
 |----|----|----|
-| Linux | <span style="color:green">**EASY**</span> | 10.10.75.228 |
+| Linux | <span style="color:orange">**MEDIUM**</span> | 10.10.75.228 |
 
-## 🔍 Récupération d'informations 
-
-### PortScan
+## 🔭 Enumeration
 
 ```shell wrap
 nmap -open 10.10.75.228

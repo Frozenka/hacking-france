@@ -16,15 +16,11 @@ import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
 
 <Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
-# LOCK
-
 | OS | Difficulty | Target |
 |----|----|----|
 | Windows | <span style="color:green">**EASY**</span> | 10.10.92.237 |
 
-# 🔭 Enumeration
-
-### PortScan
+## 🔭 Enumeration
 
 ```
 PORT     STATE SERVICE
@@ -98,7 +94,7 @@ PORT     STATE SERVICE       VERSION
 | 3000 | GITEA |
 | 3389 | RDP |
 
-# 👣 Foothold
+## 👣 Foothold
 
 Un dépôt `Gitea` sur le port 3000. Nous donne un nom d'user `ellen.freeman`. Il y a 2 commits et un script.
 Le commit initial nous permet de récupérer le Token Gitea:
@@ -188,7 +184,7 @@ Connectons-nous en RDP.
 
 Le flag user est présent sur le Bureau.
 
-# 🎯 Privilege Escalation
+## 🎯 Privilege Escalation
 
 A partir de la session de Gale.Dekarios, nous pouvons voir que le logiciel PDF24 est présent. En regardant les détails du programme, la version est la 11.15.1 dont un exploit permet de PrivEsc.
 

