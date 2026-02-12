@@ -30,14 +30,22 @@ export default defineConfig({
         Hero: './src/components/starlight/Hero.astro',
         Pagination: './src/components/starlight/Pagination.astro',
         PageSidebar: './src/components/starlight/PageSidebar.astro',
+        Footer: './src/components/starlight/Footer.astro',
+        ThemeSelect: './src/components/starlight/ThemeSelect.astro',
       },
       logo: {
-        light: './src/assets/hfwhite.png',
-        dark: './src/assets/hfdark.png'
+        light: './src/assets/newlogo.png',
+        dark: './src/assets/newlogo.png',
+        replacesTitle: true
       },
       defaultLocale: 'root',
       sidebar: [
-        { 
+        {
+          label: 'À propos',
+          translations: { en: 'About' },
+          link: 'about'
+        },
+        {
           label: 'La communauté',
           badge: { text: 'Nouveau', variant: 'note' },
           translations: {
@@ -45,13 +53,29 @@ export default defineConfig({
           },
           link: 'community' },
         {
+          label: 'Explorer',
+          translations: { en: 'Explore' },
+          link: 'explorer'
+        },
+        {
           label: 'Événements',
           translations: {
             en: 'Events'
           },
-          collapsed: false,
+          collapsed: true,
           autogenerate: {
             directory: 'events',
+            collapsed: true
+          }
+        },
+        {
+          label: 'Cheat sheet',
+          translations: {
+            en: 'Cheat sheet'
+          },
+          collapsed: true,
+          autogenerate: {
+            directory: 'tools',
             collapsed: true
           }
         },
@@ -60,16 +84,16 @@ export default defineConfig({
           translations: {
             en: 'Certifications'
           },
-          collapsed: false,
+          collapsed: true,
           autogenerate: {
             directory: 'certifications',
             collapsed: true
           }
         },
         {
-          label: 'Cybersécurité',
+          label: 'Parcours & guides',
           translations: {
-            en: 'Cybersecurity'
+            en: 'Learning paths & guides'
           },
           autogenerate: {
             directory: 'cybersecurity',
@@ -88,20 +112,9 @@ export default defineConfig({
           }
         },
         {
-          label: 'Outils',
+          label: 'Ressources',
           translations: {
-            en: 'Tools'
-          },
-          collapsed: false,
-          autogenerate: {
-            directory: 'tools',
-            collapsed: true
-          }
-        },
-                {
-          label: 'Autre',
-          translations: {
-            en: 'Misc'
+            en: 'Resources'
           },
           collapsed: true,
           autogenerate: {
@@ -128,7 +141,7 @@ export default defineConfig({
         }
       },
       social: {
-        discord: 'https://discord.gg/TgM4S5KqR8',
+        discord: 'https://discord.com/invite/3NnqxT6enc',
         github: 'https://github.dev/Frozenka',
         linkedin: 'https://www.linkedin.com/company/hacking-france/'
       }

@@ -1,0 +1,77 @@
+---
+import type { Props } from '@astrojs/starlight/props';
+import EditLink from 'virtual:starlight/components/EditLink';
+import LastUpdated from 'virtual:starlight/components/LastUpdated';
+import Pagination from 'virtual:starlight/components/Pagination';
+import { Icon } from '@astrojs/starlight/components';
+const year = new Date().getFullYear();
+---
+
+<footer class="sl-flex">
+  <!-- Bloc identique à l’origine : Modifier la page | Dernière mise à jour, puis Auteurs de la page -->
+  <div class="footer-docs-meta">
+    <div class="meta sl-flex">
+      <EditLink {...Astro.props} />
+      <LastUpdated {...Astro.props} />
+    </div>
+    <Pagination {...Astro.props} />
+  </div>
+
+  <nav class="footer-links" aria-label="Liens du site">
+    <a href="https://discord.com/invite/3NnqxT6enc"><Icon name="discord" /> Discord</a>
+    <a href="https://github.com/Frozenka/hacking-france"><Icon name="github" /> GitHub</a>
+    <a href="/about"><Icon name="open-book" /> À propos</a>
+    <a href="/contribute/"><Icon name="right-arrow" /> Contribuer</a>
+  </nav>
+  <p class="copyright">© {year} Hacking France</p>
+</footer>
+
+<style>
+  footer {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .footer-docs-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+  }
+  .meta {
+    gap: 0.75rem 3rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-top: 3rem;
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+  }
+  .meta > :global(p:only-child) {
+    margin-inline-start: auto;
+  }
+  .footer-docs-meta :global(.page-authors) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    font-size: var(--sl-text-sm);
+  }
+  .footer-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+  }
+  .footer-links a:hover {
+    color: var(--sl-color-accent-high);
+  }
+  .copyright {
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-4);
+    margin: 0;
+  }
+</style>

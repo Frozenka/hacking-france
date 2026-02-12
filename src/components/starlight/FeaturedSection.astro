@@ -1,0 +1,237 @@
+---
+import { getCollection } from 'astro:content';
+
+const allDocs = await getCollection('docs');
+const writeups = allDocs
+  .filter((e) => e.id.startsWith('writeup/') && !e.id.includes('Recherche'))
+  .sort((a, b) => b.id.localeCompare(a.id))
+  .slice(0, 5);
+
+const platformLabel = (id: string) => {
+  if (id.includes('vulnlab')) return 'VulnLab';
+  if (id.includes('hackthebox')) return 'HackTheBox';
+  if (id.includes('tryHackme')) return 'TryHackMe';
+  if (id.includes('GOAD')) return 'GOAD';
+  return 'Writeup';
+};
+---
+
+<section class="featured" aria-labelledby="featured-heading">
+  <header class="featured-header">
+    <h2 id="featured-heading" class="featured-title">À la une</h2>
+    <p class="featured-desc">Writeups, événements et ressources à ne pas manquer.</p>
+  </header>
+
+  <div class="featured-grid">
+    <div class="featured-col featured-col-writeups">
+      <h3 class="featured-col-title">Derniers writeups</h3>
+      <ul class="featured-list">
+        {
+          writeups.map((entry) => (
+            <li>
+              <a href={`/${entry.slug}`} class="featured-card">
+                <span class="featured-badge">{platformLabel(entry.id)}</span>
+                <span class="featured-card-title">{entry.data.title}</span>
+                <span class="featured-arrow" aria-hidden="true">→</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <a href="/explorer#writeup" class="featured-cta">Tous les writeups</a>
+    </div>
+
+    <div class="featured-col featured-col-events">
+      <h3 class="featured-col-title">Événements</h3>
+      <ul class="featured-list featured-list-compact">
+        <li>
+          <a href="/events/talks" class="featured-card">
+            <span class="featured-badge featured-badge-events">Talks</span>
+            <span class="featured-card-title">Replays et présentations</span>
+            <span class="featured-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        <li>
+          <a href="/events/ctf" class="featured-card">
+            <span class="featured-badge featured-badge-events">CTF</span>
+            <span class="featured-card-title">Capture The Flag</span>
+            <span class="featured-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+      </ul>
+      <a href="/events/talks" class="featured-cta">Voir les événements</a>
+    </div>
+
+    <div class="featured-col featured-col-explore">
+      <h3 class="featured-col-title">Parcourir</h3>
+      <ul class="featured-list featured-list-compact">
+        <li>
+          <a href="/explorer" class="featured-card">
+            <span class="featured-card-title">Explorer le contenu</span>
+            <span class="featured-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        <li>
+          <a href="/certifications/oscp" class="featured-card">
+            <span class="featured-card-title">Certifications</span>
+            <span class="featured-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+        <li>
+          <a href="/tools/exegol" class="featured-card">
+            <span class="featured-card-title">Cheat sheet & outils</span>
+            <span class="featured-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+      </ul>
+      <a href="/explorer" class="featured-cta">Tout explorer</a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .featured {
+    --featured-bg: rgba(23, 25, 30, 0.5);
+    --featured-border: var(--sl-color-gray-5);
+    --featured-hover: rgba(35, 110, 172, 0.08);
+    padding: 1.75rem 1.5rem;
+    border-radius: 0.75rem;
+    background: var(--featured-bg);
+    border: 1px solid var(--featured-border);
+  }
+  :global(:root[data-theme="light"]) .featured {
+    --featured-bg: rgba(255, 255, 255, 0.7);
+    --featured-border: var(--sl-color-gray-5);
+    --featured-hover: rgba(38, 112, 174, 0.06);
+  }
+
+  .featured-header {
+    margin-bottom: 1.5rem;
+  }
+  .featured-title {
+    font-size: var(--sl-text-xl);
+    font-weight: 700;
+    color: var(--sl-color-white);
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.02em;
+  }
+  .featured-desc {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+    margin: 0;
+  }
+
+  .featured-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 48rem) {
+    .featured-grid {
+      grid-template-columns: 1.5fr 1fr 1fr;
+    }
+  }
+  @media (min-width: 64rem) {
+    .featured-grid {
+      gap: 2rem;
+    }
+  }
+
+  .featured-col-title {
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    color: var(--sl-color-white);
+    margin: 0 0 0.75rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.95;
+  }
+
+  .featured-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .featured-list-compact .featured-card {
+    padding: 0.6rem 0.9rem;
+  }
+
+  .featured-card {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    border-radius: 0.5rem;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+    font-size: var(--sl-text-sm);
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .featured-card:hover {
+    background: var(--featured-hover);
+    border-color: var(--sl-color-accent-low);
+    color: var(--sl-color-white);
+  }
+  .featured-card:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+  .featured-badge {
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.18rem 0.45rem;
+    border-radius: 0.25rem;
+    background: var(--sl-color-accent-low);
+    color: var(--sl-color-accent);
+    min-width: 4rem;
+    text-align: center;
+  }
+  .featured-badge-events {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+  }
+  .featured-card-title {
+    flex: 1;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .featured-arrow {
+    flex-shrink: 0;
+    opacity: 0;
+    color: var(--sl-color-accent);
+    font-weight: 600;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .featured-card:hover .featured-arrow {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+
+  .featured-cta {
+    display: inline-block;
+    margin-top: 0.75rem;
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    color: var(--sl-color-accent);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .featured-cta:hover {
+    color: var(--sl-color-accent-high);
+  }
+  .featured-cta:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+</style>

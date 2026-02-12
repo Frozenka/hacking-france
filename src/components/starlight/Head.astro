@@ -9,7 +9,8 @@ import Default from '@astrojs/starlight/components/Head.astro';
 const ogImageUrl = new URL(
   `/og/${Astro.props.id.replace(/\.\w+$/, '.png')}`,
   Astro.site,
-)
+);
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <VtbotStarlight {...Astro.props} transition:animate="initial">
@@ -19,9 +20,38 @@ const ogImageUrl = new URL(
 <!-- Render the default <Head/> component. -->
 <Default {...Astro.props}><slot /></Default>
 
-<!-- Render the <meta/> tags for the Open Graph images. -->
+<!-- Open Graph / Twitter Card pour le partage social -->
+<meta property="og:url" content={canonicalUrl} />
 <meta property="og:image" content={ogImageUrl} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content={ogImageUrl} />
+
+<!-- Barre de progression au scroll -->
+<script is:inline>
+	(function () {
+		function initScrollProgress() {
+			var bar = document.getElementById('hf-scroll-progress');
+			if (bar) return;
+			bar = document.createElement('div');
+			bar.id = 'hf-scroll-progress';
+			bar.setAttribute('aria-hidden', 'true');
+			document.body.appendChild(bar);
+			function update() {
+				var h = document.documentElement.scrollHeight - window.innerHeight;
+				var p = h <= 0 ? 0 : (window.scrollY / h) * 100;
+				bar.style.width = p + '%';
+			}
+			window.addEventListener('scroll', update, { passive: true });
+			window.addEventListener('resize', update);
+			update();
+		}
+		if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initScrollProgress);
+		else initScrollProgress();
+	})();
+</script>
 
 <style>
   background-color: transparent;

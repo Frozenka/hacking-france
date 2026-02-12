@@ -9,8 +9,11 @@ prev: false
 
 import { Badge, Icon, Steps, LinkButton, FileTree, Code } from '@astrojs/starlight/components';
 import { Image } from 'astro:assets';
+import ReadingTime from '../../../components/starlight/ReadingTime.astro';
 import test1 from '../../../assets/contribute/test1.png';
 import test2 from '../../../assets/contribute/test2.png';
+
+<ReadingTime minutes={15} />
 
 :::note
 Nous encourageons tous les membres de la communauté à contribuer en écrivant des articles. Pour proposer un article, il vous suffit de créer une Pull Request (PR) sur [ce dépôt](https://github.com/Frozenka/hacking-france). Vous pouvez également cliquer en bas de page sur `Modifier la page` pour forker le repo et ensuite PR avec vos fichiers modifiés. 
@@ -39,18 +42,24 @@ N'hésitez pas à consulter les exemples fournis dans la documentation pour vous
 
 ## Tester le project localement :badge[MANDATORY]{variant=danger} 
 
+Le projet utilise **pnpm** (recommandé) ou **npm** :
+
 ```bash
 git clone https://github.com/Frozenka/hacking-france.git
 cd hacking-france
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
-Puis, pour vérifier le build (important):
+Avec npm : `npm install` puis `npm run dev`.
+
+Puis, pour vérifier le build (important) :
 
 ```bash
-npm run build
+pnpm run build
 ```
+
+Avec npm : `npm run build`.
 
 ## Formatage des articles :badge[MANDATORY]{variant=danger} :badge[Important]{variant=tip}
 

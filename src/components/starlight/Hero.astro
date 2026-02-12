@@ -10,7 +10,7 @@ const { title, tagline, actions, facepile } = hero!;
 <div class="hero">
 	<div class="grid-bg"></div>
 	<div id="_top" class="hero-content stack" style="--stack-gap: 2rem;">
-		<div class="stack" style="--stack-gap: 1rem;">
+		<div class="stack hero-text" style="--stack-gap: 1rem;">
 			<h1 set:html={title} />
 			<p set:html={tagline} />
 		</div>
@@ -55,6 +55,12 @@ const { title, tagline, actions, facepile } = hero!;
 		);
 		mask-image: radial-gradient(circle at 100% 0%, white, transparent 65%);
 		opacity: 0.05;
+		animation: grid-drift 25s ease-in-out infinite;
+	}
+
+	@keyframes grid-drift {
+		0%, 100% { background-position: right -1px top 0; }
+		50% { background-position: right -1px top 12px; }
 	}
 
 	.stack {
@@ -68,6 +74,30 @@ const { title, tagline, actions, facepile } = hero!;
 		text-align: center;
 	}
 
+	.hero-text h1 {
+		animation: hero-appear 0.6s ease forwards;
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	.hero-text p {
+		animation: hero-appear 0.6s ease 0.15s forwards;
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	@keyframes hero-appear {
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.hero-text h1,
+		.hero-text p {
+			animation: none;
+			opacity: 1;
+			transform: none;
+		}
+	}
 	h1 {
 		font-size: var(--sl-text-5xl);
 		line-height: var(--sl-line-height-headings);
@@ -111,6 +141,8 @@ const { title, tagline, actions, facepile } = hero!;
 			/* Red gradient calculated on the basis of the face pile grid, but set here so it’s under the grid background image. */
 			--cell-size: 3.5rem;
 			background:
+				radial-gradient(ellipse 80% 60% at 20% 30%, var(--sl-color-accent-low), transparent 50%)
+					no-repeat 0 0 / 100% 100%,
 				radial-gradient(var(--sl-color-purple-low), transparent 40%)
 					no-repeat -170vw -55vh / 250vw 250vh,
 				radial-gradient(
@@ -170,7 +202,7 @@ function startCountdown(elementId, endDate) {
         var dist = endTime - now;
         
         if (dist < 0) {
-            document.getElementById(elementId).innerHTML = "Le prochain CTF n'est pas encore plannifié.";
+            document.getElementById(elementId).innerHTML = "Prochains événements bientôt.";
             clearInterval(interval); // Stop the interval when the countdown ends
         } else {
             var d = Math.floor(dist / (1000 * 60 * 60 * 24));
@@ -193,7 +225,7 @@ function startCountdownEvent(elementId, endDate) {
         var dist = endTime - now;
         
         if (dist < 0) {
-            document.getElementById(elementId).innerHTML = "TERMINÉ";
+            document.getElementById(elementId).innerHTML = "Prochains événements bientôt.";
             clearInterval(interval); // Stop the interval when the countdown ends
         } else {
             var d = Math.floor(dist / (1000 * 60 * 60 * 24));

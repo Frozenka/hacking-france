@@ -28,35 +28,29 @@ def get_channel_info_from_url(url):
 
     image_tag = soup.find('link', {'rel': 'image_src'})
     image = image_tag.get('href', 'Image non trouvée') if image_tag else 'Image non trouvée'
-    
-    # Extraction du texte brut de la page
-    page_text = soup.get_text(separator=' ', strip=True)
 
-    # Recherche et affichage des sections contenant le mot "abonnés" dans le texte brut
-    matches = re.findall(r'.*?(\b\w+\b \b\w+\b \b\w+\b \b\w*\b \b\w*\b) abonnés.*?', page_text)
     subscribers_text = ""
-    if matches:
-        print(f"Texte brut contenant 'abonnés' pour l'URL {url}:")
-        for match in matches:
-            print(match)
-            subscribers_text = match  
 
-    # Recherche des balises <script> contenant du JSON
+    # 1) Tentative principale : chercher la valeur de "subscriberCountText"
+    #    dans les gros blobs JSON que YouTube met dans des <script>.
     script_tags = soup.find_all('script')
     for script in script_tags:
-        script_content = script.string
-        if script_content:
-            # Recherche de structures JSON dans le contenu des balises <script>
-            json_matches = re.findall(r'\{[^}]*"content":"[^"]*abonnés[^"]*"[^}]*\}', script_content)
-            if json_matches:
-                print(f"JSON contenant 'abonnés' pour l'URL {url}:")
-                for json_text in json_matches:
-                    try:
-                        # Affichage du JSON brut
-                        subscribers_text = json_text
-                        print(json_text)
-                    except json.JSONDecodeError:
-                        print(f"Erreur lors de l'analyse du JSON pour l'URL {url}.")
+        script_content = script.string or ""
+        if "subscriberCountText" in script_content and "abonnés" in script_content:
+            match = re.search(
+                r'"subscriberCountText"\s*:\s*\{[^}]*"simpleText"\s*:\s*"([^"]*abonnés)"',
+                script_content
+            )
+            if match:
+                subscribers_text = match.group(1)
+                break
+
+    # 2) Fallback : si on n’a rien trouvé dans le JSON, on essaie dans le texte brut
+    if not subscribers_text:
+        page_text = soup.get_text(separator=' ', strip=True)
+        match = re.search(r'([0-9][0-9\s.,]*(?:[kKmM])?\s*abonnés)', page_text)
+        if match:
+            subscribers_text = match.group(1)
 
     channel_id = url.split('/')[-1]
 

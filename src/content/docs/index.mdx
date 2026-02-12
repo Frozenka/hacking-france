@@ -1,6 +1,6 @@
 ---
 title: Accueil
-description: La communauté Hacking France unit des passionnés de cybersécurité qui s'entraident sur les sujets liés à l'informatique. Nous sommes actifs sur Discord, et organisons des événements réguliers.
+description: "La communauté Hacking France unit des passionnés de cybersécurité qui s'entraident sur les sujets liés à l'informatique. Nous sommes actifs sur Discord, et organisons des événements réguliers."
 i18nReady: true
 tableOfContents: false
 lastupdate: false
@@ -9,57 +9,31 @@ next: false
 prev: false
 hero:
   title: Hacking France
-  tagline: La communauté Hacking France unit des passionnés de cybersécurité qui s'entraident sur les sujets liés à l'informatique. Nous sommes actifs sur Discord, et organisons des événements réguliers.
+  tagline: "La communauté Hacking France unit des passionnés de cybersécurité qui s'entraident sur les sujets liés à l'informatique. Nous sommes actifs sur Discord, et organisons des événements réguliers."
   actions:
     - text: Rejoindre le Discord
       icon: discord
-      link: https://discord.gg/3NnqxT6enc
-    - text: Parcourir les articles
+      link: https://discord.com/invite/3NnqxT6enc
+    - text: Explorer le contenu
       icon: right-arrow
       variant: minimal
-      link: /events/talks
+      link: "/explorer"
   facepile:
     tagline: Merci aux contributeurs !
     linkText: Rejoignez-nous
-    link: https://discord.gg/3NnqxT6enc
+    link: https://discord.com/invite/3NnqxT6enc
 template: splash
 ---
 
-import { CardGrid } from '@astrojs/starlight/components'
-import Card from '../../components/starlight/Card.astro'
-import ListCard from '../../components/starlight/ListCard.astro'
-import SplitCard from '../../components/starlight/SplitCard.astro'
+import FeaturedSection from '../../components/starlight/FeaturedSection.astro'
+import HomeCards from '../../components/starlight/HomeCards.astro'
 
-<CardGrid>
-  <Card title="Événements" icon="rocket">
-    Hacking France organise des événements réguliers pour la communauté, voir les [événements planifiés](/events/talks).
-  </Card>
-
-  <Card title="Talks" icon="comment-alt">
-    
-    Regardez les [talks](/events/talks) sur des sujets: Red Team, Forensics, Optimisation d'OS et plus, par la communauté.
-  </Card>
-
-  <SplitCard title="Capture The Flag" icon="laptop">
-    CTF Hacking France propose des Capture The Flag (CTF) communautaires gratuits, ouverts à tous les passionnés de cybersécurité. Ces défis en ligne permettent aux participants, quel que soit leur niveau, de tester et d'améliorer leurs compétences en hacking éthique dans un environnement convivial et éducatif. Que vous soyez débutant ou expert, rejoignez la communauté pour relever des défis stimulants et échanger avec d'autres passionnés de sécurité informatique.
-    <b><span id="counterctf"></span></b> les inscriptions sont ouvertes. [Je m'inscris!](/events/ctf)  
-    Le précédent CTF comptait plusieurs dizaines de participants, et a été remporté par <b>[Cyberretta](https://cyberretta.github.io/)</b>.
-  </SplitCard>
-
-  <ListCard title="Administration" icon="open-book">
-    - [Frozenk](https://www.youtube.com/@FrozenKwa
-    - [LightRadio](#)
-  </ListCard>
-
-  <ListCard title="Membres éminents" icon="puzzle">
-    - [Shutdown](https://github.com/ShutdownRepo)
-    - [Processus Thief](https://www.youtube.com/@processusthief)
-    - [Duggy Tuxy](https://www.linkedin.com/in/laurent-minne)
-    - [Unknow101](https://github.com/Unknow101)
-    - [Euz](https://www.linkedin.com/in/matthieubillaux)
-    - [Lotus](https://www.youtube.com/@HacktBack)
-    - [Noobosaurus_R3x](https://www.youtube.com/@NoobosaurusR3x)
-    - [22sh](https://x.com/0x22sh)
-    - [Ap4sh](https://github.com/Ap4sh)
-  </ListCard>
-</CardGrid>
+<div class="home-sections">
+  <section class="home-section home-section-featured">
+    <FeaturedSection />
+  </section>
+  <section class="home-section" aria-labelledby="community-heading">
+    <h2 id="community-heading" class="home-section-title">Découvrir la communauté</h2>
+    <HomeCards />
+  </section>
+</div>

@@ -21,6 +21,16 @@ export type Props = Parameters<typeof StarlightCard>[0];
 		overflow: hidden;
 		background: var(--card-bg);
 		position: relative;
+		transition: transform 0.25s ease, box-shadow 0.25s ease;
+	}
+	.landing-card :global(.card):hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.landing-card :global(.card):hover {
+			transform: none;
+		}
 	}
 
 	.landing-card :global(.card > *) {

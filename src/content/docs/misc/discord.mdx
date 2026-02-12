@@ -27,10 +27,12 @@ import servers from '../../../../src/assets/misc/discord_servers_info.json'
     <Card key={server.link} title={server.name}>
       <div style="text-align: center;">
         <img
-          src={server.image || 'https://logo-marque.com/wp-content/uploads/2020/12/Discord-Logo.png'}  // Remplace l'image si absente
-          alt={server.name}
+          src={server.image || 'https://logo-marque.com/wp-content/uploads/2020/12/Discord-Logo.png'}
+          alt={`Logo ${server.name}`}
           width="300"
           height="150"
+          loading="lazy"
+          decoding="async"
         />
       </div>
       <p>{server.description}</p>

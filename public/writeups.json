@@ -1,0 +1,47 @@
+[
+  {
+    "slug": "writeup/vulnlab/baby-easy",
+    "title": "Baby",
+    "platform": "VulnLab"
+  },
+  {
+    "slug": "writeup/vulnlab/baby2-Medium",
+    "title": "baby2",
+    "platform": "VulnLab"
+  },
+  {
+    "slug": "writeup/vulnlab/bamboo",
+    "title": "bamboo",
+    "platform": "VulnLab"
+  },
+  {
+    "slug": "writeup/vulnlab/Down-Easy",
+    "title": "Down",
+    "platform": "VulnLab"
+  },
+  {
+    "slug": "writeup/vulnlab/forgotten-easy",
+    "title": "Forgotten",
+    "platform": "VulnLab"
+  },
+  {
+    "slug": "writeup/vulnlab/lock-easy",
+    "title": "Lock",
+    "platform": "VulnLab"
+  },
+  {
+    "slug": "writeup/vulnlab/manage-easy",
+    "title": "Manage",
+    "platform": "VulnLab"
+  },
+  {
+    "slug": "writeup/vulnlab/retro-easy",
+    "title": "Retro",
+    "platform": "VulnLab"
+  },
+  {
+    "slug": "writeup/vulnlab/sync-easy",
+    "title": "Sync",
+    "platform": "VulnLab"
+  }
+]

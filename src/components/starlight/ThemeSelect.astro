@@ -1,0 +1,11 @@
+---
+import type { Props } from '@astrojs/starlight/props';
+---
+<!-- Thème sombre forcé : pas de sélecteur, script pour forcer dark -->
+<script is:inline>
+	(function () {
+		var key = 'starlight-theme';
+		if (typeof localStorage !== 'undefined') localStorage.setItem(key, 'dark');
+		document.documentElement.setAttribute('data-theme', 'dark');
+	})();
+</script>

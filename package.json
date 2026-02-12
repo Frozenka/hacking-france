@@ -3,10 +3,14 @@
   "type": "module",
   "version": "0.0.1",
   "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": ["sharp"]
+  },
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/generate-writeups.js && astro build",
+    "generate:writeups": "node scripts/generate-writeups.js",
     "preview": "astro preview",
     "astro": "astro"
   },

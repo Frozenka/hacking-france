@@ -1,4 +1,6 @@
 ---
+import { Image } from 'astro:assets';
+
 interface Props {
   repo: string;
   file: string;
@@ -7,12 +9,10 @@ interface Props {
 const { repo, file } = Astro.props;
 
 async function fetchCommits() {
-  // Construire l'URL de l'API pour obtenir les 100 derniers commits pour le fichier spécifié
   const url = new URL(`https://api.github.com/repos/${repo}/commits`);
   url.searchParams.set('path', `src/content/docs/${file}`);
-  url.searchParams.set('per_page', 100);
+  url.searchParams.set('per_page', '100');
 
-  // Récupérer les commits depuis l'API GitHub avec une gestion d'erreurs
   const response = await fetch(url, {
     headers: {
       Accept: 'application/vnd.github+json',
@@ -20,53 +20,65 @@ async function fetchCommits() {
     },
   });
 
-
-  return response.json();
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
 }
 
-// Fonction pour supprimer les doublons dans les commits
-function removeDuplicates(commits: any[]) {
+function removeDuplicates(commits: { author?: { login: string; id: number } }[]) {
   if (!Array.isArray(commits)) return [];
-
-  const map = new Map();
+  const map = new Map<number, { login: string; id: number }>();
   for (const commit of commits) {
-    const author = commit.author;
-    if (author && author.id && author.login) {
-      // Dédupliquer en se basant sur author.id
+    const author = commit?.author;
+    if (author?.id != null && author?.login) {
       map.set(author.id, { login: author.login, id: author.id });
     }
   }
   return Array.from(map.values());
 }
 
-// Récupérer les commits et traiter les données avant le rendu
 const commits = await fetchCommits();
 const uniqueAuthors = removeDuplicates(commits);
-import { Image } from 'astro:assets';
 ---
 
-{uniqueAuthors.length > 0 && (
-  <div class="page-authors">
-    <p>Auteurs de la page</p>
+<div class="page-authors">
+  <p>Auteurs de la page</p>
+  {uniqueAuthors.length > 0 ? (
     <ul class="smol-avatar-list not-content">
       {uniqueAuthors.map(({ login, id }) => (
         <li>
-          <a href={`https://github.com/${login}`}>
-            <Image alt={`Contributor ${login}`} width="64" height="64" src={`https://avatars.githubusercontent.com/u/${id}`} />
+          <a href={`https://github.com/${login}`} title={login}>
+            <Image alt={login} width="64" height="64" src={`https://avatars.githubusercontent.com/u/${id}`} />
           </a>
         </li>
       ))}
     </ul>
-  </div>
-)}
+  ) : (
+    <p class="page-authors-fallback">
+      <a href={`https://github.com/${repo}/commits/main/src/content/docs/${file}`} target="_blank" rel="noopener noreferrer">
+        Voir l'historique des contributeurs sur GitHub →
+      </a>
+    </p>
+  )}
+</div>
 
-<style define:vars={{ 'avatar-count': uniqueAuthors.length }}>
+<style define:vars={{ 'avatar-count': Math.max(1, uniqueAuthors.length) }}>
 .page-authors {
   display: flex;
   flex-direction: column;
   gap: 0.5em;
   font-size: var(--sl-text-sm);
   font-weight: 600;
+}
+.page-authors-fallback {
+  margin: 0;
+  font-weight: normal;
+}
+.page-authors-fallback a {
+  color: var(--sl-color-accent);
+  text-decoration: none;
+}
+.page-authors-fallback a:hover {
+  text-decoration: underline;
 }
 
 .smol-avatar-list {

@@ -1,0 +1,162 @@
+---
+import { getCollection } from 'astro:content';
+
+const allDocs = await getCollection('docs');
+const writeups = allDocs
+  .filter((e) => e.id.startsWith('writeup/') && !e.id.includes('Recherche'))
+  .sort((a, b) => b.id.localeCompare(a.id))
+  .slice(0, 5);
+
+const platformLabel = (id: string) => {
+  if (id.includes('vulnlab')) return 'VulnLab';
+  if (id.includes('hackthebox')) return 'HackTheBox';
+  if (id.includes('tryHackme')) return 'TryHackMe';
+  if (id.includes('GOAD')) return 'GOAD';
+  return 'Writeup';
+};
+---
+
+<section class="featured-writeups" aria-labelledby="featured-writeups-heading">
+  <header class="featured-writeups-header">
+    <h2 id="featured-writeups-heading" class="featured-writeups-title">À la une</h2>
+    <p class="featured-writeups-desc">Les derniers writeups publiés par la communauté.</p>
+  </header>
+
+  <ul class="featured-writeups-list">
+    {
+      writeups.map((entry) => (
+        <li>
+          <a href={`/${entry.slug}`} class="featured-writeups-card">
+            <span class="featured-writeups-badge">{platformLabel(entry.id)}</span>
+            <span class="featured-writeups-card-title">{entry.data.title}</span>
+            <span class="featured-writeups-arrow" aria-hidden="true">→</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  <footer class="featured-writeups-footer">
+    <a href="/explorer#writeup" class="featured-writeups-cta">Voir tous les writeups</a>
+  </footer>
+</section>
+
+<style>
+  .featured-writeups {
+    --featured-bg: rgba(23, 25, 30, 0.5);
+    --featured-border: var(--sl-color-gray-5);
+    --featured-hover: rgba(35, 110, 172, 0.08);
+    padding: 1.75rem 1.5rem;
+    border-radius: 0.75rem;
+    background: var(--featured-bg);
+    border: 1px solid var(--featured-border);
+  }
+  :global(:root[data-theme="light"]) .featured-writeups {
+    --featured-bg: rgba(255, 255, 255, 0.7);
+    --featured-border: var(--sl-color-gray-5);
+    --featured-hover: rgba(38, 112, 174, 0.06);
+  }
+
+  .featured-writeups-header {
+    margin-bottom: 1.25rem;
+  }
+  .featured-writeups-title {
+    font-size: var(--sl-text-xl);
+    font-weight: 700;
+    color: var(--sl-color-white);
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.02em;
+  }
+  .featured-writeups-desc {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+    margin: 0;
+  }
+
+  .featured-writeups-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .featured-writeups-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+    font-size: var(--sl-text-sm);
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .featured-writeups-card:hover {
+    background: var(--featured-hover);
+    border-color: var(--sl-color-accent-low);
+    color: var(--sl-color-white);
+  }
+  .featured-writeups-card:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+  }
+  .featured-writeups-badge {
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    background: var(--sl-color-accent-low);
+    color: var(--sl-color-accent);
+    min-width: 4.5rem;
+    text-align: center;
+  }
+  .featured-writeups-card-title {
+    flex: 1;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .featured-writeups-arrow {
+    flex-shrink: 0;
+    opacity: 0;
+    color: var(--sl-color-accent);
+    font-weight: 600;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .featured-writeups-card:hover .featured-writeups-arrow {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+
+  .featured-writeups-footer {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--featured-border);
+  }
+  .featured-writeups-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    color: var(--sl-color-accent);
+    text-decoration: none;
+    transition: color 0.2s ease, gap 0.2s ease;
+  }
+  .featured-writeups-cta:hover {
+    color: var(--sl-color-accent-high);
+    gap: 0.5rem;
+  }
+  .featured-writeups-cta:focus-visible {
+    outline: 2px solid var(--sl-color-accent);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+</style>

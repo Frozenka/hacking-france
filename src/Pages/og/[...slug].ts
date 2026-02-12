@@ -17,13 +17,15 @@ export const { getStaticPaths, GET } = OGImageRoute({
   // Define a function called for each page to customize the generated image.
   getImageOptions: (_path, page: (typeof pages)[number]) => {
     return {
-      // Use the page title and description as the image title and description.
       title: page.data.title,
-      description: page.data.description,
-      // Customize various colors and add a border.
+      description: page.data.description ?? 'Communauté francophone de cybersécurité — CTF, talks et entraide.',
       bgGradient: [[24, 24, 27]],
-      border: { color: [63, 63, 70], width: 20 },
+      border: { color: [35, 110, 172], width: 20 },
       padding: 120,
+      logo: {
+        path: './src/assets/newlogo.png',
+        size: [120],
+      },
     }
   },
 })

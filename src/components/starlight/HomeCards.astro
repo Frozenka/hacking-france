@@ -1,0 +1,39 @@
+---
+import { CardGrid } from '@astrojs/starlight/components';
+import Card from './Card.astro';
+import ListCard from './ListCard.astro';
+import CTFCard from './CTFCard.astro';
+---
+
+<CardGrid>
+  <Card title="Événements" icon="rocket">
+    Hacking France organise des événements réguliers pour la communauté, voir les <a href="/events/talks">événements planifiés</a>.
+  </Card>
+
+  <Card title="Talks" icon="comment-alt">
+    Regardez les <a href="/events/talks">talks</a> sur des sujets : Red Team, Forensics, optimisation d'OS et plus, par la communauté.
+  </Card>
+
+  <CTFCard />
+
+  <ListCard title="Administration" icon="open-book">
+    <ul>
+      <li><a href="https://www.youtube.com/@FrozenKwa">Frozenk</a></li>
+      <li><a href="#">LightRadio</a></li>
+    </ul>
+  </ListCard>
+
+  <ListCard title="Membres éminents" icon="puzzle">
+    <ul>
+      <li><a href="https://github.com/ShutdownRepo">Shutdown</a></li>
+      <li><a href="https://www.youtube.com/@processusthief">Processus Thief</a></li>
+      <li><a href="https://www.linkedin.com/in/laurent-minne">Duggy Tuxy</a></li>
+      <li><a href="https://github.com/Unknow101">Unknow101</a></li>
+      <li><a href="https://www.linkedin.com/in/matthieubillaux">Euz</a></li>
+      <li><a href="https://www.youtube.com/@HacktBack">Lotus</a></li>
+      <li><a href="https://www.youtube.com/@NoobosaurusR3x">Noobosaurus_R3x</a></li>
+      <li><a href="https://x.com/0x22sh">22sh</a></li>
+      <li><a href="https://github.com/Ap4sh">Ap4sh</a></li>
+    </ul>
+  </ListCard>
+</CardGrid>

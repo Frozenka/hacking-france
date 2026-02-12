@@ -1,3 +1,13 @@
+/* Smooth scroll pour les ancres (ex. page Explorer) */
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 /* Dark mode colors. */
 :root {
   --sl-color-accent-low: #132537;
@@ -146,6 +156,46 @@
   white-space: nowrap;
 }
 
+/* Logo : grand, centré dans la colonne de gauche (même largeur que la sidebar) */
+.header,
+.sl-nav {
+  overflow: visible;
+}
+.header {
+  border-bottom: none;
+}
+/* Colonne logo = largeur sidebar, logo centré dedans (dès que le header est en grille) */
+@media (min-width: 50rem) {
+  .header {
+    grid-template-columns: var(--sl-sidebar-width) 1fr auto;
+  }
+  .header .title-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    justify-content: center;
+  }
+  /* Espace entre logo et barre de recherche pour éviter la superposition */
+  .header > div.sl-flex:nth-child(2) {
+    margin-inline-start: 1.5rem;
+  }
+}
+.site-title img,
+.site-title:where(.astro-df6w7wyc) img {
+  height: 10.5rem !important;
+  width: auto !important;
+  max-height: none;
+  object-fit: contain;
+  object-position: center;
+  margin-top: 5rem;
+}
+
+/* Espace entre le logo (qui dépasse) et les premières catégories */
+#starlight__sidebar .sidebar-content,
+.sidebar-pane .sidebar-content {
+  padding-top: 6rem;
+}
+
 .site-title:where(.astro-df6w7wyc),
 :root[data-theme='light'] .site-title:where(.astro-df6w7wyc) {
   color: var(--sl-color-white);
@@ -195,6 +245,37 @@ div.sidebar-pane {
 	margin-top: 1.25rem;
   }
 
+/* Apparition en décalé des cartes (page d'accueil) */
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-grid .landing-card :global(.card) {
+  animation: cardFadeIn 0.4s ease forwards;
+}
+
+.card-grid .landing-card:nth-child(1) :global(.card) { animation-delay: 0.05s; }
+.card-grid .landing-card:nth-child(2) :global(.card) { animation-delay: 0.1s; }
+.card-grid .landing-card:nth-child(3) :global(.card) { animation-delay: 0.15s; }
+.card-grid .landing-card:nth-child(4) :global(.card) { animation-delay: 0.2s; }
+.card-grid .landing-card:nth-child(5) :global(.card) { animation-delay: 0.25s; }
+.card-grid .landing-card:nth-child(6) :global(.card) { animation-delay: 0.3s; }
+.card-grid .landing-card:nth-child(n+7) :global(.card) { animation-delay: 0.35s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-grid .landing-card :global(.card) {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* Table of contents */
 .right-sidebar {
   border-inline-start: initial;
@@ -237,13 +318,155 @@ starlight-toc li > a:not([aria-current='true']):is(:hover, :focus-visible) {
 /* Social media icons */
 .social-icons a {
   color: var(--sl-color-gray-2);
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .social-icons a:hover {
   color: var(--sl-color-accent-high);
   opacity: 1;
+  transform: scale(1.1);
 }
 
 .social-icons a:last-child {
   margin-inline-end: -0.125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social-icons a:hover {
+    transform: none;
+  }
+}
+
+/* Sidebar : transition douce au survol */
+div.sidebar-pane a,
+div.sidebar-pane summary {
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+/* TOC : transition sur la bordure active */
+starlight-toc li > a {
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Barre de progression de lecture (scroll) */
+#hf-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: var(--sl-color-accent);
+  z-index: 9999;
+  transition: width 0.1s ease-out;
+}
+
+/* Badges sidebar : pulse doux (Nouveau, Guide, À venir) */
+.sidebar-content .sl-badge,
+div.sidebar-pane .sl-badge {
+  animation: badge-pulse 2.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-content .sl-badge,
+  div.sidebar-pane .sl-badge {
+    animation: none;
+  }
+}
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* Liens du contenu : soulignement animé au survol */
+.sl-markdown-content a:not(.action) {
+  position: relative;
+  transition: color 0.2s ease;
+}
+.sl-markdown-content a:not(.action)::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.25s ease;
+}
+.sl-markdown-content a:not(.action):hover::after,
+.sl-markdown-content a:not(.action):focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Footer : ligne dégradé en haut, préserver le bloc Modifier la page / Dernière MAJ / Auteurs */
+footer.sl-flex {
+  position: relative;
+  padding-top: 1.5rem;
+}
+footer.sl-flex::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--sl-color-accent), var(--sl-color-accent-low), transparent 70%);
+}
+footer .page-authors {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Lueur derrière la zone hero (thème sombre) */
+:root[data-theme="dark"] [data-has-hero] .hero-content,
+:root:not([data-theme]) [data-has-hero] .hero-content {
+  position: relative;
+}
+:root[data-theme="dark"] [data-has-hero] .hero-content::before,
+:root:not([data-theme]) [data-has-hero] .hero-content::before {
+  content: '';
+  position: absolute;
+  inset: -2rem;
+  z-index: -1;
+  background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(35, 110, 172, 0.15), transparent 60%);
+  pointer-events: none;
+}
+
+/* Cartes Communauté : même hover que l'accueil (Card.astro déjà utilisé) */
+.card-grid .landing-card :global(.card):hover,
+.main-pane .card-grid .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.main-pane .card-grid .card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Réduction des animations si demandé par l'utilisateur (accessibilité) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .sidebar-content .sl-badge,
+  div.sidebar-pane .sl-badge {
+    animation: none;
+  }
+}
+
+/* Page d'accueil (index) - styles déplacés ici car MDX interprète { } comme JS */
+.home-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  margin-top: 0.5rem;
+}
+.home-section-title {
+  font-size: var(--sl-text-2xl);
+  font-weight: 600;
+  color: var(--sl-color-white);
+  margin: 0 0 1rem 0;
 }

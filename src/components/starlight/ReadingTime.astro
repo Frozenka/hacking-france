@@ -1,0 +1,19 @@
+---
+interface Props {
+  minutes: number;
+}
+
+const { minutes } = Astro.props;
+---
+
+<p class="reading-time" aria-label={`Temps de lecture estimé : ${minutes} minutes`}>
+  ~{minutes} min de lecture
+</p>
+
+<style>
+  .reading-time {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+    margin: 0 0 1rem 0;
+  }
+</style>
