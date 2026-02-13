@@ -1,0 +1,282 @@
+---
+title: CrashDump
+description: WU CrashDump - Sherlock
+categories: [Writeup]
+tags: [writeup, forensics]
+template: doc
+sidebar:
+  order: 3
+  badge:
+    text: 'medium'
+    variant: caution
+---
+
+## Scenario
+
+Un systeme Windows a ete compromis par un framework C2. Deux fichiers minidump (`.DMP`) sont fournis pour identifier l'intrusion et extraire les indicateurs de compromission (IOC).
+
+## Fichiers fournis
+
+- `notepad.DMP` - Dump du processus injecte (notepad.exe)
+- `update.DMP` - Dump du processus malveillant (update.exe)
+
+---
+
+## Qu'est-ce qu'un Minidump ?
+
+Un **minidump** est un fichier de diagnostic Windows contenant un instantane partiel de la memoire d'un processus. Contrairement a un full dump, il ne contient que les informations essentielles pour le debogage.
+
+### Structures principales d'un minidump
+
+| Stream | Description |
+|--------|-------------|
+| `SystemInfo` | Version OS, architecture, processeur |
+| `ModuleList` | Liste des DLL/EXE charges avec leurs versions |
+| `ThreadList` | Liste des threads avec leur contexte CPU |
+| `ThreadInfoList` | Metadonnees des threads (timestamps, priorite) |
+| `MemoryList` | Regions memoire capturees |
+| `MemoryInfoList` | Informations sur toutes les regions (permissions, type) |
+| `MiscInfo` | PID, timestamps du processus |
+
+### Documentation
+
+- [MSDN - MINIDUMP_TYPE](https://learn.microsoft.com/en-us/windows/win32/api/minidumpapiset/ne-minidumpapiset-minidump_type)
+- [MSDN - Minidump Files](https://learn.microsoft.com/en-us/windows/win32/debug/minidump-files)
+- [minidump (Python)](https://github.com/skelsec/minidump) - Bibliotheque Python pour parser les minidumps
+
+### Installation
+
+```bash
+pip install minidump
+```
+
+### Exemple de base
+
+```python
+from minidump.minidumpfile import MinidumpFile
+
+mf = MinidumpFile.parse('fichier.DMP')
+
+# Informations systeme
+print(f'OS: {mf.sysinfo.OperatingSystem}')
+print(f'Version: {mf.sysinfo.MajorVersion}.{mf.sysinfo.MinorVersion}')
+
+# PID du processus
+print(f'PID: {mf.misc_info.ProcessId}')
+
+# Modules charges
+for mod in mf.modules.modules:
+    print(f'{mod.name}')
+
+# Threads
+print(f'Nombre de threads: {len(mf.threads.threads)}')
+```
+
+---
+
+## Tache 1 : Quelle est la version de l'OS ?
+
+**Format attendu** : `X.X.XXXXX.XXXXX`
+
+**Methode** : L'information de version du systeme est stockee dans le stream `SystemInfo` du minidump. On peut egalement l'obtenir via les informations de version des modules systeme (ntdll.dll, kernel32.dll).
+
+```python
+from minidump.minidumpfile import MinidumpFile
+
+mf = MinidumpFile.parse('notepad.DMP')
+
+# Version depuis SystemInfo
+si = mf.sysinfo
+print(f'OS: {si.OperatingSystem}')
+print(f'Version: {si.MajorVersion}.{si.MinorVersion}.{si.BuildNumber}')
+
+# Version complete depuis ntdll.dll
+for mod in mf.modules.modules:
+    if 'ntdll' in mod.name.lower():
+        vi = mod.versioninfo
+        major = vi.dwFileVersionMS >> 16
+        minor = vi.dwFileVersionMS & 0xFFFF
+        build = vi.dwFileVersionLS >> 16
+        revision = vi.dwFileVersionLS & 0xFFFF
+        print(f'Full version: {major}.{minor}.{build}.{revision}')
+```
+
+---
+
+## Tache 2 : Quel est le nombre de threads du processus malveillant ?
+
+**Methode** : Le processus malveillant est `update.exe`. On compte les threads dans son minidump.
+
+```python
+mf = MinidumpFile.parse('update.DMP')
+print(f'Nombre de threads: {len(mf.threads.threads)}')
+```
+
+---
+
+## Tache 3 : Quel processus a ete compromis ?
+
+**Methode** : Analyser les modules charges dans chaque dump pour identifier le processus legitime utilise comme cible d'injection.
+
+```python
+for mod in mf.modules.modules:
+    print(f'{mod.name} - Version: {mod.versioninfo}')
+```
+
+Indices :
+- Le processus malveillant aura souvent une version `0.0.0.0` (pas de version info)
+- Le processus injecte sera un executable Windows legitime
+
+---
+
+## Tache 4 : Quel est le Named Pipe (canal IPC) utilise ?
+
+**Format attendu** : `****-****-******`
+
+**Methode** : Les named pipes sont un mecanisme de communication inter-processus utilise par certains frameworks C2 pour la communication entre le beacon et les processus injectes.
+
+```bash
+strings update.DMP | grep -iE 'pipe|MSSE|postex' | grep -v 'api-ms\|Broken'
+```
+
+Le pattern `MSSE-XXXX-server` est caracteristique de Cobalt Strike (Microsoft Security Service Emulator).
+
+---
+
+## Tache 5 : Quel est le PID du processus injecte ?
+
+**Methode** : Le PID est stocke dans le stream `MiscInfo` du minidump.
+
+```python
+mf = MinidumpFile.parse('notepad.DMP')
+print(f'PID: {mf.misc_info.ProcessId}')
+```
+
+---
+
+## Tache 6 : Quel est le timestamp du dernier thread cree ?
+
+**Format attendu** : `YYYY-MM-DD hh:mm:ss`
+
+**Methode** : Les informations de thread incluent le `CreateTime` en format Windows FILETIME (intervalles de 100 nanosecondes depuis le 1er janvier 1601).
+
+```python
+from datetime import datetime, timedelta
+
+EPOCH_AS_FILETIME = 116444736000000000
+
+def filetime_to_dt(ft):
+    us = (ft - EPOCH_AS_FILETIME) // 10
+    return datetime(1970, 1, 1) + timedelta(microseconds=us)
+
+mf = MinidumpFile.parse('notepad.DMP')
+for info in mf.thread_info.infos:
+    dt = filetime_to_dt(info.CreateTime)
+    print(f'Thread {info.ThreadId}: {dt}')
+```
+
+Le dernier thread cree est celui avec le timestamp le plus recent.
+
+---
+
+## Tache 7 : Quelle est la BaseAddress du shellcode injecte ?
+
+**Format attendu** : `` XX`XXXXXXXX ``
+
+**Methode** : Le shellcode est generalement place dans une region memoire avec les permissions `PAGE_EXECUTE_READWRITE` (RWX) de type `MEM_PRIVATE` - caracteristique d'une allocation suspecte.
+
+```python
+mf = MinidumpFile.parse('notepad.DMP')
+for mi in mf.memory_info.infos:
+    protect = str(mi.Protect)
+    mtype = str(mi.Type)
+    if 'EXECUTE' in protect and 'IMAGE' not in mtype:
+        print(f'Base: 0x{mi.BaseAddress:x}, Size: {mi.RegionSize}')
+```
+
+Pour confirmer l'adresse, correler avec le `StartAddress` des threads - le thread injecte aura son point d'entree dans cette region.
+
+---
+
+## Tache 8 : Quelle est l'adresse IP du serveur C2 ?
+
+**Methode** : Recherche d'adresses IP dans la memoire du processus injecte.
+
+```bash
+strings notepad.DMP | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | sort | uniq -c | sort -rn
+```
+
+Verifier le contexte des IP suspectes :
+
+```bash
+strings notepad.DMP | grep 'IP_SUSPECTE'
+```
+
+Indices a rechercher :
+- URLs HTTP avec chemins suspects (`/submit.php`, URIs courtes aleatoires)
+- Headers HTTP (`Host:`, `GET`, `POST`)
+- Ports non-standard
+
+---
+
+## Tache 9 : Quel framework C2 a ete utilise ?
+
+**Methode** : Recherche de signatures connues de frameworks C2.
+
+```bash
+strings notepad.DMP | grep -iE 'beacon|cobaltstrike|metasploit|meterpreter|sliver|havoc'
+```
+
+Indicateurs courants de Cobalt Strike :
+- Presence de `beacon.dll` ou `beacon.x64.dll`
+- Named pipe `MSSE-XXXX-server`
+- Pattern d'URI HTTP caracteristique
+- Strings `%s (admin)`, `%s as %s\\%s`
+
+---
+
+## Techniques d'analyse complementaires
+
+### Extraction de la memoire du shellcode
+
+```python
+# Lire le contenu memoire a une adresse specifique
+for segment in mf.memory_segments:
+    if segment.start_virtual_address == SHELLCODE_BASE:
+        data = segment.read(segment.start_virtual_address, segment.size)
+        with open('shellcode.bin', 'wb') as f:
+            f.write(data)
+```
+
+### Detection de process injection
+
+| Indicateur | Description |
+|------------|-------------|
+| Region RWX | Memoire avec Execute+Read+Write (suspect) |
+| MEM_PRIVATE | Allocation privee (pas un module mappe) |
+| Thread StartAddress | Pointe vers une region non-image |
+| Module sans version | DLL/EXE avec version 0.0.0.0 |
+
+### Commandes strings utiles
+
+```bash
+# Recherche d'URLs
+strings dump.DMP | grep -iE 'http://|https://'
+
+# Recherche de chemins Windows
+strings dump.DMP | grep -iE 'C:\\Users\\|C:\\Windows\\'
+
+# Recherche de noms de fichiers
+strings dump.DMP | grep -iE '\.exe|\.dll|\.bat|\.ps1'
+
+# Recherche de named pipes
+strings dump.DMP | grep -i 'pipe'
+```
+
+---
+
+## Ressources
+
+- [Cobalt Strike - Indicators of Compromise](https://www.cobaltstrike.com/help-malleable-c2)
+- [MITRE ATT&CK - Process Injection](https://attack.mitre.org/techniques/T1055/)
+- [Windows Internals - Minidump](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/minidump-files)

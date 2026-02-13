@@ -1,0 +1,227 @@
+---
+title: Baby
+description: WU Baby - Reversing
+categories: [Writeup]
+tags: [writeup, reversing]
+template: doc
+sidebar:
+  order: 6
+  badge:
+    text: 'very easy'
+    variant: success
+---
+
+## Résumé
+
+| Info | Valeur |
+|------|--------|
+| **Vulnérabilité** | Clé et flag visibles directement dans le binaire |
+| **Technique** | Extraction avec `strings` et analyse de la construction sur la pile |
+| **Outils** | file, strings, ltrace, Ghidra/Cutter |
+
+---
+
+## Reconnaissance initiale
+
+### Identification du fichier
+
+```bash
+$ file baby
+baby: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV),
+dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
+for GNU/Linux 3.2.0, not stripped
+```
+
+### Exécution du programme
+
+```shell
+$ ./baby
+Insert key: test
+Try again later!
+```
+
+Le programme demande une clé et affiche un message d'erreur si elle est incorrecte.
+
+---
+
+## Analyse rapide avec strings
+
+### Recherche de chaînes intéressantes
+
+```bash
+$ strings baby
+...
+Insert key:
+**REDACTED**
+Correct!
+Try again later!
+...
+```
+
+La chaîne `**REDACTED**` est visible directement dans le binaire. C'est très probablement la clé attendue.
+
+### Test de la clé
+
+```shell
+$ ./baby
+Insert key: **REDACTED**
+HTB{XXXXXXXXXXXXXXXXXXXXXXX}
+```
+
+Le flag est affiché directement.
+
+---
+
+## Vérification avec ltrace
+
+`ltrace` permet de tracer les appels aux fonctions de bibliothèque :
+
+```shell wrap
+$ ltrace ./baby
+printf("Insert key: ")                         = 12
+fgets("**REDACTED**\n", 20, 0x7f...)           = 0x7ffd...
+strcmp("**REDACTED**\n", "**REDACTED**\n")       = 0
+puts("HTB{XXXXXXXXXXXXXXXXXXXXXXX}")          = ...
+```
+
+**Observations :**
+- Le programme utilise `strcmp()` pour comparer l'entrée avec `**REDACTED**`
+- Le flag est passé directement à `puts()` - il est stocké en clair dans le binaire
+
+---
+
+## Analyse approfondie dans Ghidra
+
+### Pseudo-code décompilé
+
+```c
+int main(void) {
+    char input[20];
+    char *key = "**REDACTED**";
+
+    printf("Insert key: ");
+    fgets(input, 20, stdin);
+
+    if (strcmp(input, key) == 0) {
+        // Construction du flag sur la pile
+        // et affichage
+        puts(flag);
+    } else {
+        puts("Try again later!");
+    }
+
+    return 0;
+}
+```
+
+### Construction du flag sur la pile (little-endian)
+
+Un aspect intéressant de ce binaire est la façon dont le flag est construit en mémoire. Au lieu d'être stocké comme une simple chaîne, il est construit via des instructions `mov` :
+
+```asm
+; Construction du flag sur la pile
+mov    DWORD PTR [rbp-0x30], 0x7B425448    ; "HTB{"
+mov    DWORD PTR [rbp-0x2c], 0x30623062    ; "b0b0"
+mov    DWORD PTR [rbp-0x28], 0x5f796230    ; "0by_"
+mov    DWORD PTR [rbp-0x24], 0x64303064    ; "d00d"
+...
+```
+
+### Comprendre le little-endian
+
+En architecture x86-64, les données sont stockées en **little-endian** : l'octet de poids faible est stocké en premier.
+
+```
+Instruction : mov DWORD [rbp-0x30], 0x7B425448
+
+En mémoire (little-endian) :
+Adresse :  rbp-0x30  rbp-0x2f  rbp-0x2e  rbp-0x2d
+Valeur  :    0x48      0x54      0x42      0x7B
+ASCII   :    'H'       'T'       'B'       '{'
+```
+
+| Hex (instruction) | Little-endian en mémoire | ASCII |
+|-------------------|--------------------------|-------|
+| 0x7B425448 | 48 54 42 7B | H T B \{ |
+| 0x30623062 | 62 30 62 30 | b 0 b 0 |
+
+### Pourquoi strings trouve le flag
+
+Même si le flag est construit avec des `mov`, une fois assemblé sur la pile, c'est une chaîne contiguë en mémoire. Et dans ce cas précis, la chaîne est aussi présente dans la section `.rodata` du binaire.
+
+---
+
+## Méthodes de résolution
+
+### Méthode 1 : strings (la plus rapide)
+
+```bash
+$ strings baby | grep -i htb
+HTB{XXXXXXXXXXXXXXXXXXXXXXX}
+```
+
+### Méthode 2 : ltrace (vérification dynamique)
+
+```bash
+$ ltrace ./baby 2>&1
+# Observer les appels strcmp et puts
+```
+
+### Méthode 3 : Ghidra (compréhension complète)
+
+Analyser la fonction `main` pour comprendre la logique de validation.
+
+---
+
+## Concepts appris
+
+### strcmp() en C
+
+```c
+int strcmp(const char *s1, const char *s2);
+// Retourne 0 si les chaînes sont identiques
+// Retourne < 0 si s1 < s2
+// Retourne > 0 si s1 > s2
+```
+
+La comparaison avec `strcmp()` est vulnérable car :
+- La clé est stockée en clair dans le binaire
+- `strings` ou `ltrace` la révèle immédiatement
+
+### Little-endian
+
+L'architecture x86-64 utilise le format little-endian :
+
+```
+Valeur 32 bits : 0x41424344
+
+Big-endian (tel qu'écrit) :    41 42 43 44 → "ABCD"
+Little-endian (en mémoire) :   44 43 42 41 → "DCBA"
+```
+
+Pour reconstruire une chaîne depuis des valeurs en little-endian :
+```python
+import struct
+val = 0x7B425448
+chars = struct.pack('<I', val)  # '<' = little-endian, 'I' = unsigned int
+print(chars)  # b'HTB{'
+```
+
+### ltrace vs strace
+
+| Outil | Trace |
+|-------|-------|
+| `ltrace` | Appels aux fonctions de bibliothèque (strcmp, puts, printf...) |
+| `strace` | Appels système (read, write, open...) |
+
+---
+
+## Méthodologie
+
+```
+1. file         → Identifier le binaire (ELF 64-bit)
+2. strings      → Trouver la clé "**REDACTED**" et potentiellement le flag
+3. Exécuter     → Tester la clé trouvée
+4. ltrace       → Confirmer l'utilisation de strcmp()
+5. Ghidra       → Comprendre la construction du flag en little-endian
+```

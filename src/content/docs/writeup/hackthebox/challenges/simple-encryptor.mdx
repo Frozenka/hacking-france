@@ -1,0 +1,225 @@
+---
+title: Simple Encryptor
+description: WU Simple Encryptor - Reversing
+categories: [Writeup]
+tags: [writeup, reversing]
+template: doc
+sidebar:
+  order: 2
+  badge:
+    text: 'very easy'
+    variant: success
+---
+
+## Résumé
+
+| Info | Valeur |
+|------|--------|
+| **Vulnérabilité** | Chiffrement XOR + ROL avec seed PRNG stockée dans le fichier chiffré |
+| **Technique** | Reconstruction de la séquence pseudo-aléatoire et déchiffrement inverse |
+| **Outils** | file, strings, Ghidra/Cutter, Python + ctypes |
+
+---
+
+## Reconnaissance initiale
+
+### Fichiers fournis
+
+Le challenge fournit deux fichiers :
+- `encrypt` : un binaire ELF 64-bit
+- `flag.enc` : le flag chiffré
+
+```bash
+$ file encrypt
+encrypt: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV),
+dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
+for GNU/Linux 3.2.0, BuildID[sha1]=..., not stripped
+```
+
+```bash
+$ file flag.enc
+flag.enc: data
+```
+
+### Exécution du programme
+
+```shell
+$ ./encrypt
+[*] Simple Encryptor v2
+[*] Encrypting flag.txt to flag.enc
+```
+
+Le programme lit `flag.txt`, le chiffre, et écrit le résultat dans `flag.enc`.
+
+---
+
+## Analyse statique avec Ghidra
+
+### Fonction main
+
+L'analyse dans Ghidra révèle le fonctionnement suivant :
+
+```c
+// Pseudo-code simplifié de la fonction main
+void main() {
+    // 1. Génération de la seed
+    srand(time(NULL));
+    int seed = rand();
+
+    // 2. Lecture du fichier flag.txt
+    FILE *f = fopen("flag.txt", "rb");
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    rewind(f);
+    char *buffer = malloc(size);
+    fread(buffer, 1, size, f);
+    fclose(f);
+
+    // 3. Initialisation du PRNG avec la seed
+    srand(seed);
+
+    // 4. Chiffrement : XOR puis ROL pour chaque octet
+    for (int i = 0; i < size; i++) {
+        int xor_key = rand();
+        int rol_count = rand() % 8;
+        buffer[i] = buffer[i] ^ (xor_key & 0xFF);
+        buffer[i] = ROL(buffer[i], rol_count);
+    }
+
+    // 5. Écriture du fichier chiffré avec la seed en en-tête
+    FILE *out = fopen("flag.enc", "wb");
+    fwrite(&seed, sizeof(int), 1, out);  // seed stockée en début de fichier !
+    fwrite(buffer, 1, size, out);
+    fclose(out);
+}
+```
+
+### Points clés identifiés
+
+1. **La seed est stockée dans le fichier chiffré** : Les 4 premiers octets de `flag.enc` contiennent la seed utilisée pour `srand()`
+2. **Chiffrement réversible** : XOR est réversible, et ROL peut être inversé par ROR
+3. **PRNG déterministe** : Avec la même seed, `rand()` produit la même séquence
+
+### Opérations ROL et ROR
+
+```
+ROL (Rotate Left) : décale les bits vers la gauche, le bit sortant revient à droite
+  ROL(0b10110001, 3) = 0b10001101
+
+ROR (Rotate Right) : opération inverse
+  ROR(0b10001101, 3) = 0b10110001
+```
+
+---
+
+## Script de déchiffrement
+
+### Approche
+
+Pour déchiffrer, il faut :
+1. Lire la seed depuis les 4 premiers octets de `flag.enc`
+2. Initialiser le PRNG avec cette seed
+3. Pour chaque octet, appliquer les opérations inverses : ROR puis XOR
+
+### Utilisation de ctypes
+
+On utilise `ctypes` pour appeler directement les fonctions C `srand()` et `rand()` depuis Python, garantissant ainsi la même séquence pseudo-aléatoire.
+
+```python
+#!/usr/bin/env python3
+"""
+Décrypteur pour le challenge Simple Encryptor (HTB)
+Inverse les opérations XOR + ROL en utilisant la seed stockée dans le fichier chiffré.
+"""
+import ctypes
+
+# Charger la librairie C standard
+libc = ctypes.CDLL("libc.so.6")
+
+def ror(byte, count):
+    """Rotate Right sur un octet (8 bits)"""
+    count = count % 8
+    return ((byte >> count) | (byte << (8 - count))) & 0xFF
+
+# Lecture du fichier chiffré
+with open("flag.enc", "rb") as f:
+    data = f.read()
+
+# Les 4 premiers octets sont la seed (little-endian)
+seed = int.from_bytes(data[:4], byteorder='little')
+encrypted = bytearray(data[4:])
+
+print(f"[*] Seed extraite : {seed}")
+print(f"[*] Taille des données chiffrées : {len(encrypted)} octets")
+
+# Initialiser le PRNG avec la seed extraite
+libc.srand(seed)
+
+# Déchiffrement : ROR puis XOR (inverse de XOR puis ROL)
+decrypted = bytearray()
+for i in range(len(encrypted)):
+    xor_key = libc.rand() & 0xFF
+    rol_count = libc.rand() % 8
+
+    # Opérations inverses : d'abord ROR, ensuite XOR
+    byte = ror(encrypted[i], rol_count)
+    byte = byte ^ xor_key
+    decrypted.append(byte)
+
+print(f"[+] Flag : {decrypted.decode('utf-8', errors='replace')}")
+```
+
+### Exécution
+
+```shell
+$ python3 decrypt.py
+[*] Seed extraite : 1693427890
+[*] Taille des données chiffrées : 34 octets
+[+] Flag : HTB{XXXXXXXXXXXXXXXXXXXXXXX}
+```
+
+---
+
+## Concepts appris
+
+### Générateur pseudo-aléatoire (PRNG)
+
+La fonction `rand()` en C est un **générateur pseudo-aléatoire** : avec la même seed (`srand()`), elle produit toujours la même séquence de nombres.
+
+| Fonction | Rôle |
+|----------|------|
+| `srand(seed)` | Initialise le générateur avec une graine |
+| `rand()` | Retourne le prochain nombre pseudo-aléatoire |
+
+### Chiffrement XOR
+
+Le XOR est une opération réversible :
+
+```
+A ^ B = C
+C ^ B = A    (on retrouve A en réappliquant B)
+```
+
+### Rotation de bits (ROL/ROR)
+
+```
+ROL et ROR sont des opérations inverses l'une de l'autre :
+ROL(x, n) puis ROR(résultat, n) = x
+```
+
+### Vulnérabilité exploitée
+
+Le programme stocke la seed de chiffrement **dans le fichier chiffré lui-même**. Cela permet à quiconque possède le fichier chiffré de reconstruire toute la séquence de clés et de déchiffrer le contenu.
+
+---
+
+## Méthodologie
+
+```
+1. file / strings     → Identifier les fichiers fournis
+2. Exécuter           → Comprendre le comportement du programme
+3. Ghidra / Cutter    → Analyser le code (identifier XOR + ROL + seed)
+4. Identifier la faille → La seed est stockée dans flag.enc
+5. Script Python      → Reproduire le PRNG avec ctypes
+6. Inverser           → ROR puis XOR pour déchiffrer
+```
