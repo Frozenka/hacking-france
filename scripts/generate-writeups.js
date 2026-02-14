@@ -26,6 +26,13 @@ function extractTitle(content) {
   return titleLine ? titleLine[1].trim().replace(/^['"]|['"]$/g, '') : null;
 }
 
+function extractFrontmatterField(content, fieldName) {
+  const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!match) return null;
+  const line = match[1].match(new RegExp(`^${fieldName}:\\s*(.+)$`, 'm'));
+  return line ? line[1].trim().replace(/^['"]|['"]$/g, '') : null;
+}
+
 function walk(dir, base = '') {
   const entries = [];
   const items = fs.readdirSync(dir, { withFileTypes: true });
@@ -39,11 +46,16 @@ function walk(dir, base = '') {
       const title = extractTitle(content);
       const slug = rel.replace(/\.mdx$/, '').replace(/\\/g, '/');
       const stat = fs.statSync(fullPath);
+      const author = extractFrontmatterField(content, 'author') || null;
+      const authorGitHub = extractFrontmatterField(content, 'authorGitHub') || extractFrontmatterField(content, 'author_github') || extractFrontmatterField(content, 'github') || null;
+      const author_github_url = authorGitHub ? `https://github.com/${authorGitHub.replace(/^@/, '')}` : null;
       entries.push({
         slug: 'writeup/' + slug,
         title: title || slug,
         platform: platformLabel(slug.toLowerCase()),
         updated: stat.mtime.toISOString(),
+        author,
+        author_github_url,
       });
     }
   }
