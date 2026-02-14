@@ -1,6 +1,6 @@
 /**
- * Génère public/writeups.json à partir des MDX dans src/content/docs/writeup/.
- * Utilisé par le site (optionnel) et par le bot Discord pour la commande /writeup.
+ * Génère public/articles.json (tous les articles avec catégorie, auteur, etc.)
+ * et public/writeups.json (sous-ensemble writeups pour le bot et la page d'accueil).
  */
 import fs from 'fs';
 import path from 'path';
@@ -8,8 +8,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
-const contentDir = path.join(root, 'src', 'content', 'docs', 'writeup');
-const outPath = path.join(root, 'public', 'writeups.json');
+const docsDir = path.join(root, 'src', 'content', 'docs');
 
 const platformLabel = (slug) => {
   if (slug.includes('vulnlab')) return 'VulnLab';
@@ -40,19 +39,23 @@ function walk(dir, base = '') {
     const rel = path.join(base, item.name);
     if (item.isDirectory()) {
       entries.push(...walk(path.join(dir, item.name), rel));
-    } else if (item.isFile() && item.name.endsWith('.mdx') && !item.name.includes('Recherche')) {
+    } else if (item.isFile() && item.name.endsWith('.mdx')) {
+      if (item.name === '404.mdx' || item.name.includes('Recherche')) continue;
       const fullPath = path.join(dir, item.name);
       const content = fs.readFileSync(fullPath, 'utf-8');
       const title = extractTitle(content);
       const slug = rel.replace(/\.mdx$/, '').replace(/\\/g, '/');
+      const category = slug ? slug.split('/')[0] : path.basename(rel, '.mdx');
       const stat = fs.statSync(fullPath);
       const author = extractFrontmatterField(content, 'author') || null;
       const authorGitHub = extractFrontmatterField(content, 'authorGitHub') || extractFrontmatterField(content, 'author_github') || extractFrontmatterField(content, 'github') || null;
       const author_github_url = authorGitHub ? `https://github.com/${authorGitHub.replace(/^@/, '')}` : null;
+      const platform = category === 'writeup' ? platformLabel(slug.toLowerCase()) : null;
       entries.push({
-        slug: 'writeup/' + slug,
+        slug,
         title: title || slug,
-        platform: platformLabel(slug.toLowerCase()),
+        category,
+        platform,
         updated: stat.mtime.toISOString(),
         author,
         author_github_url,
@@ -62,14 +65,28 @@ function walk(dir, base = '') {
   return entries;
 }
 
-const writeups = walk(contentDir)
+const allArticles = walk(docsDir)
   .sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
 
-fs.mkdirSync(path.dirname(outPath), { recursive: true });
-fs.writeFileSync(outPath, JSON.stringify(writeups, null, 2), 'utf-8');
-console.log(`Écrit ${writeups.length} writeups dans ${outPath}`);
+const writeups = allArticles
+  .filter((a) => a.category === 'writeup')
+  .map(({ slug, title, platform, updated, author, author_github_url }) => ({
+    slug,
+    title,
+    platform,
+    updated,
+    author,
+    author_github_url,
+  }));
 
-// Expose les contributeurs (GitHub) pour le bot /contributeurs
+fs.mkdirSync(path.join(root, 'public'), { recursive: true });
+fs.writeFileSync(path.join(root, 'public', 'articles.json'), JSON.stringify(allArticles, null, 2), 'utf-8');
+console.log(`Écrit ${allArticles.length} articles dans public/articles.json`);
+
+fs.writeFileSync(path.join(root, 'public', 'writeups.json'), JSON.stringify(writeups, null, 2), 'utf-8');
+console.log(`Écrit ${writeups.length} writeups dans public/writeups.json`);
+
+// Contributeurs (pour le bot)
 const cardsPath = path.join(root, 'src', 'assets', 'cards.json');
 const contributorsPath = path.join(root, 'public', 'contributors.json');
 if (fs.existsSync(cardsPath)) {
