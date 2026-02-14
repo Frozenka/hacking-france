@@ -1,19 +1,31 @@
 ---
 import { getCollection } from 'astro:content';
+import fs from 'fs';
+import path from 'path';
 
-const allDocs = await getCollection('docs');
-const writeups = allDocs
-  .filter((e) => e.id.startsWith('writeup/') && !e.id.includes('Recherche'))
-  .sort((a, b) => b.id.localeCompare(a.id))
-  .slice(0, 5);
+// Derniers writeups : depuis writeups.json (tri par date) si disponible
+let writeups: { slug: string; title: string; platform: string }[] = [];
+try {
+  const p = path.join(process.cwd(), 'public', 'writeups.json');
+  if (fs.existsSync(p)) {
+    const list = JSON.parse(fs.readFileSync(p, 'utf-8'));
+    writeups = (Array.isArray(list) ? list : []).slice(0, 5);
+  }
+} catch {}
+if (writeups.length === 0) {
+  const allDocs = await getCollection('docs');
+  const fromCollection = allDocs
+    .filter((e) => e.id.startsWith('writeup/') && !e.id.includes('Recherche'))
+    .sort((a, b) => b.id.localeCompare(a.id))
+    .slice(0, 5);
+  writeups = fromCollection.map((e) => ({
+    slug: e.slug,
+    title: e.data.title,
+    platform: e.id.includes('vulnlab') ? 'VulnLab' : e.id.includes('hackthebox') ? 'HackTheBox' : e.id.includes('tryhackme') ? 'TryHackMe' : e.id.includes('GOAD') ? 'GOAD' : 'Writeup',
+  }));
+}
 
-const platformLabel = (id: string) => {
-  if (id.includes('vulnlab')) return 'VulnLab';
-  if (id.includes('hackthebox')) return 'HackTheBox';
-  if (id.includes('tryHackme')) return 'TryHackMe';
-  if (id.includes('GOAD')) return 'GOAD';
-  return 'Writeup';
-};
+const platformLabel = (platform: string) => platform || 'Writeup';
 ---
 
 <section class="featured" aria-labelledby="featured-heading">
@@ -30,8 +42,8 @@ const platformLabel = (id: string) => {
           writeups.map((entry) => (
             <li>
               <a href={`/${entry.slug}`} class="featured-card">
-                <span class="featured-badge">{platformLabel(entry.id)}</span>
-                <span class="featured-card-title">{entry.data.title}</span>
+                <span class="featured-badge">{platformLabel(entry.platform)}</span>
+                <span class="featured-card-title">{entry.title}</span>
                 <span class="featured-arrow" aria-hidden="true">→</span>
               </a>
             </li>

@@ -7,8 +7,8 @@
     "onlyBuiltDependencies": ["sharp"]
   },
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
+    "dev": "node scripts/generate-writeups.js && astro dev",
+    "start": "node scripts/generate-writeups.js && astro dev",
     "build": "node scripts/generate-writeups.js && astro build",
     "generate:writeups": "node scripts/generate-writeups.js",
     "preview": "astro preview",
