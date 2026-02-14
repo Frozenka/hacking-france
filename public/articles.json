@@ -1,7 +1,44 @@
 [
   {
+    "slug": "articles/_exemple",
+    "title": "Exemple d'article",
+    "category": "articles",
+    "platform": null,
+    "updated": "2026-02-14T17:26:07.792Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "contribute/index",
+    "title": "Contribuer",
+    "category": "contribute",
+    "platform": null,
+    "updated": "2026-02-14T17:26:06.456Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "articles/arp-cache-poisoning",
+    "title": "Comment fonctionne le ARP Cache Poisoning",
+    "category": "articles",
+    "platform": null,
+    "updated": "2026-02-14T17:26:02.815Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "cybersecurity/cybersecurite/offensive/introduction",
+    "title": "Introduction",
+    "category": "cybersecurity",
+    "platform": null,
+    "updated": "2026-02-14T16:20:36.537Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
     "slug": "writeup/vulnlab/manage-easy",
     "title": "Manage",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.026Z",
     "author": null,
@@ -10,6 +47,7 @@
   {
     "slug": "writeup/vulnlab/retro-easy",
     "title": "Retro",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.026Z",
     "author": null,
@@ -18,6 +56,7 @@
   {
     "slug": "writeup/vulnlab/sync-easy",
     "title": "Sync",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.026Z",
     "author": null,
@@ -26,6 +65,7 @@
   {
     "slug": "writeup/hackthebox/machines/monitorsfour",
     "title": "MonitorsFour",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -34,6 +74,7 @@
   {
     "slug": "writeup/hackthebox/machines/unified",
     "title": "Unified",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -42,6 +83,7 @@
   {
     "slug": "writeup/hackthebox/machines/vaccine",
     "title": "Vaccine",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -50,6 +92,7 @@
   {
     "slug": "writeup/hackthebox/sherlocks/aotr",
     "title": "AoTR",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -58,6 +101,7 @@
   {
     "slug": "writeup/hackthebox/sherlocks/crashdump",
     "title": "CrashDump",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -66,6 +110,7 @@
   {
     "slug": "writeup/hackthebox/sherlocks/mangobleed",
     "title": "MangoBleed",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -74,6 +119,7 @@
   {
     "slug": "writeup/hackthebox/sherlocks/phishnet",
     "title": "PhishNet",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -82,6 +128,7 @@
   {
     "slug": "writeup/hackthebox/sherlocks/ruse",
     "title": "Ruse",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -90,6 +137,7 @@
   {
     "slug": "writeup/vulnlab/baby-easy",
     "title": "Baby",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -98,6 +146,7 @@
   {
     "slug": "writeup/vulnlab/baby2-Medium",
     "title": "baby2",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -106,6 +155,7 @@
   {
     "slug": "writeup/vulnlab/bamboo",
     "title": "bamboo",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -114,6 +164,7 @@
   {
     "slug": "writeup/vulnlab/Down-Easy",
     "title": "Down",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -122,6 +173,7 @@
   {
     "slug": "writeup/vulnlab/forgotten-easy",
     "title": "Forgotten",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -130,6 +182,7 @@
   {
     "slug": "writeup/vulnlab/lock-easy",
     "title": "Lock",
+    "category": "writeup",
     "platform": "VulnLab",
     "updated": "2026-02-14T16:16:42.023Z",
     "author": null,
@@ -138,6 +191,7 @@
   {
     "slug": "writeup/hackthebox/challenges/shattered-tablet",
     "title": "Shattered Tablet",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -146,6 +200,7 @@
   {
     "slug": "writeup/hackthebox/challenges/simple-encryptor",
     "title": "Simple Encryptor",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -154,6 +209,7 @@
   {
     "slug": "writeup/hackthebox/challenges/wide",
     "title": "Wide",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -162,6 +218,7 @@
   {
     "slug": "writeup/hackthebox/machines/archetype",
     "title": "Archetype",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -170,6 +227,7 @@
   {
     "slug": "writeup/hackthebox/machines/base",
     "title": "Base",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -178,6 +236,7 @@
   {
     "slug": "writeup/hackthebox/machines/bike",
     "title": "Bike",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -186,6 +245,7 @@
   {
     "slug": "writeup/hackthebox/machines/cap",
     "title": "Cap",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -194,6 +254,7 @@
   {
     "slug": "writeup/hackthebox/machines/conversor",
     "title": "Conversor",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -202,6 +263,7 @@
   {
     "slug": "writeup/hackthebox/machines/included",
     "title": "Included",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -210,6 +272,7 @@
   {
     "slug": "writeup/hackthebox/machines/lame",
     "title": "Lame",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
@@ -218,14 +281,70 @@
   {
     "slug": "writeup/hackthebox/machines/markup",
     "title": "Markup",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.021Z",
     "author": null,
     "author_github_url": null
   },
   {
+    "slug": "index",
+    "title": "Accueil",
+    "category": "index",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.019Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "misc/discord",
+    "title": "Serveurs Discord Cyber",
+    "category": "misc",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.019Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "misc/Twitch",
+    "title": "Chaînes Twitch Cyber",
+    "category": "misc",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.019Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "misc/youtube",
+    "title": "Chaînes YouTube cyber",
+    "category": "misc",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.019Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "tools/Exegol",
+    "title": "Exegol",
+    "category": "tools",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.019Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "tools/uploader",
+    "title": "Uploader",
+    "category": "tools",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.019Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
     "slug": "writeup/hackthebox/challenges/baby",
     "title": "Baby",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.019Z",
     "author": null,
@@ -234,6 +353,7 @@
   {
     "slug": "writeup/hackthebox/challenges/blacksmith",
     "title": "Blacksmith",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.019Z",
     "author": null,
@@ -242,6 +362,7 @@
   {
     "slug": "writeup/hackthebox/challenges/flag-casino",
     "title": "FlagCasino",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.019Z",
     "author": null,
@@ -250,8 +371,117 @@
   {
     "slug": "writeup/hackthebox/challenges/hunting-license",
     "title": "Hunting License",
+    "category": "writeup",
     "platform": "HackTheBox",
     "updated": "2026-02-14T16:16:42.019Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "certifications/SEC1-THM",
+    "title": "SEC1",
+    "category": "certifications",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "community/index",
+    "title": "La communauté HF",
+    "category": "community",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "cybersecurity/cybersecurite/defensive/introduction",
+    "title": "Introduction",
+    "category": "cybersecurity",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "cybersecurity/cybersecurite/introduction",
+    "title": "Introduction",
+    "category": "cybersecurity",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "cybersecurity/cybersecurite/offensive/creation_ctf",
+    "title": "Pourquoi créer son propre CTF/Lab",
+    "category": "cybersecurity",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "cybersecurity/cybersecurite/offensive/CTF",
+    "title": "Les Capture The Flag",
+    "category": "cybersecurity",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "events/ctf",
+    "title": "Capture The Flags",
+    "category": "events",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "events/talks",
+    "title": "Talks",
+    "category": "events",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "explorer",
+    "title": "Explorer",
+    "category": "explorer",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.017Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "about",
+    "title": "À propos",
+    "category": "about",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.016Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "certifications/CPTS",
+    "title": "CPTS",
+    "category": "certifications",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.016Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "certifications/OSCP",
+    "title": "OSCP",
+    "category": "certifications",
+    "platform": null,
+    "updated": "2026-02-14T16:16:42.016Z",
     "author": null,
     "author_github_url": null
   }

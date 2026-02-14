@@ -11,13 +11,18 @@ const docs = allDocs.filter((e) => excludePatterns(e.id));
 
 type Doc = (typeof allDocs)[number];
 
-const CATEGORIES: { id: string; label: string; shortLabel: string; order: number }[] = [
-  { id: 'writeup', label: 'Writeups', shortLabel: 'W', order: 0 },
-  { id: 'events', label: 'Événements', shortLabel: 'E', order: 1 },
-  { id: 'tools', label: 'Cheat sheet & outils', shortLabel: 'O', order: 2 },
-  { id: 'certifications', label: 'Certifications', shortLabel: 'C', order: 3 },
-  { id: 'cybersecurity', label: 'Parcours & guides', shortLabel: 'P', order: 4 },
-  { id: 'misc', label: 'Ressources', shortLabel: 'R', order: 5 },
+const CATEGORIES: { id: string; label: string; shortLabel: string; order: number; hint?: string }[] = [
+  { id: 'articles', label: 'Articles', shortLabel: 'A', order: 0, hint: 'Tutoriels, certifications (OSCP, CPTS…), cheat sheet & outils' },
+  { id: 'writeup', label: 'Writeups', shortLabel: 'W', order: 1, hint: 'Solutions de machines et challenges (HackTheBox, VulnLab, TryHackMe, GOAD…)' },
+  { id: 'events', label: 'Événements', shortLabel: 'E', order: 2, hint: 'Talks, replays, CTF et événements de la communauté' },
+  { id: 'cybersecurity', label: 'Parcours & guides', shortLabel: 'P', order: 3, hint: 'Guides et parcours d’apprentissage (offensive, défensif, CTF…)' },
+  { id: 'misc', label: 'Ressources', shortLabel: 'R', order: 4, hint: 'Liens utiles : Discord, chaînes YouTube, Twitch…' },
+];
+
+const ARTICLES_SUBSECTIONS: { id: string; label: string }[] = [
+  { id: 'articles', label: 'Tutoriels' },
+  { id: 'certifications', label: 'Certifications' },
+  { id: 'tools', label: 'Cheat sheet & outils' },
 ];
 
 function getCategory(id: string): string {
@@ -36,10 +41,15 @@ function getSubLabel(id: string): string {
   return '';
 }
 
+const ARTICLE_CAT_IDS = new Set(ARTICLES_SUBSECTIONS.map((s) => s.id));
+const VALID_CAT_IDS = new Set([
+  ...CATEGORIES.map((c) => c.id),
+  ...ARTICLE_CAT_IDS,
+]);
 const byCategory = new Map<string, Doc[]>();
 for (const entry of docs) {
   const cat = getCategory(entry.id);
-  if (!CATEGORIES.some((c) => c.id === cat)) continue;
+  if (!VALID_CAT_IDS.has(cat)) continue;
   if (!byCategory.has(cat)) byCategory.set(cat, []);
   byCategory.get(cat)!.push(entry);
 }
@@ -48,9 +58,15 @@ for (const arr of byCategory.values()) {
   arr.sort((a, b) => a.data.title.localeCompare(b.data.title));
 }
 
+function getArticlesMergedCount() {
+  return ARTICLES_SUBSECTIONS.reduce((sum, sub) => sum + (byCategory.get(sub.id) ?? []).length, 0);
+}
+
 const orderedCategories = [...CATEGORIES].sort((a, b) => a.order - b.order);
 const totalArticles = docs.length;
-const totalCategories = orderedCategories.filter((c) => (byCategory.get(c.id) ?? []).length > 0).length;
+const totalCategories = orderedCategories.filter((c) =>
+  c.id === 'articles' ? getArticlesMergedCount() > 0 : (byCategory.get(c.id) ?? []).length > 0
+).length;
 
 const writeupItems = byCategory.get('writeup') ?? [];
 const writeupByPlatform = new Map<string, Doc[]>();
@@ -81,13 +97,13 @@ for (const doc of writeupItems) {
   <nav class="explorer-nav" aria-label="Aller à une catégorie">
     {
       orderedCategories.map((cat) => {
-        const items = byCategory.get(cat.id) ?? [];
-        if (items.length === 0) return null;
+        const count = cat.id === 'articles' ? getArticlesMergedCount() : (byCategory.get(cat.id) ?? []).length;
+        if (count === 0) return null;
         return (
           <a class="explorer-nav-link" href={`#${cat.id}`}>
             <span class="explorer-nav-dot" aria-hidden="true" data-cat={cat.id} />
             <span class="explorer-nav-text">{cat.label}</span>
-            <span class="explorer-nav-count">{items.length}</span>
+            <span class="explorer-nav-count">{count}</span>
           </a>
         );
       })
@@ -98,16 +114,43 @@ for (const doc of writeupItems) {
     {
       orderedCategories.map((cat) => {
         const items = byCategory.get(cat.id) ?? [];
-        if (items.length === 0) return null;
+        const count = cat.id === 'articles' ? getArticlesMergedCount() : items.length;
+        if (count === 0) return null;
+        const useArticlesSubsections = cat.id === 'articles';
         const useWriteupSubsections = cat.id === 'writeup' && writeupByPlatform.size > 1;
         return (
           <section class="explorer-section" id={cat.id}>
             <h2 class="explorer-section-title">
               <span class="explorer-section-dot" data-cat={cat.id} aria-hidden="true" />
               {cat.label}
-              <span class="explorer-section-count">{items.length}</span>
+              <span class="explorer-section-count">{count}</span>
             </h2>
-            {useWriteupSubsections ? (
+            {cat.hint && <p class="explorer-section-hint">{cat.hint}</p>}
+            {useArticlesSubsections ? (
+              <div class="explorer-subsections">
+                {ARTICLES_SUBSECTIONS.map((sub) => {
+                  const subItems = byCategory.get(sub.id) ?? [];
+                  if (subItems.length === 0) return null;
+                  return (
+                    <div class="explorer-subsection">
+                      <h3 class="explorer-subsection-title">{sub.label}</h3>
+                      <ul class="explorer-list">
+                        {subItems.map((entry) => (
+                          <li>
+                            <a href={`/${entry.slug}`} class="explorer-card">
+                              <span class="explorer-card-title">{entry.data.title}</span>
+                              {entry.data.description && (
+                                <span class="explorer-card-desc">{entry.data.description}</span>
+                              )}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : useWriteupSubsections ? (
               <div class="explorer-subsections">
                 {[...writeupByPlatform.entries()].map(([platform, platformDocs]) => (
                   <div class="explorer-subsection">
@@ -247,10 +290,9 @@ for (const doc of writeupItems) {
     background: var(--sl-color-accent);
     flex-shrink: 0;
   }
+  .explorer-nav-dot[data-cat="articles"] { background: #ec4899; }
   .explorer-nav-dot[data-cat="writeup"] { background: #22c55e; }
   .explorer-nav-dot[data-cat="events"] { background: #f59e0b; }
-  .explorer-nav-dot[data-cat="tools"] { background: #3b82f6; }
-  .explorer-nav-dot[data-cat="certifications"] { background: #8b5cf6; }
   .explorer-nav-dot[data-cat="cybersecurity"] { background: #06b6d4; }
   .explorer-nav-dot[data-cat="misc"] { background: var(--sl-color-gray-4); }
   .explorer-nav-text {
@@ -292,12 +334,18 @@ for (const doc of writeupItems) {
     flex-shrink: 0;
     background: var(--sl-color-accent);
   }
+  .explorer-section-dot[data-cat="articles"] { background: #ec4899; }
   .explorer-section-dot[data-cat="writeup"] { background: #22c55e; }
   .explorer-section-dot[data-cat="events"] { background: #f59e0b; }
-  .explorer-section-dot[data-cat="tools"] { background: #3b82f6; }
-  .explorer-section-dot[data-cat="certifications"] { background: #8b5cf6; }
   .explorer-section-dot[data-cat="cybersecurity"] { background: #06b6d4; }
   .explorer-section-dot[data-cat="misc"] { background: var(--sl-color-gray-4); }
+  .explorer-section-hint {
+    font-size: var(--sl-text-sm);
+    color: var(--sl-color-gray-3);
+    margin: -0.5rem 0 1rem 0;
+    line-height: 1.45;
+    max-width: 42rem;
+  }
   .explorer-section-count {
     font-size: var(--sl-text-sm);
     font-weight: 500;

@@ -8,9 +8,26 @@ interface Props {
 
 const { repo, file } = Astro.props;
 
-async function fetchCommits() {
+// Fichiers déplacés vers cybersecurite/ : l’historique Git reste sur l’ancien chemin.
+// On interroge les deux chemins pour récupérer les auteurs.
+function getLegacyPaths(currentFile: string): string[] {
+  const prefix = 'cybersecurity/cybersecurite/';
+  if (currentFile.startsWith(prefix)) {
+    return ['cybersecurity/' + currentFile.slice(prefix.length)];
+  }
+  if (currentFile === 'articles/arp-cache-poisoning') {
+    return [
+      'cybersecurity/cybersecurite/offensive/arp_poisoning',
+      'cybersecurity/offensive/arp_poisoning',
+    ];
+  }
+  return [];
+}
+
+async function fetchCommitsForPath(path: string) {
   const url = new URL(`https://api.github.com/repos/${repo}/commits`);
-  url.searchParams.set('path', `src/content/docs/${file}`);
+  const fullPath = path.includes('.') ? `src/content/docs/${path}` : `src/content/docs/${path}.mdx`;
+  url.searchParams.set('path', fullPath);
   url.searchParams.set('per_page', '100');
 
   const response = await fetch(url, {
@@ -22,6 +39,19 @@ async function fetchCommits() {
 
   const data = await response.json();
   return Array.isArray(data) ? data : [];
+}
+
+async function fetchCommits() {
+  const current = await fetchCommitsForPath(file);
+  const legacyPaths = getLegacyPaths(file);
+  const bySha = new Map(current.map((c: { sha?: string }) => [c.sha, c]));
+  for (const legacyPath of legacyPaths) {
+    const legacy = await fetchCommitsForPath(legacyPath);
+    for (const c of legacy) {
+      if (c.sha && !bySha.has(c.sha)) bySha.set(c.sha, c);
+    }
+  }
+  return Array.from(bySha.values());
 }
 
 function removeDuplicates(commits: { author?: { login: string; id: number } }[]) {
@@ -54,7 +84,7 @@ const uniqueAuthors = removeDuplicates(commits);
     </ul>
   ) : (
     <p class="page-authors-fallback">
-      <a href={`https://github.com/${repo}/commits/main/src/content/docs/${file}`} target="_blank" rel="noopener noreferrer">
+      <a href={`https://github.com/${repo}/commits/main/src/content/docs/${file.includes('.') ? file : file + '.mdx'}`} target="_blank" rel="noopener noreferrer">
         Voir l'historique des contributeurs sur GitHub →
       </a>
     </p>

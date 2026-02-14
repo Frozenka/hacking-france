@@ -53,11 +53,6 @@ export default defineConfig({
           },
           link: 'community' },
         {
-          label: 'Explorer',
-          translations: { en: 'Explore' },
-          link: 'explorer'
-        },
-        {
           label: 'Événements',
           translations: {
             en: 'Events'
@@ -69,42 +64,29 @@ export default defineConfig({
           }
         },
         {
-          label: 'Cheat sheet',
-          translations: {
-            en: 'Cheat sheet'
-          },
-          collapsed: true,
-          autogenerate: {
-            directory: 'tools',
-            collapsed: true
-          }
-        },
-        {
-          label: 'Certifications',
-          translations: {
-            en: 'Certifications'
-          },
-          collapsed: true,
-          autogenerate: {
-            directory: 'certifications',
-            collapsed: true
-          }
+          label: 'Articles',
+          translations: { en: 'Articles' },
+          collapsed: false,
+          items: [
+            { label: 'Tutoriels', collapsed: true, autogenerate: { directory: 'articles', collapsed: true } },
+            { label: 'Certifications', collapsed: true, autogenerate: { directory: 'certifications', collapsed: true } },
+            { label: 'Cheat sheet & outils', collapsed: true, autogenerate: { directory: 'tools', collapsed: true } }
+          ]
         },
         {
           label: 'Parcours & guides',
           translations: {
             en: 'Learning paths & guides'
           },
+          collapsed: true,
           autogenerate: {
             directory: 'cybersecurity',
             collapsed: true
           }
         },
         {
-          label: 'Writeup',
-          translations: {
-            en: 'Writeup'
-          },
+          label: 'Writeups',
+          translations: { en: 'Writeups' },
           collapsed: true,
           autogenerate: {
             directory: 'writeup',
