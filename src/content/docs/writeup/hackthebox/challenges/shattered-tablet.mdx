@@ -1,0 +1,241 @@
+---
+title: Shattered Tablet
+description: WU Shattered Tablet - Reversing
+categories: [Writeup]
+tags: [writeup, reversing]
+template: doc
+sidebar:
+  order: 4
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+## Résumé
+
+| Info | Valeur |
+|------|--------|
+| **Vulnérabilité** | Comparaison caractère par caractère du flag dans le binaire |
+| **Technique** | Extraction des valeurs de comparaison depuis le code assembleur |
+| **Outils** | file, strings, Ghidra/Cutter, objdump |
+
+---
+
+## Reconnaissance initiale
+
+### Identification du fichier
+
+```bash
+$ file tablet
+tablet: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV),
+dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2,
+for GNU/Linux 3.2.0, not stripped
+```
+
+### Exécution du programme
+
+```shell
+$ ./tablet
+Hmmmm... I think the tablet says: AAAA
+No... That can't be right...
+```
+
+```shell
+$ ./tablet
+Hmmmm... I think the tablet says: HTB{test}
+No... That can't be right...
+```
+
+Le programme demande une entrée et vérifie si c'est le bon flag.
+
+### Recherche de chaînes
+
+```bash
+$ strings tablet | grep -i htb
+```
+
+Aucun résultat direct contenant le flag.
+
+---
+
+## Analyse statique
+
+### Ouverture dans Ghidra/Cutter
+
+L'analyse de la fonction `main` révèle une structure de validation très caractéristique.
+
+### Pseudo-code décompilé
+
+```c
+int main(void) {
+    char input[64];
+
+    printf("Hmmmm... I think the tablet says: ");
+    fgets(input, 64, stdin);
+
+    // Comparaison caractère par caractère
+    if (input[0]  == 'H' &&
+        input[1]  == 'T' &&
+        input[2]  == 'B' &&
+        input[3]  == '{' &&
+        input[4]  == 'b' &&
+        input[5]  == 'r' &&
+        input[6]  == '0' &&
+        input[7]  == 'k' &&
+        input[8]  == '3' &&
+        input[9]  == 'n' &&
+        input[10] == '_' &&
+        // ... suite des comparaisons ...
+        input[N]  == '}')
+    {
+        puts("Yes! That's what it says!");
+    } else {
+        puts("No... That can't be right...");
+    }
+    return 0;
+}
+```
+
+### Code assembleur correspondant
+
+Chaque comparaison se traduit par une instruction `cmp` avec une valeur immédiate :
+
+```asm
+; Comparaison du premier caractère
+movzx  eax, byte [rbp-0x40]     ; Charge input[0]
+cmp    al, 0x48                   ; Compare avec 'H' (0x48)
+jne    wrong                      ; Si différent, saute à "wrong"
+
+; Comparaison du deuxième caractère
+movzx  eax, byte [rbp-0x3f]     ; Charge input[1]
+cmp    al, 0x54                   ; Compare avec 'T' (0x54)
+jne    wrong
+
+; Comparaison du troisième caractère
+movzx  eax, byte [rbp-0x3e]     ; Charge input[2]
+cmp    al, 0x42                   ; Compare avec 'B' (0x42)
+jne    wrong
+
+; ... et ainsi de suite pour chaque caractère
+```
+
+### Extraction des valeurs
+
+En parcourant toutes les instructions `cmp` dans l'ordre, on peut reconstruire le flag complet.
+
+**Tableau de correspondance (extrait) :**
+
+| Offset | Hex | ASCII |
+|--------|-----|-------|
+| [0] | 0x48 | H |
+| [1] | 0x54 | T |
+| [2] | 0x42 | B |
+| [3] | 0x7B | \{ |
+| [4] | 0x62 | b |
+| [5] | 0x72 | r |
+| [6] | 0x30 | 0 |
+| [7] | 0x6B | k |
+| [8] | 0x33 | 3 |
+| [9] | 0x6E | n |
+| [10] | 0x5F | _ |
+
+---
+
+## Méthode d'extraction avec objdump
+
+On peut aussi utiliser `objdump` pour extraire toutes les comparaisons automatiquement :
+
+```bash
+$ objdump -d tablet | grep "cmp.*\$0x"
+```
+
+Cela liste toutes les valeurs comparées, qu'il suffit de convertir en caractères ASCII.
+
+### Script Python d'extraction
+
+```python
+#!/usr/bin/env python3
+"""
+Extraction du flag depuis les comparaisons assembleur
+"""
+import subprocess
+import re
+
+# Extraire les instructions cmp du binaire
+output = subprocess.check_output(['objdump', '-d', 'tablet']).decode()
+
+# Trouver toutes les comparaisons dans la fonction main
+# Pattern : cmp    $0xXX,%al
+matches = re.findall(r'cmp\s+\$0x([0-9a-f]+),%al', output)
+
+flag = ''
+for hex_val in matches:
+    char = chr(int(hex_val, 16))
+    flag += char
+
+print(f"Flag : {flag}")
+```
+
+---
+
+## Exploitation
+
+### Reconstruction du flag
+
+En assemblant toutes les valeurs extraites des comparaisons :
+
+```shell
+$ ./tablet
+Hmmmm... I think the tablet says: HTB{XXXXXXXXXXXXXXXXXXXXXXX}
+Yes! That's what it says!
+```
+
+---
+
+## Concepts appris
+
+### Comparaison caractère par caractère
+
+C'est un pattern très courant dans les challenges de reversing pour débutants. Le programme compare chaque caractère de l'entrée avec une valeur codée en dur.
+
+**Avantages pour le challenge :**
+- Simple à comprendre
+- Enseigne la lecture de code assembleur
+
+**Pourquoi c'est vulnérable :**
+- Les valeurs sont visibles dans le code assembleur
+- Pas d'obfuscation
+- Extraction triviale avec des outils standards
+
+### Table ASCII utile
+
+```
+0x30-0x39 : '0'-'9'  (chiffres)
+0x41-0x5A : 'A'-'Z'  (majuscules)
+0x61-0x7A : 'a'-'z'  (minuscules)
+0x5F      : '_'       (underscore)
+0x7B      : '{'       (accolade ouvrante)
+0x7D      : '}'       (accolade fermante)
+```
+
+### Instruction CMP en assembleur
+
+```asm
+cmp al, 0x48    ; Compare AL avec 0x48
+                ; Met à jour les flags (ZF, CF, SF, OF)
+jne label       ; Jump if Not Equal (ZF = 0)
+je  label       ; Jump if Equal (ZF = 1)
+```
+
+---
+
+## Méthodologie
+
+```
+1. file / strings  → Identifier le binaire
+2. Exécuter        → Comprendre le comportement attendu
+3. Ghidra / Cutter → Analyser la fonction main
+4. Identifier      → Comparaisons cmp caractère par caractère
+5. Extraire        → Collecter toutes les valeurs hexadécimales
+6. Convertir       → Hex → ASCII pour reconstruire le flag
+```

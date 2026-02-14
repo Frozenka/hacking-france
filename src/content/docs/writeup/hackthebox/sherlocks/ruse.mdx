@@ -1,0 +1,303 @@
+---
+title: Ruse
+description: WU Ruse - Sherlock
+categories: [Writeup]
+tags: [writeup, forensics]
+template: doc
+sidebar:
+  order: 4
+  badge:
+    text: 'hard'
+    variant: danger
+---
+
+## Scenario
+
+Un systeme macOS a ete compromis apres qu'un attaquant ait obtenu un acces initial via une entite deguisee. L'intrusion a escale les privileges, etabli une persistence et active un acces distant non autorise.
+
+## Artefacts fournis
+
+- Collection de triage macOS (fsevents, logs, Safari history, etc.)
+- Dossier `Deleted-Users/loki.dmg` - Home archive de l'utilisateur malveillant
+
+---
+
+## Tache 1 : Quelle est la version du systeme macOS ?
+
+**Methode** : Lecture du fichier `SystemVersion.plist`
+
+```bash
+cat ireks-Mac-Triage/System/Library/CoreServices/SystemVersion.plist
+```
+
+Le champ `ProductUserVisibleVersion` contient la version de macOS.
+
+---
+
+## Tache 2 : Quel est le nom de l'entite malveillante responsable de l'acces initial ?
+
+**Methode** : Analyse des fichiers dans la Corbeille et de l'historique Safari
+
+Chercher les applications suspectes dans `Users/irek/.Trash/` et analyser leur contenu (notamment les scripts shell).
+
+---
+
+## Tache 3 : Quand l'utilisateur a-t-il initie le telechargement de cette entite malveillante (UTC) ?
+
+**Methode** : Analyse du fichier Downloads.plist de Safari
+
+```bash
+plutil -convert xml1 -o - Users/irek/Library/Safari/Downloads.plist
+```
+
+Chercher le champ `DownloadEntryDateAddedKey` associe au fichier malveillant.
+
+---
+
+## Tache 4 : Quel etait le timestamp (UTC) de la derniere interaction de l'utilisateur avec le fichier malveillant ?
+
+**Methode** : Analyse des logs launchd
+
+```bash
+grep "nom-de-l-app" private/var/log/com.apple.xpc.launchd/launchd.log*
+```
+
+Chercher l'evenement `WILL_SPAWN`. Les timestamps launchd sont en heure locale (EET = UTC+2).
+
+---
+
+## Tache 5 : L'attaquant a utilise un outil pour deposer des fichiers et contourner Gatekeeper. Quel est le nom de l'outil utilise ?
+
+**Explication** : Les fichiers telecharges via certains outils CLI ne recoivent pas l'attribut `com.apple.quarantine`, ce qui permet de contourner Gatekeeper.
+
+Analyser les commandes utilisees par l'attaquant apres avoir obtenu un reverse shell.
+
+---
+
+## Tache 6 : Quel est le chemin complet de l'executable Mach-O cree par l'attaquant pour l'elevation de privileges ?
+
+**Methode** : Rechercher les executables Mach-O dans la Corbeille ou sur le Bureau
+
+```bash
+file Users/irek/.Trash/*
+file Users/irek/Desktop/*
+```
+
+---
+
+## Tache 7 : Quel est le numero CVE associe a l'exploit utilise par l'attaquant ?
+
+**Methode** : Analyser le code source de l'exploit (fichier .c) present dans la Corbeille
+
+Rechercher les fonctions caracteristiques et les commentaires qui peuvent indiquer la CVE exploitee. Il s'agit d'une race condition dans le kernel macOS.
+
+---
+
+## Tache 8 : Durant la phase d'elevation de privileges, l'attaquant a imite l'utilisation d'un fichier systeme bien connu en modifiant un mot specifique dans sa configuration. Quel est le mot qui a ete modifie ?
+
+**Methode** : Comparer le fichier PAM original avec le fichier modifie par l'attaquant
+
+```bash
+diff /etc/pam.d/su Users/irek/.Trash/overwrite_file.bin
+```
+
+Chercher quel module PAM a ete modifie pour permettre une elevation de privileges sans authentification.
+
+---
+
+## Tache 9 : Apres avoir obtenu les privileges root, l'attaquant a cree un nouvel utilisateur. Quand a-t-il cree cet utilisateur (UTC) ?
+
+**Methode** : Analyse des Unified Logs
+
+```shell wrap
+log show --archive "UnifiedLogs/ireks-Mac_20250308_160413.logarchive" \
+  --predicate "eventMessage contains \"loki\"" --style compact
+```
+
+Chercher l'evenement "Creating home directory". Conversion timezone : local (EET) - 2h = UTC.
+
+---
+
+## Tache 10 : A quel moment l'attaquant a-t-il reussi a activer SSH sur le systeme (UTC) ?
+
+**Methode** : Analyse des Unified Logs et launchd
+
+```bash
+log show --archive "UnifiedLogs/..." --predicate "eventMessage contains \"ssh\"" --style compact
+grep "ssh" private/var/log/com.apple.xpc.launchd/launchd.log*
+```
+
+Chercher l'evenement "Enabling service com.openssh.sshd" (succes de launchctl load).
+
+---
+
+## Tache 11 : L'utilisateur a remarque une activite inhabituelle et a eteint l'appareil. Un jour apres, il a rallume son ordinateur portable. A quelle heure (UTC) l'a-t-il rallume ?
+
+**Methode** : Analyse du system.log et des Unix timestamps ASL
+
+```bash
+grep "BOOT_TIME" private/var/log/system.log
+```
+
+Le timestamp Unix apres BOOT_TIME est deja en UTC.
+
+---
+
+## Tache 12 : Apres avoir active SSH, l'attaquant a reussi a etablir une connexion SSH quand l'utilisateur a rallume sa machine. A quelle heure precise (UTC) l'attaquant a-t-il etabli la connexion SSH ?
+
+**Methode** : Analyse des logs ASL et system.log
+
+```bash
+grep "sshd.*loki" private/var/log/system.log
+strings private/var/log/asl/*.asl | grep -E "sshd|loki"
+```
+
+---
+
+## Tache 13 : L'attaquant a telecharge et depose un fichier malveillant sur le systeme pour etablir la persistance. Quel est le nom de ce fichier malveillant ?
+
+**Methode** : Analyse du dossier de l'utilisateur malveillant dans le DMG
+
+```bash
+hdiutil attach Users/Deleted-Users/loki.dmg -readonly
+ls -la /Volumes/loki/Desktop/
+```
+
+Comparer les hash MD5 avec les fichiers de persistance.
+
+---
+
+## Tache 14 : Le fichier malveillant a cree un fichier specifique pour s'assurer que le malware s'execute a chaque connexion de l'utilisateur. Quel est le nom de ce fichier ?
+
+**Methode** : Montage du DMG et analyse des LaunchAgents
+
+```bash
+hdiutil attach Users/Deleted-Users/loki.dmg -readonly
+ls /Volumes/loki/Library/LaunchAgents/
+```
+
+---
+
+## Tache 15 : Le fichier pointe vers un executable qui s'execute a la connexion de l'utilisateur. Quel est le chemin complet de ce fichier executable ?
+
+**Methode** : Lecture du plist de persistance
+
+```bash
+plutil -convert xml1 -o - /Volumes/loki/Library/LaunchAgents/*.plist
+```
+
+Chercher la cle `ProgramArguments`.
+
+---
+
+## Tache 16 : Quel est l'ID de technique MITRE ATT&CK associe au mecanisme de persistance utilise par l'attaquant ?
+
+**Methode** : Identifier le mecanisme de persistance (LaunchAgent) et chercher la technique MITRE correspondante.
+
+Les LaunchAgents sont documentes dans la matrice ATT&CK sous "Create or Modify System Process".
+
+---
+
+## Tache 17 : Base sur l'analyse du fichier malveillant et de son mecanisme de persistance, quelle est la famille de malware la plus repandue associee a cette attaque ?
+
+**Methode** : Analyser les strings du binaire malveillant
+
+```bash
+strings /Volumes/loki/.local/bin/sysetmd | grep -i "kbr\|whatismyip\|icanhazip"
+```
+
+Rechercher les indicateurs caracteristiques (extensions de fichiers, services IP lookup, framework C2 utilise).
+
+---
+
+## Tache 18 : L'utilisateur legitime a remarque et supprime le compte non autorise cree par l'attaquant. Quand l'utilisateur a-t-il supprime le compte cree par l'attaquant (UTC) ?
+
+**Methode** : Analyse des logs launchd et de l'historique Safari
+
+```bash
+# Recherches de l'utilisateur
+sqlite3 "Users/irek/Library/Safari/History.db" \
+  "SELECT datetime(visit_time + 978307200, 'unixepoch'), url FROM history_visits v
+   JOIN history_items i ON v.history_item = i.id WHERE url LIKE '%delete%user%';"
+
+# Evenements de suppression
+grep "writeconfig\|user/502" private/var/log/com.apple.xpc.launchd/launchd.log*
+```
+
+Sur macOS, la suppression d'un utilisateur via Preferences Systeme archive automatiquement le repertoire home en DMG.
+
+---
+
+## Artefacts macOS cles pour l'investigation
+
+### Logs
+| Artefact | Chemin | Description |
+|----------|--------|-------------|
+| Unified Logs | `/private/var/db/diagnostics/*.logarchive` | Logs systeme consolides |
+| Launchd Logs | `/private/var/log/com.apple.xpc.launchd/` | Evenements de processus |
+| System Log | `/private/var/log/system.log` | Log systeme general |
+| ASL Logs | `/private/var/log/asl/` | Apple System Logs (format binaire) |
+
+### Persistance
+| Artefact | Chemin | Description |
+|----------|--------|-------------|
+| LaunchAgents (utilisateur) | `~/Library/LaunchAgents/` | Persistance a la connexion utilisateur |
+| LaunchAgents (systeme) | `/Library/LaunchAgents/` | Persistance pour tous les utilisateurs |
+| LaunchDaemons | `/Library/LaunchDaemons/` | Services systeme au demarrage |
+
+### Historique utilisateur
+| Artefact | Chemin | Description |
+|----------|--------|-------------|
+| Safari History | `~/Library/Safari/History.db` | Historique de navigation (SQLite) |
+| Safari Downloads | `~/Library/Safari/Downloads.plist` | Historique des telechargements |
+| Quarantine DB | `~/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2` | Fichiers telecharges |
+
+---
+
+## Commandes utiles pour l'analyse macOS
+
+```bash
+# Historique Safari (timestamps en UTC via Cocoa epoch)
+sqlite3 "Library/Safari/History.db" \
+  "SELECT datetime(visit_time + 978307200, 'unixepoch'), url FROM history_visits v
+   JOIN history_items i ON v.history_item = i.id ORDER BY visit_time;"
+
+# Events de quarantaine (Gatekeeper)
+sqlite3 "Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2" \
+  "SELECT datetime(LSQuarantineTimeStamp + 978307200, 'unixepoch'), *
+   FROM LSQuarantineEvent;"
+
+# Unified Logs
+log show --archive file.logarchive --predicate "eventMessage contains 'keyword'" --style compact
+
+# Logs systeme
+grep "BOOT_TIME\|sshd\|sysadminctl" private/var/log/system.log
+
+# Logs launchd
+grep -E "sysadminctl|systemsetup|sshd" private/var/log/com.apple.xpc.launchd/*.log*
+
+# Monter un DMG en lecture seule
+hdiutil attach file.dmg -readonly -nobrowse
+
+# Attributs etendus (quarantine)
+xattr -l /path/to/file
+
+# Strings d'un binaire
+strings /path/to/binary | grep -i "keyword"
+
+# Conversion timestamp Unix vers date
+python3 -c "import datetime; print(datetime.datetime.utcfromtimestamp(TIMESTAMP))"
+```
+
+---
+
+## Notes importantes sur les fuseaux horaires macOS
+
+- **Fuseau horaire du systeme** : EET (Eastern European Time) = UTC+2
+- **Launchd logs** : Timestamps en heure LOCALE (necessite conversion -2h pour UTC)
+- **Unified logs** : Timestamps en heure LOCALE avec indicateur de fuseau horaire (+0200)
+- **Safari History DB** : Timestamps stockes en UTC (Cocoa epoch + 978307200)
+- **ASL logs** : Timestamps Unix (deja en UTC)
+- **system.log** : Timestamps en heure LOCALE
+
+**Formule de conversion** : `UTC = Heure locale - 2 heures` (pour EET)

