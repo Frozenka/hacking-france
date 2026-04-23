@@ -1,5 +1,29 @@
 [
   {
+    "slug": "writeup/hackthebox/machines/sauna",
+    "title": "Sauna",
+    "platform": "HackTheBox",
+    "updated": "2026-04-21T22:08:00.000Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "writeup/hackthebox/machines/forest",
+    "title": "Forest",
+    "platform": "HackTheBox",
+    "updated": "2026-04-21T22:08:00.000Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
+    "slug": "writeup/hackthebox/machines/active",
+    "title": "Active",
+    "platform": "HackTheBox",
+    "updated": "2026-04-21T22:08:00.000Z",
+    "author": null,
+    "author_github_url": null
+  },
+  {
     "slug": "writeup/vulnlab/manage-easy",
     "title": "Manage",
     "platform": "VulnLab",

