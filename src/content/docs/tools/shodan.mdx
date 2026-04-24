@@ -1,12 +1,12 @@
 ---
 title: Shodan
-description: Guide complet de Shodan — moteur de recherche pour l'internet des objets. Filtres, dorks offensifs, usage défensif, automatisation Python et intégration dans un workflow de pentest.
+description: Guide complet de Shodan - moteur de recherche pour l'internet des objets. Filtres, dorks offensifs, usage défensif, automatisation Python et intégration dans un workflow de pentest.
 categories: [tools]
 tags: [tools, shodan, recon, osint, pentest, iot, api]
 template: doc
 ---
 
-_Le moteur de recherche que chaque pentester devrait maîtriser — et que chaque défenseur devrait surveiller._
+_Le moteur de recherche que chaque pentester devrait maîtriser - et que chaque défenseur devrait surveiller._
 
 ---
 
@@ -14,7 +14,7 @@ _Le moteur de recherche que chaque pentester devrait maîtriser — et que chaqu
 
 Shodan est un moteur de recherche spécialisé qui indexe les **appareils connectés à internet** plutôt que les pages web. Là où Google parcourt le World Wide Web à la recherche de contenu HTML, Shodan scanne en permanence l'ensemble des adresses IP publiques pour capturer les bannières renvoyées par les services réseau : serveurs web, caméras IP, routeurs, bases de données, systèmes industriels, objets connectés.
 
-Créé en 2009 par John Matherly (le nom vient du personnage antagoniste du jeu System Shock), Shodan est devenu un outil central dans les phases de reconnaissance — aussi bien pour les équipes offensives que défensives.
+Créé en 2009 par John Matherly (le nom vient du personnage antagoniste du jeu System Shock), Shodan est devenu un outil central dans les phases de reconnaissance - aussi bien pour les équipes offensives que défensives.
 
 ### Le concept de bannière
 
@@ -37,7 +37,7 @@ Firmware: v.3.3.8
 Serial number: S Q-D9U083642013
 ```
 
-La deuxième bannière est exposée **sur internet public**. C'est exactement ce que Shodan indexe — et ce que les attaquants cherchent.
+La deuxième bannière est exposée **sur internet public**. C'est exactement ce que Shodan indexe - et ce que les attaquants cherchent.
 
 ### Ce que Shodan sait sur chaque hôte
 
@@ -191,7 +191,7 @@ http.favicon.hash:-388646567 country:FR
 
 ### Infrastructures C2 (Command & Control)
 
-Ces requêtes permettent d'identifier des infrastructures malveillantes actives — utiles pour la Threat Intelligence et le suivi d'APT.
+Ces requêtes permettent d'identifier des infrastructures malveillantes actives - utiles pour la Threat Intelligence et le suivi d'APT.
 
 ```bash
 # Cobalt Strike
@@ -455,33 +455,33 @@ L'une des informations les plus sous-estimées sur Shodan : les groupes APT éta
 
 Le FBI et la CISA ont explicitement documenté l'utilisation de Shodan par ce groupe pour cibler l'infrastructure critique américaine :
 
-> _"The actors have been observed using the Shodan search engine to identify and enumerate IP addresses that host devices vulnerable to a particular CVE."_ — **CISA AA24-241A**
+> _"The actors have been observed using the Shodan search engine to identify and enumerate IP addresses that host devices vulnerable to a particular CVE."_ - **CISA AA24-241A**
 
 CVE ciblées : CVE-2024-24919 (Check Point), CVE-2024-3400 (Palo Alto), CVE-2019-19781 (Citrix).
 
 ### APT41 (Chine)
 
-APT41 utilise **FOFA.su** — l'équivalent chinois de Shodan — pour sa reconnaissance passive :
+APT41 utilise **FOFA.su** - l'équivalent chinois de Shodan - pour sa reconnaissance passive :
 
-> _"To search for and exploit vulnerabilities, the group uses popular tools such as Acunetix, Nmap, and fofa.su (a Chinese equivalent of Shodan)."_ — **Group-IB, Mandiant**
+> _"To search for and exploit vulnerabilities, the group uses popular tools such as Acunetix, Nmap, and fofa.su (a Chinese equivalent of Shodan)."_ - **Group-IB, Mandiant**
 
 ### Cyber Av3ngers / IRGC (Iran)
 
 Impliqués dans la compromission de systèmes d'eau aux États-Unis (novembre 2023) :
 
-> _"Cyber Av3ngers' likely use of internet survey services (e.g., Shodan, Censys) to identify vulnerable Unitronics devices."_ — **Secureworks**
+> _"Cyber Av3ngers' likely use of internet survey services (e.g., Shodan, Censys) to identify vulnerable Unitronics devices."_ - **Secureworks**
 
-### ASA (Iran) — JO de Paris 2024
+### ASA (Iran) - JO de Paris 2024
 
 Ce groupe a utilisé Shodan pour cibler un fournisseur d'affichage dynamique français pendant les Jeux Olympiques :
 
-> _"When conducting target reconnaissance, ASA uses open source resources such as Shodan, IP2location."_ — **FBI IC3, octobre 2024**
+> _"When conducting target reconnaissance, ASA uses open source resources such as Shodan, IP2location."_ - **FBI IC3, octobre 2024**
 
 ### GhostSec (hacktivistes pro-Ukraine)
 
 GhostSec a utilisé Shodan pour identifier des systèmes industriels russes exposés, dont une centrale hydroélectrique :
 
-> _"The control panel for Russia's Metrospetstekhnika's IT system for their railway infrastructure was discoverable through Shodan."_ — **Cybernews**
+> _"The control panel for Russia's Metrospetstekhnika's IT system for their railway infrastructure was discoverable through Shodan."_ - **Cybernews**
 
 ### Tableau récapitulatif
 
@@ -534,7 +534,7 @@ Avant de chercher dans les dorks offensifs, commencer par auditer sa propre infr
 
 ### Shodan Monitor
 
-Shodan Monitor permet de configurer des alertes automatiques sur ses plages IP. Dès qu'un nouveau service est détecté ou qu'un changement survient, une notification est envoyée — le même mécanisme qu'utilisent les attaquants pour surveiller leurs cibles, retourné à votre avantage.
+Shodan Monitor permet de configurer des alertes automatiques sur ses plages IP. Dès qu'un nouveau service est détecté ou qu'un changement survient, une notification est envoyée - le même mécanisme qu'utilisent les attaquants pour surveiller leurs cibles, retourné à votre avantage.
 
 ---
 
@@ -577,7 +577,7 @@ results = api.search('apache country:FR')
 print(f"Total: {results['total']}")
 
 for result in results['matches']:
-    print(f"{result['ip_str']}:{result['port']} — {result.get('product', '?')} {result.get('version', '')}")
+    print(f"{result['ip_str']}:{result['port']} - {result.get('product', '?')} {result.get('version', '')}")
 
 # Itération sur TOUS les résultats (consomme des crédits)
 for banner in api.search_cursor('product:mongodb country:FR'):
@@ -763,7 +763,7 @@ Shodan ne fait que collecter des informations **publiquement accessibles**. La c
 - Exploiter des vulnérabilités découvertes
 - Utiliser les données à des fins malveillantes
 
-En France, l'article 323-1 du Code pénal sanctionne l'accès frauduleux à un système informatique — l'intention et l'action comptent, pas seulement la consultation.
+En France, l'article 323-1 du Code pénal sanctionne l'accès frauduleux à un système informatique - l'intention et l'action comptent, pas seulement la consultation.
 
 ---
 
@@ -787,6 +787,6 @@ Il contient notamment :
 - [Shodan.io](https://www.shodan.io)
 - [Documentation API](https://developer.shodan.io)
 - [Python SDK](https://github.com/achillean/shodan-python)
-- [CISA AA24-241A — Pioneer Kitten](https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-241a)
-- [FBI IC3 — ASA (Aria Sepehr Ayandehsazan)](https://www.ic3.gov/CSA/2024/241030.pdf)
-- [MITRE ATT&CK T1596 — Search Open Technical Databases](https://attack.mitre.org/techniques/T1596/)
+- [CISA AA24-241A - Pioneer Kitten](https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-241a)
+- [FBI IC3 - ASA (Aria Sepehr Ayandehsazan)](https://www.ic3.gov/CSA/2024/241030.pdf)
+- [MITRE ATT&CK T1596 - Search Open Technical Databases](https://attack.mitre.org/techniques/T1596/)
