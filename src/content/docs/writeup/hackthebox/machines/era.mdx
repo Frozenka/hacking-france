@@ -56,7 +56,7 @@ L'énumération de vhosts révèle `file.era.htb`, une plateforme de partage de 
 
 ---
 
-## IDOR — Récupération du backup et de la base SQLite
+## IDOR - Récupération du backup et de la base SQLite
 
 Après inscription sur `file.era.htb`, le endpoint `download.php` accepte n'importe quel identifiant numérique sans vérifier que le fichier appartient à l'utilisateur courant.
 
@@ -103,7 +103,7 @@ L'analyse de `reset.php` révèle qu'un utilisateur authentifié peut modifier l
 
 ---
 
-## Remote Code Execution — Stream wrapper `ssh2.exec://`
+## Remote Code Execution - Stream wrapper `ssh2.exec://`
 
 ### Analyse de `download.php` (mode admin)
 
@@ -126,7 +126,7 @@ En remplaçant `id` par un reverse shell encodé, on obtient un shell en tant qu
 
 ---
 
-## Privilege Escalation — Backdoor du binaire `monitor`
+## Privilege Escalation - Backdoor du binaire `monitor`
 
 ### Analyse de la situation
 
