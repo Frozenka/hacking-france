@@ -1,0 +1,792 @@
+---
+title: Shodan
+description: Guide complet de Shodan — moteur de recherche pour l'internet des objets. Filtres, dorks offensifs, usage défensif, automatisation Python et intégration dans un workflow de pentest.
+categories: [tools]
+tags: [tools, shodan, recon, osint, pentest, iot, api]
+template: doc
+---
+
+_Le moteur de recherche que chaque pentester devrait maîtriser — et que chaque défenseur devrait surveiller._
+
+---
+
+## Qu'est-ce que Shodan ?
+
+Shodan est un moteur de recherche spécialisé qui indexe les **appareils connectés à internet** plutôt que les pages web. Là où Google parcourt le World Wide Web à la recherche de contenu HTML, Shodan scanne en permanence l'ensemble des adresses IP publiques pour capturer les bannières renvoyées par les services réseau : serveurs web, caméras IP, routeurs, bases de données, systèmes industriels, objets connectés.
+
+Créé en 2009 par John Matherly (le nom vient du personnage antagoniste du jeu System Shock), Shodan est devenu un outil central dans les phases de reconnaissance — aussi bien pour les équipes offensives que défensives.
+
+### Le concept de bannière
+
+Shodan fonctionne en envoyant des connexions TCP/UDP sur les ports communs et en capturant la réponse. Cette réponse, appelée **bannière**, contient les informations que le service renvoie lors d'une connexion :
+
+```
+# Bannière HTTP
+HTTP/1.1 200 OK
+Server: nginx/1.18.0 (Ubuntu)
+Date: Thu, 24 Apr 2026 10:00:00 GMT
+Content-Type: text/html; charset=utf-8
+```
+
+```
+# Bannière d'un automate Siemens S7
+Copyright: Original Siemens Equipment
+PLC name: S7_Turbine
+Module type: CPU 313C
+Firmware: v.3.3.8
+Serial number: S Q-D9U083642013
+```
+
+La deuxième bannière est exposée **sur internet public**. C'est exactement ce que Shodan indexe — et ce que les attaquants cherchent.
+
+### Ce que Shodan sait sur chaque hôte
+
+Chaque résultat contient un objet structuré :
+
+| Champ | Description |
+|-------|-------------|
+| `ip_str` | Adresse IP |
+| `port` | Port ouvert |
+| `org` | Organisation propriétaire (ASN) |
+| `country_name` / `city` | Géolocalisation |
+| `os` | Système d'exploitation détecté |
+| `product` / `version` | Service identifié et version |
+| `data` | Contenu brut de la bannière |
+| `vulns` | CVE détectées (plan payant) |
+| `timestamp` | Date d'indexation |
+
+---
+
+## Grille tarifaire
+
+| Plan | Prix | Résultats/mois | Filtre `vuln:` | Filtre `tag:` |
+|------|------|----------------|----------------|---------------|
+| Gratuit | 0 $ | Limité | ✗ | ✗ |
+| Membership | 49 $ (unique) | Étendu | ✗ | ✗ |
+| Freelancer | 59–69 $/mois | 1 M | ✗ | ✗ |
+| Small Business | 299 $/mois | 5 M | ✓ | ✗ |
+| Corporate | 899–1 099 $/mois | 50 M | ✓ | ✓ |
+
+> **Astuce** : Le Membership à 49 $ (parfois soldé à 5 $) est souvent suffisant pour un usage personnel ou CTF. Les universités peuvent obtenir un accès gratuit avec une adresse académique.
+
+---
+
+## Syntaxe de recherche
+
+### Principes de base
+
+Par défaut, un mot-clé recherche dans le contenu de la bannière. Les filtres s'expriment sous la forme `filtre:valeur`. Plusieurs filtres sont implicitement liés par AND. La négation utilise le préfixe `-`.
+
+```bash
+# Recherche dans la bannière
+apache
+
+# Avec filtre
+product:nginx country:FR
+
+# Valeur avec espaces (guillemets obligatoires)
+org:"Google LLC"
+
+# Négation
+port:22 -country:CN
+
+# Liste de valeurs (OR)
+country:FR,DE,GB
+
+# Ports multiples (OR)
+port:80,443,8080
+```
+
+### Filtres réseau
+
+| Filtre | Description | Exemple |
+|--------|-------------|---------|
+| `ip` | Adresse IP spécifique | `ip:8.8.8.8` |
+| `net` | Plage CIDR | `net:192.168.0.0/24` |
+| `port` | Port ouvert | `port:22` |
+| `hostname` | Nom d'hôte | `hostname:example.com` |
+| `org` | Organisation (ASN) | `org:"OVH SAS"` |
+| `asn` | Numéro de système autonome | `asn:AS15169` |
+
+### Filtres géographiques
+
+| Filtre | Description | Exemple |
+|--------|-------------|---------|
+| `country` | Code pays ISO 3166-1 | `country:FR` |
+| `city` | Ville | `city:Paris` |
+| `region` | Région/État | `region:"Ile-de-France"` |
+| `geo` | Coordonnées + rayon (km) | `geo:48.8566,2.3522,50` |
+
+### Filtres applicatifs
+
+| Filtre | Description | Exemple |
+|--------|-------------|---------|
+| `product` | Produit identifié | `product:nginx` |
+| `version` | Version du produit | `version:1.19.0` |
+| `os` | Système d'exploitation | `os:"Windows Server 2019"` |
+| `http.title` | Titre de la page web | `http.title:"Dashboard"` |
+| `http.html` | Contenu HTML | `http.html:"api_key"` |
+| `http.status` | Code de réponse HTTP | `http.status:200` |
+| `http.component` | Framework/techno détecté | `http.component:bootstrap` |
+| `http.favicon.hash` | Hash MurmurHash3 du favicon | `http.favicon.hash:116323821` |
+
+### Filtres SSL/TLS
+
+| Filtre | Description | Exemple |
+|--------|-------------|---------|
+| `ssl.cert.subject.cn` | Common Name du certificat | `ssl.cert.subject.cn:*.target.com` |
+| `ssl.cert.issuer.cn` | Autorité émettrice | `ssl.cert.issuer.cn:"Let's Encrypt"` |
+| `ssl.version` | Version TLS | `ssl.version:tlsv1.3` |
+| `ssl.cert.expired` | Certificat expiré | `ssl.cert.expired:true` |
+| `ssl.jarm` | Fingerprint JARM | `ssl.jarm:07d14d16d21d21d...` |
+
+### Filtres avancés (plans payants)
+
+| Filtre | Plan requis | Exemple |
+|--------|-------------|---------|
+| `vuln:` | Small Business+ | `vuln:CVE-2021-44228` |
+| `tag:` | Corporate+ | `tag:ics` |
+| `has_screenshot:` | Membership+ | `has_screenshot:true` |
+| `before:` / `after:` | Tous | `after:01/01/2025` |
+
+---
+
+## Hash de favicon : identifier une technologie par son icône
+
+Le hash MurmurHash3 du favicon est un fingerprint redoutablement efficace pour trouver toutes les instances d'une technologie ou d'un panneau d'administration, même si le produit ne se révèle pas dans les en-têtes.
+
+```python
+import mmh3
+import requests
+import codecs
+
+response = requests.get('https://target.com/favicon.ico')
+favicon = codecs.encode(response.content, 'base64')
+print(mmh3.hash(favicon))
+```
+
+**Hash courants :**
+
+| Technologie | Hash |
+|-------------|------|
+| Spring Boot | 116323821 |
+| Jenkins | -388646567 |
+| Grafana | 1099370896 |
+| Kibana | -338095061 |
+| GitLab | -1505567026 |
+| Fortinet | 945408572 |
+| Citrix | 1057565779 |
+
+```bash
+# Trouver tous les Spring Boot exposés
+http.favicon.hash:116323821
+
+# Trouver tous les Jenkins
+http.favicon.hash:-388646567 country:FR
+```
+
+---
+
+## Dorks offensifs par catégorie
+
+### Infrastructures C2 (Command & Control)
+
+Ces requêtes permettent d'identifier des infrastructures malveillantes actives — utiles pour la Threat Intelligence et le suivi d'APT.
+
+```bash
+# Cobalt Strike
+product:"cobalt strike team server"
+ssl.cert.serial:146473198
+ssl.jarm:07d14d16d21d21d07c42d41d00041d24a458a375eef0c576d23a7bab9a9fb1
+
+# Brute Ratel C4
+http.html_hash:-1957161625
+
+# Metasploit
+ssl:"MetasploitSelfSignedCA"
+
+# Mythic
+ssl:"Mythic" port:7443
+
+# Sliver C2
+product:"Sliver C2"
+
+# Malwares courants
+ssl:"AsyncRAT Server"
+ssl.cert.subject.cn:"Quasar Server CA"
+"nimplant C2 server"
+```
+
+### Systèmes industriels (ICS/SCADA)
+
+Ces systèmes sont souvent exposés par erreur de configuration. Leur présence publique représente un risque critique (infrastructures d'eau, d'énergie, de transport).
+
+```bash
+# Protocoles industriels
+port:502                           # Modbus (standard industriel mondial)
+port:102                           # S7 Siemens (Allemagne)
+port:47808                         # BACnet (bâtiments)
+port:20000 source address          # DNP3 (énergie)
+port:44818                         # EtherNet/IP
+port:1911,4911 product:Niagara     # Niagara Fox (Tridium, USA)
+
+# Équipements spécifiques
+"Siemens, SIMATIC" port:161        # Automates Siemens
+"DICOM Server Response" port:104   # Équipements médicaux
+"in-tank inventory" port:10001     # Contrôleurs pompes à essence (91% USA)
+title:"Nordex Control"             # Éoliennes
+
+# Compteurs et énergie
+"Server: EIG Embedded Web Server" "200 Document follows"
+http.title:"Tesla PowerPack System" http.component:"d3"
+```
+
+### Accès à distance non sécurisés
+
+```bash
+# VNC sans authentification
+"authentication disabled" "RFB 003.008"
+"authentication disabled" port:5900,5901
+
+# Telnet avec session root ouverte
+"root@" port:23 -login -password -name -Session
+
+# ADB Android exposé
+"Android Debug Bridge" "Device" port:5555
+
+# RDP (Bureau à distance Windows)
+"\x03\x00\x00\x0b\x06\xd0\x00\x00\x124\x00"
+
+# noVNC (VNC dans le navigateur)
+http.title:"noVNC"
+
+# Citrix Gateway
+title:"citrix gateway"
+html:"/citrix/xenapp"
+```
+
+### Bases de données exposées
+
+```bash
+# MongoDB sans authentification
+"MongoDB Server Information" port:27017 -authentication
+http.title:"mongo express"
+
+# Elasticsearch
+port:9200 json
+http.title:"kibana"
+
+# Redis
+product:"Redis"
+
+# MySQL / MariaDB
+product:MySQL port:3306
+
+# PostgreSQL
+port:5432 product:"PostgreSQL"
+
+# Autres
+product:"CouchDB"
+product:"Cassandra"
+product:"Memcached"
+"X-ClickHouse-Summary"
+"X-Influxdb-"
+```
+
+### Infrastructure DevOps exposée
+
+```bash
+# Jenkins (IC/CD)
+"X-Jenkins" "Set-Cookie: JSESSIONID" http.title:"Dashboard"
+
+# Docker API sans authentification
+"Docker Containers:" port:2375
+
+# Kubernetes
+product:"kubernetes"
+ssl:"Kubernetes Ingress Controller Fake Certificate"
+http.title:"Hubble UI"
+
+# GitLab / Gitea
+product:"GitLab Self-Managed"
+html:"Powered by Gitea"
+
+# Outils d'observabilité
+http.title:"Grafana"
+http.title:"Alertmanager"
+http.title:"Prometheus"
+http.title:"Argo CD"
+
+# Gestion de secrets
+http.title:"Vault"
+http.title:"Consul"
+```
+
+### Applications web vulnérables ou mal configurées
+
+```bash
+# Debug modes activés en production
+"symfony Profiler"
+http.title:"The install worked successfully! Congratulations!"  # Django
+html:"Twig Runtime Error"
+html:"yii\base\ErrorException"
+html:"Whitelabel Error Page"  # Spring Boot
+
+# Fichiers sensibles exposés
+http.title:"Index of /" http.html:".pem"
+http.title:"Index of /" http.html:"phpinfo.php"
+
+# Interfaces d'administration
+http.title:phpMyAdmin
+http.title:adminer
+http.title:"Struts Problem Report"
+
+# CMS mal configurés
+http.html:"wp-config.php"
+http.html:".env"
+```
+
+### Systèmes compromis et ransomware
+
+```bash
+# Routeurs hackés (message laissé par l'attaquant)
+HACKED-ROUTER-HELP-SOS-HAD-DEFAULT-PASSWORD
+
+# Pages défacées
+http.title:"Hacked By"
+http.title:"0wn3d by"
+
+# Bitcoin/ransomware avec screenshot
+bitcoin has_screenshot:true
+
+# RDP avec message ransomware
+"attention" "encrypted" port:3389
+```
+
+---
+
+## Cas d'usage pratiques en pentest
+
+### Scénario 1 : Cartographier la surface d'attaque d'une cible
+
+Avant d'engager un test, on peut effectuer une reconnaissance passive pour cartographier l'infrastructure exposée d'une organisation, sans envoyer une seule requête à la cible.
+
+```bash
+# Tous les services de l'organisation
+org:"Nom de l'Entreprise"
+
+# Combiné avec le pays
+org:"Nom de l'Entreprise" country:FR
+
+# Par plage IP
+net:203.0.113.0/24
+
+# Par domaine (via certificats SSL)
+ssl.cert.subject.cn:*.cible.com
+
+# Par nom d'hôte
+hostname:*.cible.com
+```
+
+**Ce qu'on peut découvrir :** serveurs web, APIs, VPN, interfaces d'administration, services de développement oubliés en production, versions logicielles (donc CVE applicables).
+
+### Scénario 2 : Identifier les instances vulnérables à une CVE
+
+Dès la publication d'une CVE critique, les attaquants scannent Shodan pour identifier des cibles. En tant que défenseur ou pentester, on peut faire de même :
+
+```bash
+# Log4Shell (CVE-2021-44228)
+vuln:CVE-2021-44228
+
+# ProxyLogon Exchange (CVE-2021-26855)
+vuln:CVE-2021-26855
+
+# Citrix Netscaler (CVE-2019-19781)
+vuln:CVE-2019-19781
+
+# Combiné : instances vulnérables en France
+product:apache vuln:CVE-2021-41773 country:FR
+
+# Toutes les CVE critiques 2024-2025 sur un périmètre
+org:"Cible" vuln:CVE-2024-27348
+```
+
+### Scénario 3 : Retrouver une infrastructure C2
+
+Lors d'une investigation de Threat Intelligence, identifier les serveurs C2 d'un attaquant permet de mapper son infrastructure et de trouver d'autres victimes potentielles.
+
+```bash
+# Identifier par fingerprint JARM (Cobalt Strike)
+ssl.jarm:07d14d16d21d21d07c42d41d00041d24a458a375eef0c576d23a7bab9a9fb1
+
+# Identifier par numéro de série SSL (Cobalt Strike)
+ssl.cert.serial:146473198
+
+# Pivoter depuis une IP connue
+# → Regarder l'org, le certificat SSL → trouver d'autres IPs similaires
+```
+
+### Scénario 4 : Recherche par pays et technologie spécifique
+
+```bash
+# Tous les Fortinet en France
+ssl:"ou=fortigate" country:FR
+
+# MongoDB exposés en Allemagne sans auth
+product:MongoDB country:DE -authentication
+
+# Hikvision en Europe (backdoor CVE-2021-36260)
+product:"Hikvision IP Camera" country:FR,DE,GB,IT,ES
+
+# Jenkins en Chine
+"X-Jenkins" country:CN
+
+# Systèmes SCADA en Russie
+port:502 country:RU
+```
+
+---
+
+## Shodan face aux APT : quand les États utilisent votre outil
+
+L'une des informations les plus sous-estimées sur Shodan : les groupes APT étatiques l'utilisent activement pour leur phase de reconnaissance. Les sources officielles (CISA, FBI, Mandiant) le documentent explicitement.
+
+### Pioneer Kitten / Fox Kitten (Iran)
+
+Le FBI et la CISA ont explicitement documenté l'utilisation de Shodan par ce groupe pour cibler l'infrastructure critique américaine :
+
+> _"The actors have been observed using the Shodan search engine to identify and enumerate IP addresses that host devices vulnerable to a particular CVE."_ — **CISA AA24-241A**
+
+CVE ciblées : CVE-2024-24919 (Check Point), CVE-2024-3400 (Palo Alto), CVE-2019-19781 (Citrix).
+
+### APT41 (Chine)
+
+APT41 utilise **FOFA.su** — l'équivalent chinois de Shodan — pour sa reconnaissance passive :
+
+> _"To search for and exploit vulnerabilities, the group uses popular tools such as Acunetix, Nmap, and fofa.su (a Chinese equivalent of Shodan)."_ — **Group-IB, Mandiant**
+
+### Cyber Av3ngers / IRGC (Iran)
+
+Impliqués dans la compromission de systèmes d'eau aux États-Unis (novembre 2023) :
+
+> _"Cyber Av3ngers' likely use of internet survey services (e.g., Shodan, Censys) to identify vulnerable Unitronics devices."_ — **Secureworks**
+
+### ASA (Iran) — JO de Paris 2024
+
+Ce groupe a utilisé Shodan pour cibler un fournisseur d'affichage dynamique français pendant les Jeux Olympiques :
+
+> _"When conducting target reconnaissance, ASA uses open source resources such as Shodan, IP2location."_ — **FBI IC3, octobre 2024**
+
+### GhostSec (hacktivistes pro-Ukraine)
+
+GhostSec a utilisé Shodan pour identifier des systèmes industriels russes exposés, dont une centrale hydroélectrique :
+
+> _"The control panel for Russia's Metrospetstekhnika's IT system for their railway infrastructure was discoverable through Shodan."_ — **Cybernews**
+
+### Tableau récapitulatif
+
+| Groupe | Pays | Outil | Cibles | Source |
+|--------|------|-------|--------|--------|
+| Pioneer Kitten | Iran | Shodan | Infrastructure critique US | CISA AA24-241A |
+| APT41 | Chine | FOFA.su | Multi-secteurs | Group-IB, Mandiant |
+| Cyber Av3ngers | Iran | Shodan, Censys | ICS eau | Secureworks |
+| ASA | Iran | Shodan | Médias, événements | FBI IC3 |
+| GhostSec | Hacktivistes | Shodan | ICS russes | Cybernews |
+
+**Conclusion pratique** : si des APT utilisent Shodan pour trouver vos serveurs, votre équipe sécurité devrait aussi l'utiliser pour voir ce qu'ils voient.
+
+---
+
+## Usage défensif : surveiller sa propre exposition
+
+### Auditer son périmètre
+
+```bash
+# Vue complète de son organisation
+org:"Mon Entreprise" country:FR
+
+# Détecter des services non autorisés
+org:"Mon Entreprise" -port:80 -port:443 -port:22
+
+# Trouver des sous-domaines exposés
+hostname:*.mondomaine.com
+
+# Détecter via les certificats SSL
+ssl.cert.subject.cn:*.mondomaine.com
+
+# Bases de données exposées
+org:"Mon Entreprise" product:MongoDB
+org:"Mon Entreprise" product:Elasticsearch
+org:"Mon Entreprise" product:Redis
+```
+
+### Checklist de sécurité
+
+Avant de chercher dans les dorks offensifs, commencer par auditer sa propre infrastructure :
+
+- [ ] Des services sont-ils exposés avec l'authentification désactivée ?
+- [ ] Des certificats sont-ils expirés (`ssl.cert.expired:true`) ?
+- [ ] Des versions vulnérables sont-elles accessibles ?
+- [ ] Des interfaces d'administration sont-elles publiques ?
+- [ ] Des bases de données sont-elles directement accessibles ?
+- [ ] Des services de dev/test sont-ils en production ?
+- [ ] Des systèmes ICS/SCADA sont-ils exposés ?
+
+### Shodan Monitor
+
+Shodan Monitor permet de configurer des alertes automatiques sur ses plages IP. Dès qu'un nouveau service est détecté ou qu'un changement survient, une notification est envoyée — le même mécanisme qu'utilisent les attaquants pour surveiller leurs cibles, retourné à votre avantage.
+
+---
+
+## Automatisation Python
+
+### Installation et initialisation
+
+```bash
+pip install shodan
+```
+
+```python
+from shodan import Shodan
+
+# Clé API disponible sur https://account.shodan.io
+api = Shodan('VOTRE_CLE_API')
+```
+
+### Informations sur un hôte
+
+```python
+host = api.host('8.8.8.8')
+
+print(f"IP: {host['ip_str']}")
+print(f"Organisation: {host.get('org', 'N/A')}")
+print(f"Pays: {host.get('country_name', 'N/A')}")
+print(f"Ports ouverts: {host.get('ports', [])}")
+
+for service in host['data']:
+    print(f"  Port {service['port']}: {service.get('product', 'inconnu')} {service.get('version', '')}")
+    if 'vulns' in service:
+        print(f"    CVE: {list(service['vulns'].keys())}")
+```
+
+### Recherche et itération
+
+```python
+# Recherche simple (premiers résultats)
+results = api.search('apache country:FR')
+print(f"Total: {results['total']}")
+
+for result in results['matches']:
+    print(f"{result['ip_str']}:{result['port']} — {result.get('product', '?')} {result.get('version', '')}")
+
+# Itération sur TOUS les résultats (consomme des crédits)
+for banner in api.search_cursor('product:mongodb country:FR'):
+    print(f"{banner['ip_str']}:{banner['port']}")
+```
+
+### Statistiques sans consommer de crédits
+
+```python
+# Compter et obtenir des facettes sans télécharger les résultats
+stats = api.count('nginx', facets=['country:10', 'org:10'])
+
+print(f"Total nginx dans le monde: {stats['total']}")
+for facet in stats['facets']['country']:
+    print(f"  {facet['value']}: {facet['count']}")
+```
+
+### Script complet : scanner de surface d'attaque
+
+```python
+#!/usr/bin/env python3
+"""
+Auditeur de surface d'attaque via l'API Shodan
+Usage: python shodan_scanner.py "org:\"Mon Entreprise\" country:FR"
+"""
+
+import shodan
+import json
+import sys
+from datetime import datetime
+
+SHODAN_API_KEY = "VOTRE_CLE_API"
+
+def init_api():
+    try:
+        api = shodan.Shodan(SHODAN_API_KEY)
+        api.info()
+        return api
+    except shodan.APIError as e:
+        print(f"[ERREUR] {e}")
+        sys.exit(1)
+
+def scan_network(api, query):
+    services = []
+    try:
+        results = api.search(query)
+        print(f"[INFO] {results['total']} résultats")
+        for result in results['matches']:
+            services.append({
+                'ip': result['ip_str'],
+                'port': result['port'],
+                'product': result.get('product', 'inconnu'),
+                'version': result.get('version', ''),
+                'org': result.get('org', 'N/A'),
+                'hostnames': result.get('hostnames', []),
+                'vulns': list(result.get('vulns', {}).keys()),
+                'timestamp': result.get('timestamp', '')
+            })
+    except shodan.APIError as e:
+        print(f"[ERREUR] {e}")
+    return services
+
+def generate_report(services, output_file):
+    report = {
+        'date_scan': datetime.now().isoformat(),
+        'nombre_services': len(services),
+        'services': services,
+        'résumé': {
+            'ports_uniques': sorted(set(s['port'] for s in services)),
+            'produits': sorted(set(s['product'] for s in services if s['product'] != 'inconnu')),
+            'vulnérabilités': sorted(set(v for s in services for v in s['vulns']))
+        }
+    }
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(report, f, indent=2, ensure_ascii=False)
+    return report
+
+def print_summary(report):
+    print(f"\n{'='*60}")
+    print("RÉSUMÉ DU SCAN")
+    print('='*60)
+    print(f"Services découverts : {report['nombre_services']}")
+    print(f"Ports uniques       : {report['résumé']['ports_uniques']}")
+    print(f"Produits identifiés : {report['résumé']['produits']}")
+    if report['résumé']['vulnérabilités']:
+        print(f"\nVulnérabilités détectées :")
+        for vuln in report['résumé']['vulnérabilités']:
+            print(f"  - {vuln}")
+
+def main():
+    if len(sys.argv) < 2:
+        print('Usage: python shodan_scanner.py "<requête>"')
+        sys.exit(1)
+    query = sys.argv[1]
+    api = init_api()
+    services = scan_network(api, query)
+    if not services:
+        print("[INFO] Aucun résultat")
+        sys.exit(0)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report = generate_report(services, f"shodan_report_{ts}.json")
+    print_summary(report)
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## CLI Shodan
+
+```bash
+# Installation et configuration
+pip install shodan
+shodan init VOTRE_CLE_API
+
+# Informations de base
+shodan myip                          # Voir sa propre IP
+shodan host 8.8.8.8                  # Détail d'un hôte
+
+# Recherche et export
+shodan search "product:nginx country:FR"
+shodan download --limit 500 results.json.gz "product:mongodb"
+shodan parse --fields ip_str,port results.json.gz
+
+# Statistiques (sans crédits)
+shodan count "nginx"
+shodan stats --facets country:10 "product:nginx"
+
+# Alertes (Shodan Monitor)
+shodan alert create "Mon Réseau" 203.0.113.0/24
+shodan alert list
+```
+
+---
+
+## Intégration Shodan + Nuclei
+
+Combiner Shodan (identification des cibles) avec Nuclei (vérification des vulnérabilités) constitue un workflow efficace pour les audits à grande échelle. Le principe : Shodan identifie les candidats, Nuclei confirme l'exploitabilité.
+
+```bash
+#!/bin/bash
+# Workflow : Shodan identifie → Nuclei vérifie
+
+QUERY='product:"Jenkins" country:FR'
+
+# 1. Collecter les cibles depuis Shodan
+shodan search "$QUERY" --fields ip_str,port \
+  | awk '{print "http://" $1 ":" $2}' \
+  | sort -u > targets.txt
+
+echo "[*] $(wc -l < targets.txt) cibles collectées"
+
+# 2. Scanner avec Nuclei
+nuclei \
+  -l targets.txt \
+  -t technologies/jenkins/ \
+  -t cves/ \
+  -severity high,critical \
+  -rate-limit 50 \
+  -j -o results.json
+
+# 3. Résumé
+jq -r '.host + " → " + .info.name' results.json | sort -u
+```
+
+Voir l'article dédié [Nuclei](/tools/nuclei) pour la création de templates de détection personnalisés et l'intégration complète dans un pipeline automatisé.
+
+---
+
+## Cadre légal
+
+Shodan ne fait que collecter des informations **publiquement accessibles**. La consultation des résultats est légale.
+
+**Ce qui est autorisé :**
+- Auditer ses propres systèmes
+- Effectuer de la veille sécurité
+- Rechercher dans le cadre d'un pentest **autorisé**
+- Surveillance défensive de son périmètre
+
+**Ce qui est interdit :**
+- Tenter de se connecter à des systèmes sans autorisation
+- Exploiter des vulnérabilités découvertes
+- Utiliser les données à des fins malveillantes
+
+En France, l'article 323-1 du Code pénal sanctionne l'accès frauduleux à un système informatique — l'intention et l'action comptent, pas seulement la consultation.
+
+---
+
+## Aller plus loin : awesome-shodan
+
+Cet article couvre les fondamentaux et les cas d'usage les plus courants. Pour une **référence exhaustive** (200+ dorks classés, filtres complets, payloads API détaillés, version anglaise), consulter le dépôt :
+
+**[github.com/cchopin/awesome-shodan](https://github.com/cchopin/awesome-shodan)**
+
+Il contient notamment :
+- L'intégralité des dorks par catégorie (C2, ICS, webcams, routeurs, pays spécifiques, CVE...)
+- La documentation complète de tous les filtres Shodan
+- Des requêtes géographiques avancées (ASN, coordonnées GPS, Corée du Nord...)
+- Les dorks spécifiques à la Chine, Russie, France, Corée du Sud
+- Le script Python complet de scan avec génération de rapport JSON
+
+---
+
+## Références
+
+- [Shodan.io](https://www.shodan.io)
+- [Documentation API](https://developer.shodan.io)
+- [Python SDK](https://github.com/achillean/shodan-python)
+- [CISA AA24-241A — Pioneer Kitten](https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-241a)
+- [FBI IC3 — ASA (Aria Sepehr Ayandehsazan)](https://www.ic3.gov/CSA/2024/241030.pdf)
+- [MITRE ATT&CK T1596 — Search Open Technical Databases](https://attack.mitre.org/techniques/T1596/)
