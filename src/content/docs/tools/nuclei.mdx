@@ -1,6 +1,8 @@
 ---
 title: Nuclei
+
 description: Maîtrise des templates Nuclei avec un cas pratique React2Shell - de la théorie à l'intégration dans un workflow Shodan.
+
 categories: [tools]
 tags: [tools, nuclei, templates, cve, recon, shodan]
 template: doc
@@ -447,7 +449,9 @@ shodan search 'http.component:"Next.js" version:15 country:FR' --fields ip_str,p
 
 ```bash
 #!/bin/bash
+
 # react2shell-hunt.sh - Pipeline Shodan → Nuclei
+
 
 SHODAN_QUERY='http.component:"Next.js" version:15'
 OUTPUT_DIR="./react2shell-$(date +%Y%m%d)"
