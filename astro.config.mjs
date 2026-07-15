@@ -124,7 +124,7 @@ export default defineConfig({
       },
       social: {
         discord: 'https://discord.com/invite/3NnqxT6enc',
-        github: 'https://github.dev/Frozenka',
+        github: 'https://github.com/Frozenka/hacking-france',
         linkedin: 'https://www.linkedin.com/company/hacking-france/'
       }
     }),
